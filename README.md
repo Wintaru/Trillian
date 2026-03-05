@@ -384,6 +384,54 @@ ollama serve
 
 To make sure Ollama starts on boot, check that "Ollama" appears in your startup apps (Settings > Apps > Startup).
 
+### 8. Auto-deploy on push (optional)
+
+Automatically pull, rebuild, and restart the bot when you push to GitHub from your dev machine.
+
+**On the Windows machine:**
+
+1. Generate a random webhook secret (any random string works):
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+2. Add the secret to your `.env` file:
+   ```
+   DEPLOY_WEBHOOK_SECRET=your-generated-secret-here
+   DEPLOY_WEBHOOK_PORT=9000
+   ```
+
+3. Start the webhook listener alongside the bot:
+   ```powershell
+   pm2 start "pnpm deploy-webhook" --name "deploy-webhook"
+   pm2 save
+   ```
+
+4. Open port 9000 on Windows Firewall:
+   - Search **"Windows Defender Firewall"** in the Start menu
+   - Click **"Advanced settings"** on the left
+   - Click **"Inbound Rules"** > **"New Rule..."**
+   - Select **Port** > **TCP** > Specific port: **9000**
+   - Allow the connection, give it a name like "Deploy Webhook"
+
+5. If behind a router, forward port 9000 to the Windows machine's local IP
+
+**On GitHub:**
+
+1. Go to your repo > **Settings** > **Webhooks** > **Add webhook**
+2. Payload URL: `http://YOUR_PUBLIC_IP:9000/webhook`
+3. Content type: `application/json`
+4. Secret: paste the same secret from step 1
+5. Events: select **"Just the push event"**
+6. Click **Add webhook**
+
+Now when you `git push` from your Mac, the Windows machine will automatically pull, build, migrate, deploy commands, and restart the bot.
+
+Check the webhook logs with:
+```powershell
+pm2 logs deploy-webhook
+```
+
 ---
 
 ## Adding a New Command

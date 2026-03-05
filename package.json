@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "deploy-commands": "tsx scripts/deploy-commands.ts",
+    "deploy-webhook": "tsx scripts/deploy-webhook.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
