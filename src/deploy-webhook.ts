@@ -5,6 +5,7 @@ import { execSync } from "node:child_process";
 
 const PORT = parseInt(process.env["DEPLOY_WEBHOOK_PORT"] ?? "9000", 10);
 const SECRET = process.env["DEPLOY_WEBHOOK_SECRET"] ?? "";
+const PM2_NAME = process.env["PM2_BOT_NAME"] ?? "discord-bot";
 const BRANCH = "main";
 
 if (!SECRET) {
@@ -25,7 +26,7 @@ function deploy(): void {
     "pnpm build",
     "pnpm db:migrate",
     "pnpm deploy-commands",
-    "pm2 restart discord-bot",
+    `pm2 restart ${PM2_NAME}`,
   ];
 
   for (const cmd of commands) {
