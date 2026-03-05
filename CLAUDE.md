@@ -190,6 +190,14 @@ Copy `.env.example` to `.env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`,
 - `src/utilities/` — Cross-cutting concerns (config, logging).
 - `scripts/` — One-off scripts (slash command deployment).
 
+### Discord Bot Configuration Reminders
+
+When adding features that use new Discord capabilities, always remind the user to check their bot's settings in the [Discord Developer Portal](https://discord.com/developers/applications):
+
+- **Privileged Gateway Intents** (Bot tab): Features that read message content need **Message Content Intent**. Features that access the member list need **Server Members Intent**. Features that track user presence need **Presence Intent**.
+- **Bot Permissions** (OAuth2 tab): If a feature requires permissions the bot wasn't originally invited with (e.g., Manage Roles for role rewards, Manage Messages for purge), the bot must be re-invited with the updated permission set or granted the permissions manually via server role settings.
+- **OAuth2 Scopes**: The bot needs both `bot` and `applications.commands` scopes. If slash commands aren't showing up, verify `applications.commands` is included.
+
 ### Adding a Command
 
 1. Create `src/commands/my-command.ts` implementing the `Command` interface
