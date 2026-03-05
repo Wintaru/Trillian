@@ -202,8 +202,9 @@ When adding features that use new Discord capabilities, always remind the user t
 
 1. Create `src/commands/my-command.ts` implementing the `Command` interface
 2. Import and add to the array in `src/commands/index.ts`
-3. Run `pnpm deploy-commands`
-4. **Update README.md** — add a detailed command reference entry (see existing entries for format)
+3. **Update `scripts/deploy-commands.ts`** — this script has its own command list separate from `src/index.ts`. Any new command must be added to both files or the slash command won't be registered with Discord.
+4. Run `pnpm deploy-commands`
+5. **Update README.md** — add a detailed command reference entry (see existing entries for format)
 
 #### Command Requirements
 

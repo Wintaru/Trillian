@@ -6,6 +6,9 @@ import { XpEngine } from "../src/engines/xp-engine.js";
 import { createRankCommand } from "../src/commands/rank.js";
 import { createLeaderboardCommand } from "../src/commands/leaderboard.js";
 import { createXpCommand } from "../src/commands/xp.js";
+import { createPollCommand } from "../src/commands/poll.js";
+import { PollAccessor } from "../src/accessors/poll-accessor.js";
+import { PollEngine } from "../src/engines/poll-engine.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -17,11 +20,15 @@ const xpEngine = new XpEngine(
   config.xpCooldownSeconds,
 );
 
+const pollAccessor = new PollAccessor();
+const pollEngine = new PollEngine(pollAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
   createLeaderboardCommand(xpEngine),
   createXpCommand(xpEngine),
+  createPollCommand(pollEngine),
 ];
 
 const commandEngine = new CommandEngine(commands);
