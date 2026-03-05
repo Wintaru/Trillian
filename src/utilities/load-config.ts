@@ -8,6 +8,9 @@ export interface Config {
   xpMin: number;
   xpMax: number;
   levelUpChannelId: string | null;
+  ollamaUrl: string;
+  ollamaModel: string;
+  ollamaContextMessages: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -34,5 +37,8 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     xpMin: parseInt(env["XP_MIN"] ?? "15", 10),
     xpMax: parseInt(env["XP_MAX"] ?? "25", 10),
     levelUpChannelId: env["LEVELUP_CHANNEL_ID"] ?? null,
+    ollamaUrl: env["OLLAMA_URL"] ?? "http://localhost:11434",
+    ollamaModel: env["OLLAMA_MODEL"] ?? "mistral-nemo:12b",
+    ollamaContextMessages: parseInt(env["OLLAMA_CONTEXT_MESSAGES"] ?? "10", 10),
   });
 }

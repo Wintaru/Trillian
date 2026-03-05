@@ -6,6 +6,7 @@ A Discord bot built with TypeScript, discord.js v14, and SQLite.
 
 - [Node.js](https://nodejs.org/) v18+
 - [pnpm](https://pnpm.io/)
+- [Ollama](https://ollama.ai/) (for AI chat feature)
 
 ## Discord Bot Setup
 
@@ -42,6 +43,9 @@ cp .env.example .env
 | `XP_MIN` | Minimum XP per message (default: `15`) |
 | `XP_MAX` | Maximum XP per message (default: `25`) |
 | `LEVELUP_CHANNEL_ID` | Channel for level-up announcements (default: same channel as message) |
+| `OLLAMA_URL` | Ollama API URL (default: `http://localhost:11434`) |
+| `OLLAMA_MODEL` | Ollama model for chat responses (default: `mistral-nemo:12b`) |
+| `OLLAMA_CONTEXT_MESSAGES` | Number of recent channel messages to include as conversation context (default: `10`) |
 
 ## Running
 
@@ -248,6 +252,137 @@ The bot awards 15–25 XP per message (randomized), with a 60-second cooldown pe
 There are 100 named ranks (a mix of Hitchhiker's Guide to the Galaxy and Lincoln, Nebraska references) that are automatically assigned as you level up. Level-up announcements are posted when a user reaches a new level.
 
 Role rewards can be configured in the `level_role_rewards` database table to auto-assign Discord roles at specific level thresholds.
+
+---
+
+## AI Chat
+
+Mention the bot (`@Trillian`) in any message and it will respond conversationally using a local Ollama instance. The bot has a friendly, witty personality with occasional Hitchhiker's Guide to the Galaxy references.
+
+### Setup
+
+1. Install [Ollama](https://ollama.ai/)
+2. Pull the model: `ollama pull mistral-nemo:12b`
+3. Ensure Ollama is running (`ollama serve`)
+4. The bot connects to `http://localhost:11434` by default — configure `OLLAMA_URL` if running elsewhere
+
+---
+
+## Windows Setup (from scratch)
+
+Step-by-step guide for deploying the bot on a Windows machine.
+
+### 1. Install Node.js
+
+1. Go to https://nodejs.org/ and download the **LTS** installer (`.msi`)
+2. Run the installer — accept defaults, but make sure **"Add to PATH"** is checked
+3. Open **PowerShell** and verify:
+   ```powershell
+   node --version   # should show v18+ or v20+
+   npm --version
+   ```
+
+### 2. Install pnpm
+
+```powershell
+npm install -g pnpm
+pnpm --version
+```
+
+### 3. Install Ollama
+
+1. Go to https://ollama.ai/ and download the Windows installer
+2. Run the installer
+3. Open a **new PowerShell window** and pull the model:
+   ```powershell
+   ollama pull mistral-nemo:12b
+   ```
+   This download is ~7 GB and may take a while.
+
+### 4. Clone and set up the bot
+
+```powershell
+git clone <your-repo-url> DiscordBot
+cd DiscordBot
+pnpm install
+```
+
+If you don't have Git installed, download it from https://git-scm.com/download/win or just download the repo as a ZIP and extract it.
+
+### 5. Configure
+
+```powershell
+copy .env.example .env
+```
+
+Open `.env` in Notepad (or any text editor) and fill in your values:
+```
+DISCORD_TOKEN=your-bot-token-here
+DISCORD_CLIENT_ID=your-client-id-here
+DISCORD_GUILD_ID=your-server-id-here
+```
+
+### 6. Build and run
+
+```powershell
+pnpm build
+pnpm db:migrate
+pnpm deploy-commands
+pnpm start
+```
+
+### 7. Keep the bot running
+
+The bot stops when you close PowerShell. To keep it running 24/7:
+
+**Option A: PM2 (recommended)**
+
+PM2 is a process manager that auto-restarts your bot if it crashes.
+
+```powershell
+npm install -g pm2
+pnpm build
+pm2 start dist/index.js --name "discord-bot"
+pm2 save
+pm2 startup
+```
+
+Useful PM2 commands:
+```powershell
+pm2 status          # check if the bot is running
+pm2 logs discord-bot # view bot logs
+pm2 restart discord-bot # restart the bot
+pm2 stop discord-bot    # stop the bot
+```
+
+**Option B: Task Scheduler**
+
+1. Open **Task Scheduler** (search for it in the Start menu)
+2. Click **Create Basic Task**
+3. Name it "Discord Bot" and set the trigger to **When the computer starts**
+4. Action: **Start a program**
+   - Program: `powershell.exe`
+   - Arguments: `-NoExit -Command "cd C:\path\to\DiscordBot; pnpm start"`
+5. Check **"Run whether user is logged on or not"** in the task properties
+
+**Option C: Run as a Windows Service**
+
+For a more robust setup, use [node-windows](https://github.com/coreybutler/node-windows) to install the bot as a Windows service that starts automatically on boot and restarts on crash.
+
+### Keeping Ollama running
+
+Ollama needs to be running for the AI chat feature to work. After installing Ollama on Windows, it typically runs as a background service automatically. Verify with:
+
+```powershell
+ollama list
+```
+
+If it's not running, start it with:
+```powershell
+ollama serve
+```
+
+To make sure Ollama starts on boot, check that "Ollama" appears in your startup apps (Settings > Apps > Startup).
 
 ---
 

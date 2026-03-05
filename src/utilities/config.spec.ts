@@ -82,4 +82,25 @@ describe("loadConfig", () => {
     expect(config.xpMax).toBe(50);
     expect(config.levelUpChannelId).toBe("999");
   });
+
+  it("should default Ollama config values when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.ollamaUrl).toBe("http://localhost:11434");
+    expect(config.ollamaModel).toBe("mistral-nemo:12b");
+    expect(config.ollamaContextMessages).toBe(10);
+  });
+
+  it("should use custom Ollama config values when set", () => {
+    const config = loadConfig({
+      ...validEnv,
+      OLLAMA_URL: "http://192.168.1.100:11434",
+      OLLAMA_MODEL: "llama3.1:8b",
+      OLLAMA_CONTEXT_MESSAGES: "5",
+    });
+
+    expect(config.ollamaUrl).toBe("http://192.168.1.100:11434");
+    expect(config.ollamaModel).toBe("llama3.1:8b");
+    expect(config.ollamaContextMessages).toBe(5);
+  });
 });

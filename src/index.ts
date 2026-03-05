@@ -4,6 +4,9 @@ import { DiscordClient } from "./clients/discord-client.js";
 import { XpAccessor } from "./accessors/xp-accessor.js";
 import { XpEngine } from "./engines/xp-engine.js";
 import { createMessageXpHandler } from "./events/message-xp.js";
+import { createMessageChatHandler } from "./events/message-chat.js";
+import { OllamaAccessor } from "./accessors/ollama-accessor.js";
+import { ChatEngine } from "./engines/chat-engine.js";
 import { createRankCommand } from "./commands/rank.js";
 import { createLeaderboardCommand } from "./commands/leaderboard.js";
 import { createXpCommand } from "./commands/xp.js";
@@ -23,6 +26,9 @@ const xpEngine = new XpEngine(
 await xpAccessor.seedRanks(defaultRanks);
 logger.info("Rank data seeded.");
 
+const ollamaAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaModel);
+const chatEngine = new ChatEngine(ollamaAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -33,6 +39,7 @@ const commands = [
 const events = [
   ...staticEvents,
   createMessageXpHandler(xpEngine, config.levelUpChannelId),
+  createMessageChatHandler(chatEngine, config.ollamaContextMessages),
 ];
 
 const commandEngine = new CommandEngine(commands);

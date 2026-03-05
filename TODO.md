@@ -24,7 +24,7 @@ Potential features to add to the bot. Not prioritized — pick what's useful.
 ## Integration
 - [ ] Webhooks from external services (GitHub, Twitch, etc.)
 - [ ] Music / audio playback
-- [ ] AI chat integration
+- [x] AI chat integration
 
 ## Architecture Notes
 
