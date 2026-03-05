@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer } from "node:http";
 import { createHmac } from "node:crypto";
 import { execSync } from "node:child_process";
