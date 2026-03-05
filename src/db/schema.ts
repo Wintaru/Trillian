@@ -24,3 +24,26 @@ export const levelRoleRewards = sqliteTable("level_role_rewards", {
   level: integer("level").notNull(),
   roleId: text("role_id").notNull(),
 });
+
+export const polls = sqliteTable("polls", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  messageId: text("message_id").notNull().default(""),
+  creatorId: text("creator_id").notNull(),
+  question: text("question").notNull(),
+  options: text("options").notNull(),
+  status: text("status").notNull().default("open"),
+  closesAt: integer("closes_at"),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const pollVotes = sqliteTable(
+  "poll_votes",
+  {
+    pollId: integer("poll_id").notNull(),
+    userId: text("user_id").notNull(),
+    optionIndex: integer("option_index").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.pollId, table.userId] })],
+);

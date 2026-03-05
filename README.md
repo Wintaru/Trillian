@@ -79,6 +79,7 @@ This registers commands to your development guild (instant). For global deployme
 | `/xp set @user <amount>` | Set a user's XP | Manage Server |
 | `/xp add @user <amount>` | Add XP to a user | Manage Server |
 | `/xp reset @user` | Reset a user's XP to zero | Manage Server |
+| `/poll` | Create an anonymous poll | Everyone |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -242,6 +243,62 @@ Admin commands for managing user XP. Has three subcommands: `set`, `add`, and `r
 #### Permission
 
 Manage Server — users without this permission cannot see or use the command.
+
+---
+
+### `/poll`
+
+Create an anonymous poll. Votes are stored in the database and never publicly revealed — only aggregate counts are shown. Users vote by clicking buttons, and the bot confirms their vote with an ephemeral message only they can see.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/poll question:"What's for lunch?" options:"Pizza, Burgers, Salad"` |
+| Slash command (timed) | `/poll question:"Movie night pick?" options:"Action, Comedy, Horror" duration:60` |
+| Prefix command | `!poll "What's for lunch?" "Pizza, Burgers, Salad"` |
+| Prefix command (timed) | `!poll "Movie night pick?" "Action, Comedy, Horror" 60` |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Range | Description |
+|---|---|---|---|---|---|
+| `question` | String | Yes | — | Max 256 chars | The poll question |
+| `options` | String | Yes | — | 2–10 items | Comma-separated list of choices |
+| `duration` | Integer | No | None (no expiry) | 1–10080 | Auto-close timer in minutes (max 7 days) |
+
+#### Permission
+
+Everyone — anyone can create a poll. Only the poll creator or server administrators can close it.
+
+#### Configuration
+
+None — works out of the box.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+- Read Message History
+
+#### Behavior
+
+1. Bot creates an embed showing the question, options (with vote bars), and poll status
+2. Each option has a button. Users click to vote — the bot replies ephemerally confirming their vote
+3. Vote counts update live on the embed after each vote
+4. Users can change their vote by clicking a different option button
+5. The poll creator (or an admin) can click the "Close Poll" button to end voting
+6. If a duration was set, the poll auto-closes when the timer expires
+7. When closed, buttons are removed and the embed shows final results
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **Max 10 options** | Discord allows at most 5 buttons per row. Polls with 6+ options use two rows. |
+| **Timers don't survive restarts** | If the bot restarts, expired polls are caught and closed on the next 30-second check cycle. |
+| **No undo** | Votes are irreversibly anonymous — there is no audit trail by design. |
+| **One vote per user** | Each user can only vote for one option. Clicking a different option changes their vote. |
 
 ---
 
