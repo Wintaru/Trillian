@@ -3,7 +3,11 @@ import * as logger from "../utilities/logger.js";
 
 const DISCORD_MAX_LENGTH = 2000;
 
-const SYSTEM_PROMPT = `You are Trillian, a Discord chat bot. You're friendly, witty, and a little sassy — but never mean. You keep responses concise (1-3 sentences usually). Occasionally you make references to The Hitchhiker's Guide to the Galaxy, but you don't force it into every response. You're helpful when asked questions but also enjoy playful banter. Never prefix your responses with your name or "Trillian:" — just respond naturally.`;
+const SYSTEM_PROMPT = `You are Trillian, a Discord chat bot. You're friendly, witty, and a little sassy — but never mean. You keep responses concise (1-3 sentences usually). Occasionally you make references to The Hitchhiker's Guide to the Galaxy, but you don't force it into every response. You're helpful when asked questions but also enjoy playful banter.
+
+IMPORTANT RULES:
+- Never prefix your responses with your name or "Trillian:" — just respond naturally.
+- You will receive recent chat history for context. Each message is labeled with who said it. Pay attention to WHO is currently talking to you — their name will be in the final message. Only address that person, not other people from the history.`;
 
 const FALLBACK_MESSAGE =
   "My circuits are a bit fuzzy right now. Try again in a moment!";
@@ -37,7 +41,7 @@ export class ChatEngine {
     const cleaned = ChatEngine.stripMentions(userMessage);
     const prompt = cleaned || `${username} just said hi to me!`;
 
-    const systemPrompt = `${SYSTEM_PROMPT}\n\nThe user's display name is "${username}".`;
+    const systemPrompt = `${SYSTEM_PROMPT}\n\nYou are currently being addressed by "${username}". Respond directly to them.`;
 
     const messages: OllamaChatMessage[] = [
       { role: "system", content: systemPrompt },
@@ -51,12 +55,12 @@ export class ChatEngine {
       if (msg.authorIsBot) {
         messages.push({ role: "assistant", content: stripped });
       } else {
-        messages.push({ role: "user", content: `${msg.authorName}: ${stripped}` });
+        messages.push({ role: "user", content: `[${msg.authorName}]: ${stripped}` });
       }
     }
 
-    // Add the current message
-    messages.push({ role: "user", content: prompt });
+    // Add the current message with clear attribution
+    messages.push({ role: "user", content: `[${username}]: ${prompt}` });
 
     try {
       const raw = await this.accessor.chat(messages);

@@ -70,7 +70,7 @@ describe("ChatEngine", () => {
       expect(result).toBe("Hey there!");
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
       const lastMessage = messages[messages.length - 1];
-      expect(lastMessage.content).toBe("hello");
+      expect(lastMessage.content).toBe("[TestUser]: hello");
     });
 
     it("should include username in the system prompt", async () => {
@@ -79,7 +79,7 @@ describe("ChatEngine", () => {
       await engine.respond("hey", "CoolUser", []);
 
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
-      expect(messages[0].content).toContain('display name is "CoolUser"');
+      expect(messages[0].content).toContain('"CoolUser"');
     });
 
     it("should use greeting prompt when message is empty after stripping", async () => {
@@ -89,6 +89,7 @@ describe("ChatEngine", () => {
 
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
       const lastMessage = messages[messages.length - 1];
+      expect(lastMessage.content).toContain("[TestUser]");
       expect(lastMessage.content).toContain("TestUser just said hi");
     });
 
@@ -121,7 +122,7 @@ describe("ChatEngine", () => {
       // system + 2 context + 1 current = 4
       expect(messages).toHaveLength(4);
       expect(messages[1].role).toBe("user");
-      expect(messages[1].content).toContain("I love pizza");
+      expect(messages[1].content).toBe("[TestUser]: I love pizza");
       expect(messages[2].role).toBe("assistant");
       expect(messages[2].content).toBe("Pizza is great!");
     });
