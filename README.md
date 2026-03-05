@@ -403,7 +403,8 @@ Automatically pull, rebuild, and restart the bot when you push to GitHub from yo
 
 3. Start the webhook listener alongside the bot:
    ```powershell
-   pm2 start scripts/deploy-webhook.ts --name "deploy-webhook" --interpreter npx --interpreter-args "tsx"
+   pnpm build
+   pm2 start dist/deploy-webhook.js --name "deploy-webhook"
    pm2 save
    ```
 
