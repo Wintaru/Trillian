@@ -5,13 +5,20 @@ import { execSync } from "node:child_process";
 
 const PORT = parseInt(process.env["DEPLOY_WEBHOOK_PORT"] ?? "9000", 10);
 const SECRET = process.env["DEPLOY_WEBHOOK_SECRET"] ?? "";
-const PM2_NAME = process.env["PM2_BOT_NAME"] ?? "discord-bot";
+const PM2_NAME = process.env["PM2_BOT_NAME"] ?? "";
 const BRANCH = "main";
 
 if (!SECRET) {
   console.error("DEPLOY_WEBHOOK_SECRET is required. Set it in your .env file.");
   process.exit(1);
 }
+
+if (!PM2_NAME) {
+  console.error("PM2_BOT_NAME is required. Set it in your .env file.");
+  process.exit(1);
+}
+
+console.log(`Configured to restart PM2 process: "${PM2_NAME}"`);
 
 function verifySignature(payload: string, signature: string | undefined): boolean {
   if (!signature) return false;
