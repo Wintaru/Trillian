@@ -31,7 +31,7 @@ export function createMessageXpHandler(
       try {
         const channel = await message.guild.channels.fetch(targetChannelId);
         if (channel?.isTextBased()) {
-          const rankText = result.rankName ? ` They are now a **${result.rankName}**!` : "";
+          const rankText = result.rankName ? ` They are now ranked: **${result.rankName}**!` : "";
           await (channel as TextChannel).send(
             `Congratulations <@${message.author.id}>! You reached **Level ${result.currentLevel}**!${rankText}`,
           );
