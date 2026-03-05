@@ -1,8 +1,39 @@
 import { config } from "./utilities/config.js";
 import { CommandEngine } from "./engines/command-engine.js";
 import { DiscordClient } from "./clients/discord-client.js";
-import commands from "./commands/index.js";
-import events from "./events/index.js";
+import { XpAccessor } from "./accessors/xp-accessor.js";
+import { XpEngine } from "./engines/xp-engine.js";
+import { createMessageXpHandler } from "./events/message-xp.js";
+import { createRankCommand } from "./commands/rank.js";
+import { createLeaderboardCommand } from "./commands/leaderboard.js";
+import { createXpCommand } from "./commands/xp.js";
+import { defaultRanks } from "./db/seed-ranks.js";
+import staticCommands from "./commands/index.js";
+import staticEvents from "./events/index.js";
+import * as logger from "./utilities/logger.js";
+
+const xpAccessor = new XpAccessor();
+const xpEngine = new XpEngine(
+  xpAccessor,
+  config.xpMin,
+  config.xpMax,
+  config.xpCooldownSeconds,
+);
+
+await xpAccessor.seedRanks(defaultRanks);
+logger.info("Rank data seeded.");
+
+const commands = [
+  ...staticCommands,
+  createRankCommand(xpEngine),
+  createLeaderboardCommand(xpEngine),
+  createXpCommand(xpEngine),
+];
+
+const events = [
+  ...staticEvents,
+  createMessageXpHandler(xpEngine, config.levelUpChannelId),
+];
 
 const commandEngine = new CommandEngine(commands);
 const discordClient = new DiscordClient(commandEngine, events, config.prefix);

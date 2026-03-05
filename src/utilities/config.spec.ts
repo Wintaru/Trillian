@@ -58,4 +58,28 @@ describe("loadConfig", () => {
 
     expect(config.purgeChannelIds).toEqual(["123", "456"]);
   });
+
+  it("should default XP config values when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.xpCooldownSeconds).toBe(60);
+    expect(config.xpMin).toBe(15);
+    expect(config.xpMax).toBe(25);
+    expect(config.levelUpChannelId).toBeNull();
+  });
+
+  it("should use custom XP config values when set", () => {
+    const config = loadConfig({
+      ...validEnv,
+      XP_COOLDOWN_SECONDS: "30",
+      XP_MIN: "10",
+      XP_MAX: "50",
+      LEVELUP_CHANNEL_ID: "999",
+    });
+
+    expect(config.xpCooldownSeconds).toBe(30);
+    expect(config.xpMin).toBe(10);
+    expect(config.xpMax).toBe(50);
+    expect(config.levelUpChannelId).toBe("999");
+  });
 });

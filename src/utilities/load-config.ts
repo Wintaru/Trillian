@@ -4,6 +4,10 @@ export interface Config {
   guildId: string;
   prefix: string;
   purgeChannelIds: string[];
+  xpCooldownSeconds: number;
+  xpMin: number;
+  xpMax: number;
+  levelUpChannelId: string | null;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -26,5 +30,9 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     guildId: requireEnv(env, "DISCORD_GUILD_ID"),
     prefix: env["BOT_PREFIX"] ?? "!",
     purgeChannelIds: parseChannelIds(env["PURGE_CHANNEL_IDS"]),
+    xpCooldownSeconds: parseInt(env["XP_COOLDOWN_SECONDS"] ?? "60", 10),
+    xpMin: parseInt(env["XP_MIN"] ?? "15", 10),
+    xpMax: parseInt(env["XP_MAX"] ?? "25", 10),
+    levelUpChannelId: env["LEVELUP_CHANNEL_ID"] ?? null,
   });
 }

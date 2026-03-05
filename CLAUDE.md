@@ -195,6 +195,29 @@ Copy `.env.example` to `.env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`,
 1. Create `src/commands/my-command.ts` implementing the `Command` interface
 2. Import and add to the array in `src/commands/index.ts`
 3. Run `pnpm deploy-commands`
+4. **Update README.md** — add a detailed command reference entry (see existing entries for format)
+
+#### Command Requirements
+
+- Every command must support **both slash and prefix invocation** (`executeSlash` and `executePrefix`).
+- **Permission restrictions are per-command**, not global. Each command decides its own permission requirements via `setDefaultMemberPermissions` (slash) and manual permission checks (prefix).
+- Commands that perform destructive or sensitive operations should be restricted to specific channels or roles via configuration (env vars), not hardcoded.
+
+#### README Command Documentation
+
+Every command must have a detailed entry in the **Command Reference** section of `README.md`. Each entry must include:
+
+| Section | Description |
+|---|---|
+| **Usage** | Table showing slash and prefix invocation examples |
+| **Parameters** | Table with type, required, default, range, and description |
+| **Permission** | Who can use it and how permissions are enforced (slash vs prefix) |
+| **Configuration** | Env variables needed, with examples and setup steps |
+| **Bot Permissions Required** | Discord permissions the bot needs to execute |
+| **Behavior** | Step-by-step description of what the command does |
+| **Limitations** | Known constraints, rate limits, edge cases |
+
+See the `/ping` and `/purge` entries in README.md for reference.
 
 ### Adding an Event Handler
 

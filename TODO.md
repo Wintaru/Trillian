@@ -13,7 +13,7 @@ Potential features to add to the bot. Not prioritized — pick what's useful.
 - [ ] Role assignment (reaction roles, self-assign menus)
 - [ ] Polls / voting
 - [ ] Custom embeds builder
-- [ ] Leveling / XP system
+- [x] Leveling / XP system
 
 ## Utility
 - [ ] Reminders / scheduled announcements

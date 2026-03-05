@@ -12,7 +12,7 @@ A Discord bot built with TypeScript, discord.js v14, and SQLite.
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
 2. Click **New Application** and give it a name
 3. Go to the **Bot** tab and click **Reset Token** to get your bot token
-4. Under **Privileged Gateway Intents**, enable **Message Content Intent**
+4. Under **Privileged Gateway Intents**, enable **Message Content Intent** and **Server Members Intent**
 5. Go to the **OAuth2** tab, select the **bot** and **applications.commands** scopes
 6. Under **Bot Permissions**, select the permissions your bot needs (at minimum: Send Messages, Manage Messages, Read Message History)
 7. Copy the generated URL and open it in your browser to invite the bot to your server
@@ -38,6 +38,10 @@ cp .env.example .env
 | `DISCORD_GUILD_ID` | The ID of your development server (right-click server name > Copy Server ID) |
 | `BOT_PREFIX` | Prefix for text commands (default: `!`) |
 | `PURGE_CHANNEL_IDS` | Comma-separated channel IDs where `/purge` is allowed (e.g., `123456,789012`) |
+| `XP_COOLDOWN_SECONDS` | Seconds between XP awards per user (default: `60`) |
+| `XP_MIN` | Minimum XP per message (default: `15`) |
+| `XP_MAX` | Maximum XP per message (default: `25`) |
+| `LEVELUP_CHANNEL_ID` | Channel for level-up announcements (default: same channel as message) |
 
 ## Running
 
@@ -66,6 +70,11 @@ This registers commands to your development guild (instant). For global deployme
 |---|---|---|
 | `/ping` | Replies with Pong! | Everyone |
 | `/purge [count]` | Delete messages from a configured channel | Manage Messages |
+| `/rank [@user]` | Show level, XP, rank, and progress | Everyone |
+| `/leaderboard [page]` | Show the server XP leaderboard | Everyone |
+| `/xp set @user <amount>` | Set a user's XP | Manage Server |
+| `/xp add @user <amount>` | Add XP to a user | Manage Server |
+| `/xp reset @user` | Reset a user's XP to zero | Manage Server |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -162,6 +171,83 @@ Manage Messages — users without this permission cannot see or use the command.
 | **Pinned messages** | Pinned messages are deleted along with everything else. They are not filtered out. |
 | **No undo** | Deleted messages cannot be recovered by any means. |
 | **Audit log** | All bulk deletes appear in the server's audit log attributed to the bot. |
+
+---
+
+### `/rank`
+
+Shows a user's current level, XP, named rank, and progress toward the next level.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/rank` or `/rank user:@someone` |
+| Prefix command | `!rank` or `!rank @someone` |
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `user` | User | No | User to check (defaults to you) |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+---
+
+### `/leaderboard`
+
+Shows the server XP leaderboard, paginated with 10 members per page.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/leaderboard` or `/leaderboard page:2` |
+| Prefix command | `!leaderboard` or `!leaderboard 2` |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `page` | Integer | No | 1 | Page number |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+---
+
+### `/xp`
+
+Admin commands for managing user XP. Has three subcommands: `set`, `add`, and `reset`.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/xp set user:@someone amount:500` |
+| Slash command | `/xp add user:@someone amount:100` |
+| Slash command | `/xp reset user:@someone` |
+| Prefix command | `!xp set @someone 500` |
+| Prefix command | `!xp add @someone 100` |
+| Prefix command | `!xp reset @someone` |
+
+#### Permission
+
+Manage Server — users without this permission cannot see or use the command.
+
+---
+
+## XP / Leveling System
+
+The bot awards 15–25 XP per message (randomized), with a 60-second cooldown per user to prevent spam farming. XP accumulates and determines your level using the formula: `XP for level N = 5N² + 50N + 100` (cumulative).
+
+There are 100 named ranks (a mix of Hitchhiker's Guide to the Galaxy and Lincoln, Nebraska references) that are automatically assigned as you level up. Level-up announcements are posted when a user reaches a new level.
+
+Role rewards can be configured in the `level_role_rewards` database table to auto-assign Discord roles at specific level thresholds.
 
 ---
 
