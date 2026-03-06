@@ -13,12 +13,14 @@ import type {
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 10;
 const MAX_QUESTION_LENGTH = 256;
+const DEFAULT_DURATION_MINUTES = 480;
 const MAX_DURATION_MINUTES = 10080;
 
 export class PollEngine {
   constructor(private pollAccessor: PollAccessor) {}
 
   async createPoll(request: CreatePollRequest): Promise<CreatePollResponse> {
+    const durationMinutes = request.durationMinutes ?? DEFAULT_DURATION_MINUTES;
     if (request.options.length < MIN_OPTIONS || request.options.length > MAX_OPTIONS) {
       throw new Error(`Polls must have between ${MIN_OPTIONS} and ${MAX_OPTIONS} options.`);
     }
@@ -27,16 +29,12 @@ export class PollEngine {
       throw new Error(`Question must be ${MAX_QUESTION_LENGTH} characters or fewer.`);
     }
 
-    if (
-      request.durationMinutes !== null &&
-      (request.durationMinutes < 1 || request.durationMinutes > MAX_DURATION_MINUTES)
-    ) {
+    if (durationMinutes < 1 || durationMinutes > MAX_DURATION_MINUTES) {
       throw new Error(`Duration must be between 1 and ${MAX_DURATION_MINUTES} minutes.`);
     }
 
     const now = Date.now();
-    const closesAt =
-      request.durationMinutes !== null ? now + request.durationMinutes * 60 * 1000 : null;
+    const closesAt = now + durationMinutes * 60 * 1000;
 
     const { id } = await this.pollAccessor.createPoll(
       request.guildId,

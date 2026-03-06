@@ -283,7 +283,7 @@ Create an anonymous poll. Votes are stored in the database and never publicly re
 |---|---|---|---|---|---|
 | `question` | String | Yes | — | Max 256 chars | The poll question |
 | `options` | String | Yes | — | 2–10 items | Comma-separated list of choices |
-| `duration` | Integer | No | None (no expiry) | 1–10080 | Auto-close timer in minutes (max 7 days) |
+| `duration` | Integer | No | 480 (8 hours) | 1–10080 | Auto-close timer in minutes (max 7 days) |
 
 #### Permission
 

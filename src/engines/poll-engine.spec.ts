@@ -54,7 +54,7 @@ describe("PollEngine", () => {
 
       expect(result.pollId).toBe(42);
       expect(result.options).toEqual(["Red", "Blue"]);
-      expect(result.closesAt).toBeNull();
+      expect(result.closesAt).toBeGreaterThan(Date.now());
       expect(accessor.createPoll).toHaveBeenCalled();
     });
 

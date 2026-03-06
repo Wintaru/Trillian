@@ -70,7 +70,7 @@ export function createPollCommand(pollEngine: PollEngine): Command {
       .addIntegerOption((opt) =>
         opt
           .setName("duration")
-          .setDescription("Duration in minutes (optional)")
+          .setDescription("Duration in minutes (default: 480 = 8 hours)")
           .setMinValue(1)
           .setMaxValue(10080),
       ),
