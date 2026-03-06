@@ -4,7 +4,7 @@ import type { Command, CommandContext } from "../types/command.js";
 import type { CharacterAccessor } from "../accessors/character-accessor.js";
 import type { CampaignAccessor } from "../accessors/campaign-accessor.js";
 import type { CharacterCreationEngine } from "../engines/character-creation-engine.js";
-import { formatCharacterSheet, formatCharacterSummaryEmbed } from "../utilities/shadowrun-format.js";
+import { formatCharacterSheet } from "../utilities/shadowrun-format.js";
 import * as logger from "../utilities/logger.js";
 
 export function createCharacterCommand(
@@ -28,7 +28,7 @@ export function createCharacterCommand(
         sub
           .setName("sheet")
           .setDescription("View a character sheet")
-          .addUserOption((opt) => opt.setName("user").setDescription("View another player's character (public summary)")),
+          .addUserOption((opt) => opt.setName("user").setDescription("View another player's character")),
       )
       .addSubcommand((sub) =>
         sub
@@ -144,38 +144,35 @@ export function createCharacterCommand(
   }
 
   async function handleSheet(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guildId) {
-      await interaction.reply({ content: "This command can only be used in a server.", flags: 64 });
-      return;
-    }
-
     const targetUser = interaction.options.getUser("user") ?? interaction.user;
-    const isSelf = targetUser.id === interaction.user.id;
 
-    const campaign = await campaignAccessor.getActiveCampaignForChannel(interaction.guildId, interaction.channelId)
-      ?? await campaignAccessor.getPausedCampaignForChannel(interaction.guildId, interaction.channelId);
-
-    if (!campaign) {
-      await interaction.reply({ content: "No campaign in this channel.", flags: 64 });
-      return;
+    // Try campaign-linked character first if in a guild channel
+    let character = null;
+    if (interaction.guildId) {
+      const campaign = await campaignAccessor.getActiveCampaignForChannel(interaction.guildId, interaction.channelId)
+        ?? await campaignAccessor.getPausedCampaignForChannel(interaction.guildId, interaction.channelId);
+      if (campaign) {
+        character = await characterAccessor.getCharacterByUserAndCampaign(targetUser.id, campaign.id);
+      }
     }
 
-    const character = await characterAccessor.getCharacterByUserAndCampaign(targetUser.id, campaign.id);
+    // Fall back to most recent completed character for the user
     if (!character || character.creationStatus !== "complete") {
+      const allChars = await characterAccessor.getCharactersForUser(targetUser.id);
+      character = allChars.filter((c) => c.creationStatus === "complete").at(-1) ?? null;
+    }
+
+    if (!character) {
+      const isSelf = targetUser.id === interaction.user.id;
       await interaction.reply({
-        content: isSelf ? "You don't have a completed character in this campaign." : `${targetUser.displayName} doesn't have a completed character.`,
+        content: isSelf ? "You don't have any completed characters." : `${targetUser.displayName} doesn't have any completed characters.`,
         flags: 64,
       });
       return;
     }
 
-    if (isSelf) {
-      const embed = formatCharacterSheet(character);
-      await interaction.reply({ embeds: [embed], flags: 64 });
-    } else {
-      const embed = formatCharacterSummaryEmbed(character);
-      await interaction.reply({ embeds: [embed] });
-    }
+    const embed = formatCharacterSheet(character);
+    await interaction.reply({ embeds: [embed] });
   }
 
   async function handleDelete(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -229,43 +226,34 @@ export function createCharacterCommand(
   }
 
   async function handleSheetPrefix(message: Message): Promise<void> {
-    if (!message.guild) {
-      await message.reply("This command can only be used in a server.");
-      return;
-    }
-
     const targetUser = message.mentions.users.first() ?? message.author;
-    const isSelf = targetUser.id === message.author.id;
 
-    const campaign = await campaignAccessor.getActiveCampaignForChannel(message.guild.id, message.channelId)
-      ?? await campaignAccessor.getPausedCampaignForChannel(message.guild.id, message.channelId);
-
-    if (!campaign) {
-      await message.reply("No campaign in this channel.");
-      return;
+    // Try campaign-linked character first if in a guild channel
+    let character = null;
+    if (message.guild) {
+      const campaign = await campaignAccessor.getActiveCampaignForChannel(message.guild.id, message.channelId)
+        ?? await campaignAccessor.getPausedCampaignForChannel(message.guild.id, message.channelId);
+      if (campaign) {
+        character = await characterAccessor.getCharacterByUserAndCampaign(targetUser.id, campaign.id);
+      }
     }
 
-    const character = await characterAccessor.getCharacterByUserAndCampaign(targetUser.id, campaign.id);
+    // Fall back to most recent completed character for the user
     if (!character || character.creationStatus !== "complete") {
+      const allChars = await characterAccessor.getCharactersForUser(targetUser.id);
+      character = allChars.filter((c) => c.creationStatus === "complete").at(-1) ?? null;
+    }
+
+    if (!character) {
+      const isSelf = targetUser.id === message.author.id;
       await message.reply(
-        isSelf ? "You don't have a completed character in this campaign." : `${targetUser.displayName} doesn't have a completed character.`,
+        isSelf ? "You don't have any completed characters." : `${targetUser.displayName} doesn't have any completed characters.`,
       );
       return;
     }
 
-    if (isSelf) {
-      const embed = formatCharacterSheet(character);
-      try {
-        const dm = await message.author.createDM();
-        await dm.send({ embeds: [embed] });
-        await message.reply("Character sheet sent to your DMs!");
-      } catch {
-        await message.reply({ embeds: [embed] });
-      }
-    } else {
-      const embed = formatCharacterSummaryEmbed(character);
-      await message.reply({ embeds: [embed] });
-    }
+    const embed = formatCharacterSheet(character);
+    await message.reply({ embeds: [embed] });
   }
 
   async function handleEdit(interaction: ChatInputCommandInteraction): Promise<void> {
