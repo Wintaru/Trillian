@@ -11,6 +11,8 @@ export interface Config {
   ollamaUrl: string;
   ollamaModel: string;
   ollamaContextMessages: number;
+  campaignChannelId: string | undefined;
+  ollamaGmTimeoutMs: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -40,5 +42,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     ollamaUrl: env["OLLAMA_URL"] ?? "http://localhost:11434",
     ollamaModel: env["OLLAMA_MODEL"] ?? "mistral-nemo:12b",
     ollamaContextMessages: parseInt(env["OLLAMA_CONTEXT_MESSAGES"] ?? "10", 10),
+    campaignChannelId: env["CAMPAIGN_CHANNEL_ID"] ?? undefined,
+    ollamaGmTimeoutMs: parseInt(env["OLLAMA_GM_TIMEOUT_MS"] ?? "120000", 10),
   });
 }

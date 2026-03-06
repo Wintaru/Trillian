@@ -15,6 +15,20 @@
       "when": 1772740683807,
       "tag": "0001_massive_swarm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772748438779,
+      "tag": "0002_violet_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772798500158,
+      "tag": "0003_happy_blue_shield",
+      "breakpoints": true
     }
   ]
 }

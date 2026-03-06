@@ -9,6 +9,16 @@ import { createXpCommand } from "../src/commands/xp.js";
 import { createPollCommand } from "../src/commands/poll.js";
 import { PollAccessor } from "../src/accessors/poll-accessor.js";
 import { PollEngine } from "../src/engines/poll-engine.js";
+import { OllamaAccessor } from "../src/accessors/ollama-accessor.js";
+import { CampaignAccessor } from "../src/accessors/campaign-accessor.js";
+import { CharacterAccessor } from "../src/accessors/character-accessor.js";
+import { DiceEngine } from "../src/engines/dice-engine.js";
+import { CampaignEngine } from "../src/engines/campaign-engine.js";
+import { CharacterCreationEngine } from "../src/engines/character-creation-engine.js";
+import { createCampaignCommand } from "../src/commands/campaign.js";
+import { createCharacterCommand } from "../src/commands/character.js";
+import { createRollCommand } from "../src/commands/roll.js";
+import { createShadowrunInfoCommand } from "../src/commands/shadowrun-info.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -23,12 +33,23 @@ const xpEngine = new XpEngine(
 const pollAccessor = new PollAccessor();
 const pollEngine = new PollEngine(pollAccessor);
 
+const ollamaAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaModel, config.ollamaGmTimeoutMs);
+const campaignAccessor = new CampaignAccessor();
+const characterAccessor = new CharacterAccessor();
+const diceEngine = new DiceEngine();
+const campaignEngine = new CampaignEngine(campaignAccessor, characterAccessor, ollamaAccessor, diceEngine);
+const characterCreationEngine = new CharacterCreationEngine(characterAccessor, ollamaAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
   createLeaderboardCommand(xpEngine),
   createXpCommand(xpEngine),
   createPollCommand(pollEngine),
+  createCampaignCommand(campaignEngine, characterCreationEngine, campaignAccessor, characterAccessor, config.campaignChannelId),
+  createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
+  createRollCommand(diceEngine),
+  createShadowrunInfoCommand(ollamaAccessor),
 ];
 
 const commandEngine = new CommandEngine(commands);

@@ -83,6 +83,18 @@ describe("loadConfig", () => {
     expect(config.levelUpChannelId).toBe("999");
   });
 
+  it("should default campaignChannelId to undefined when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.campaignChannelId).toBeUndefined();
+  });
+
+  it("should use CAMPAIGN_CHANNEL_ID when set", () => {
+    const config = loadConfig({ ...validEnv, CAMPAIGN_CHANNEL_ID: "123456" });
+
+    expect(config.campaignChannelId).toBe("123456");
+  });
+
   it("should default Ollama config values when not set", () => {
     const config = loadConfig(validEnv);
 

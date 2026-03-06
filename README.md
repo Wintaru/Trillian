@@ -46,6 +46,8 @@ cp .env.example .env
 | `OLLAMA_URL` | Ollama API URL (default: `http://localhost:11434`) |
 | `OLLAMA_MODEL` | Ollama model for chat responses (default: `mistral-nemo:12b`) |
 | `OLLAMA_CONTEXT_MESSAGES` | Number of recent channel messages to include as conversation context (default: `10`) |
+| `CAMPAIGN_CHANNEL_ID` | Channel ID where Shadowrun campaigns run (required for campaign system) |
+| `OLLAMA_GM_TIMEOUT_MS` | Timeout for Ollama GM narrative generation in milliseconds (default: `120000`) |
 
 ## Running
 
@@ -80,6 +82,22 @@ This registers commands to your development guild (instant). For global deployme
 | `/xp add @user <amount>` | Add XP to a user | Manage Server |
 | `/xp reset @user` | Reset a user's XP to zero | Manage Server |
 | `/poll` | Create an anonymous poll | Everyone |
+| `/campaign start [premise]` | Start a new Shadowrun campaign | Everyone |
+| `/campaign stop` | End the active campaign | Campaign GM / Admin |
+| `/campaign pause` | Pause the active campaign | Campaign GM / Admin |
+| `/campaign resume` | Resume a paused campaign | Campaign GM / Admin |
+| `/campaign status` | Show campaign overview | Everyone |
+| `/campaign addplayer @user` | Add a player and start character creation | Campaign GM / Admin |
+| `/campaign removeplayer @user` | Remove a player from the campaign | Campaign GM / Admin |
+| `/campaign players` | List players and character statuses | Everyone |
+| `/campaign summon @user` | Ping an absent player | Everyone |
+| `/campaign recap` | AI-generated "story so far" summary | Everyone |
+| `/campaign history` | List past campaigns in the server | Everyone |
+| `/character create <name>` | Create a new Shadowrun character (DM wizard) | Everyone |
+| `/character sheet [@user]` | View a character sheet | Everyone |
+| `/roll <pool> [limit] [description]` | Roll a Shadowrun dice pool | Everyone |
+| `/roll edge <pool> <edge_dice>` | Push the Limit roll | Everyone |
+| `/shadowrun info <topic>` | Look up Shadowrun game info | Everyone |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -299,6 +317,283 @@ None — works out of the box.
 | **Timers don't survive restarts** | If the bot restarts, expired polls are caught and closed on the next 30-second check cycle. |
 | **No undo** | Votes are irreversibly anonymous — there is no audit trail by design. |
 | **One vote per user** | Each user can only vote for one option. Clicking a different option changes their vote. |
+
+---
+
+### `/campaign`
+
+Manage Shadowrun 5th Edition campaigns. The bot acts as Game Master using Ollama for narrative generation. Only one active campaign is allowed per server at a time.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/campaign start premise:Corporate data heist in Redmond` |
+| Slash command | `/campaign stop` |
+| Slash command | `/campaign pause` |
+| Slash command | `/campaign resume` |
+| Slash command | `/campaign status` |
+| Slash command | `/campaign addplayer user:@someone` |
+| Slash command | `/campaign removeplayer user:@someone` |
+| Slash command | `/campaign players` |
+| Slash command | `/campaign summon user:@someone` |
+| Slash command | `/campaign recap` |
+| Slash command | `/campaign history` |
+| Prefix command | `!campaign start Corporate data heist in Redmond` |
+| Prefix command | `!campaign addplayer @someone` |
+
+#### Parameters
+
+| Subcommand | Parameter | Type | Required | Description |
+|---|---|---|---|---|
+| `start` | `premise` | String | No | Optional premise for the campaign setting |
+| `addplayer` | `user` | User | Yes | Player to add to the campaign |
+| `removeplayer` | `user` | User | Yes | Player to remove from the campaign |
+| `summon` | `user` | User | Yes | Player to ping |
+
+#### Permission
+
+- `start`, `status`, `players`, `summon`, `recap`, `history` — Everyone
+- `stop`, `pause`, `resume`, `addplayer`, `removeplayer` — Campaign GM (who started it) or users with Manage Server permission
+
+#### Configuration
+
+| Env Variable | Required | Example | Description |
+|---|---|---|---|
+| `CAMPAIGN_CHANNEL_ID` | Yes | `123456789` | Channel ID where campaigns run. All campaign interactions happen here. |
+| `OLLAMA_GM_TIMEOUT_MS` | No | `120000` | Timeout for Ollama narrative generation (default: 120000ms / 2 minutes) |
+
+**Setup steps:**
+
+1. Create or choose a text channel for campaigns
+2. Copy the channel ID (right-click > Copy Channel ID)
+3. Add to `.env`:
+   ```
+   CAMPAIGN_CHANNEL_ID=123456789
+   ```
+4. Restart the bot
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+- Read Message History
+
+#### Behavior
+
+1. **Starting a campaign:** `/campaign start` sends the premise to Ollama which generates a campaign name, setting, objective, location, and opening narrative. This may take up to 2 minutes.
+2. **Advancing the story:** @mention the bot in the campaign channel. The bot reads all messages since the last ping, feeds them to Ollama as player actions, and generates the next narrative beat. If the AI calls for skill checks, dice are auto-rolled.
+3. **Adding players:** `/campaign addplayer @user` adds a player and DMs them to start character creation (see `/character` below).
+4. **Recap:** `/campaign recap` sends the full narrative log to Ollama for a cohesive story summary — useful after long breaks.
+5. **History:** `/campaign history` lists all past campaigns with brief summaries.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **One campaign at a time** | A server can only have one active or paused campaign. Stop or complete the current one before starting another. |
+| **Configured channel only** | Campaign commands and ping-to-advance only work in the channel specified by `CAMPAIGN_CHANNEL_ID`. |
+| **AI generation time** | Starting a campaign and advancing narrative depend on Ollama response time, which can take up to 2 minutes. |
+| **Narrative length** | AI responses are capped at ~1800 characters to fit Discord's message limits. |
+
+---
+
+### `/character`
+
+Create and view Shadowrun characters. Characters can be created independently of campaigns — when a player is later added to a campaign, their most recent unassigned character is automatically linked.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/character create name:Razor` |
+| Slash command | `/character sheet` |
+| Slash command | `/character sheet user:@someone` |
+| Prefix command | `!character create Razor` |
+| Prefix command | `!character sheet` |
+| Prefix command | `!character sheet @someone` |
+
+#### Parameters
+
+| Subcommand | Parameter | Type | Required | Description |
+|---|---|---|---|---|
+| `create` | `name` | String | Yes | Name for the new character |
+| `sheet` | `user` | User | No | View another player's character (public summary). Defaults to your own (full private sheet). |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+- `create` — Works anywhere. No campaign required. Starts a DM wizard.
+- `sheet` — Requires an active or paused campaign in the current channel (uses `CAMPAIGN_CHANNEL_ID`).
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. **Create:** Starts a step-by-step character creation wizard in your DMs. Walk through metatype, archetype, attributes, skills, qualities, magic, gear, contacts, and backstory. The character is saved without a campaign — when you're later added to a campaign via `/campaign addplayer`, it's automatically linked.
+2. **Sheet (own character):** Shows a detailed embed (ephemeral in slash, DM'd in prefix) with all attributes, skills, gear, spells, contacts, condition monitors, nuyen, karma, and backstory.
+3. **Sheet (other player):** Shows a public embed with name, metatype, archetype, key attributes, and a brief skills/gear summary.
+4. Only completed characters are shown — in-progress character creation is not viewable.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **Sheet requires campaign** | `/character sheet` only works in the campaign channel with an active/paused campaign. |
+| **One creation at a time** | If you have an in-progress character, starting a new one resumes the existing creation. |
+| **Completed characters only** | Characters still in creation are not viewable via `sheet`. |
+| **Auto-link uses most recent** | When added to a campaign, the most recently created unassigned character is linked. Future updates will add character selection. |
+
+---
+
+### `/roll`
+
+Roll Shadowrun 5E dice pools. Rolls a number of d6s, counting 5s and 6s as hits. Detects glitches (more than half are 1s) and critical glitches (glitch with zero hits).
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/roll pool:8 limit:6 description:Firearms + Agility` |
+| Slash command | `/roll edge pool:8 edge_dice:3` |
+| Prefix command | `!roll 8 6 Firearms + Agility` |
+| Prefix command | `!roll edge 8 3` |
+
+#### Parameters
+
+**Standard roll:**
+
+| Parameter | Type | Required | Default | Range | Description |
+|---|---|---|---|---|---|
+| `pool` | Integer | Yes | — | 1–50 | Number of d6s to roll |
+| `limit` | Integer | No | None | 1–50 | Maximum hits (excess hits are discarded) |
+| `description` | String | No | None | — | Label for the roll |
+
+**Push the Limit (edge) roll:**
+
+| Parameter | Type | Required | Range | Description |
+|---|---|---|---|---|
+| `pool` | Integer | Yes | 1–50 | Base dice pool |
+| `edge_dice` | Integer | Yes | 1–20 | Extra Edge dice to add (no limit applied) |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+None — works out of the box. No campaign required.
+
+#### Bot Permissions Required
+
+- Send Messages
+
+#### Behavior
+
+1. Rolls the specified number of d6s
+2. Counts hits (5s and 6s)
+3. If a limit is set, excess hits are discarded
+4. Checks for glitch (more than half of all dice are 1s) and critical glitch (glitch + zero hits)
+5. Displays each die result, total hits, and any glitch/critical glitch warnings
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **Max 50 dice** | Pool size capped at 50 to prevent excessively long output. |
+| **No Rule of Six** | The "Rule of Six" (exploding 6s) is not implemented for standard rolls — only Push the Limit ignores limits. |
+
+---
+
+### `/shadowrun info`
+
+Look up Shadowrun 5E game information. Covers metatypes, archetypes, skills, lifestyles, dice mechanics, combat, magic, and the Matrix. For known topics, displays static reference data instantly. For other topics, queries Ollama for a lore-based answer.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/shadowrun info topic:metatypes` |
+| Slash command | `/shadowrun info topic:combat` |
+| Prefix command | `!shadowrun info metatypes` |
+| Prefix command | `!shadowrun info magic` |
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `topic` | String | Yes | Topic to look up. Built-in topics: `metatypes`, `archetypes`, `skills`, `lifestyles`, `dice`, `combat`, `magic`, `matrix`. Aliases like `classes`, `races`, `hacking` also work. Any other topic queries Ollama. |
+
+#### Permission
+
+Everyone — no special permissions required. Slash command replies are ephemeral (only visible to the user).
+
+#### Configuration
+
+None for built-in topics. Ollama must be running for custom topic queries.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. Checks if the topic matches a built-in category or alias
+2. If matched: returns a pre-formatted embed with game reference data
+3. If not matched: sends the topic to Ollama with a Shadowrun lore prompt and returns the AI response
+4. Slash command responses are ephemeral to avoid cluttering the channel
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **AI fallback** | Custom topics require Ollama to be running. If Ollama is down, only built-in topics work. |
+| **Response length** | AI responses are truncated to 2000 characters (Discord message limit). |
+
+---
+
+## Shadowrun Campaign System
+
+The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.
+
+### How It Works
+
+1. **Create characters** with `/character create <name>` — each player builds their character via DM wizard (can be done before any campaign starts)
+2. **Start a campaign** with `/campaign start` — the AI generates a setting, objective, and opening narrative
+3. **Add players** with `/campaign addplayer @user` — if a player already has an unassigned character, it's linked automatically; otherwise they receive a DM to create one
+4. **Play in the campaign channel** — players chat and describe their actions in the designated channel
+4. **Advance the story** by @mentioning the bot — it reads all messages since the last mention, feeds them to the AI as player actions, and responds with the next narrative beat
+5. **Dice rolls happen automatically** when the AI determines a skill check is needed, or players can manually `/roll` with Edge
+
+### Character Creation
+
+When added to a campaign, players receive a DM from the bot walking them through character creation:
+
+1. **Metatype** — Human, Elf, Dwarf, Ork, or Troll (each with unique attribute limits and abilities)
+2. **Archetype** — Street Samurai, Decker, Mage, Shaman, Rigger, Face, Adept, or Technomancer
+3. **Attributes** — 24 points to distribute across 8 attributes (Body, Agility, Reaction, Strength, Willpower, Logic, Intuition, Charisma)
+4. **Skills** — 36 skill points + 5 skill group points
+5. **Qualities** — Positive and negative traits
+6. **Magic/Resonance** — For magical or technomancer archetypes
+7. **Gear** — Starting equipment based on archetype
+8. **Contacts** — NPCs the character knows
+9. **Backstory** — Character background and motivation
+10. **Review & Finalize** — Confirm the character sheet
+
+### Discord Developer Portal Reminders
+
+The campaign system requires additional bot configuration:
+
+- **Privileged Gateway Intents** (Bot tab): Enable **Direct Messages** intent for character creation DMs
+- **Bot Permissions**: The bot needs **Send Messages**, **Embed Links**, and **Read Message History** in the campaign channel
+- **OAuth2 Scopes**: Ensure both `bot` and `applications.commands` scopes are included
 
 ---
 
