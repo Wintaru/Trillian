@@ -35,6 +35,32 @@ export function createCharacterCommand(
           .setName("delete")
           .setDescription("Delete one of your characters")
           .addStringOption((opt) => opt.setName("name").setDescription("Character name to delete").setRequired(true)),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("edit")
+          .setDescription("Reopen a creation step on a completed character")
+          .addStringOption((opt) => opt.setName("name").setDescription("Character name to edit").setRequired(true))
+          .addStringOption((opt) =>
+            opt
+              .setName("step")
+              .setDescription("Step to reopen")
+              .setRequired(true)
+              .addChoices(
+                { name: "Metatype", value: "metatype" },
+                { name: "Archetype", value: "archetype" },
+                { name: "Attributes", value: "attributes" },
+                { name: "Skills", value: "skills" },
+                { name: "Qualities", value: "qualities" },
+                { name: "Magic", value: "magic" },
+                { name: "Gear", value: "gear" },
+                { name: "Contacts", value: "contacts" },
+                { name: "Backstory", value: "backstory" },
+              ),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("cancel").setDescription("Cancel your in-progress character creation"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -49,6 +75,12 @@ export function createCharacterCommand(
           break;
         case "delete":
           await handleDelete(interaction);
+          break;
+        case "edit":
+          await handleEdit(interaction);
+          break;
+        case "cancel":
+          await handleCancel(interaction);
           break;
         default:
           await interaction.reply({ content: `Unknown subcommand: ${sub}`, flags: 64 });
@@ -68,8 +100,14 @@ export function createCharacterCommand(
         case "delete":
           await handleDeletePrefix(message, context.args.slice(1).join(" "));
           break;
+        case "edit":
+          await handleEditPrefix(message, context.args.slice(1));
+          break;
+        case "cancel":
+          await handleCancelPrefix(message);
+          break;
         default:
-          await message.reply("Usage: `!character <create|sheet|delete> [args]`");
+          await message.reply("Usage: `!character <create|sheet|delete|edit|cancel> [args]`");
       }
     },
   };
@@ -227,6 +265,82 @@ export function createCharacterCommand(
     } else {
       const embed = formatCharacterSummaryEmbed(character);
       await message.reply({ embeds: [embed] });
+    }
+  }
+
+  async function handleEdit(interaction: ChatInputCommandInteraction): Promise<void> {
+    const name = interaction.options.getString("name", true);
+    const step = interaction.options.getString("step", true);
+    const characters = await characterAccessor.getCharactersForUser(interaction.user.id);
+    const match = characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+
+    if (!match) {
+      await interaction.reply({ content: `No character named "${name}" found. Your characters: ${characters.map((c) => `**${c.name}**`).join(", ") || "none"}`, flags: 64 });
+      return;
+    }
+
+    try {
+      const dmChannel = await interaction.user.createDM();
+      const result = await characterCreationEngine.reopenStep(match.id, interaction.user.id, step as Parameters<typeof characterCreationEngine.reopenStep>[2]);
+      if (result.nextStep === null) {
+        await interaction.reply({ content: result.response, flags: 64 });
+        return;
+      }
+      await dmChannel.send(`Editing **${match.name}** — step: **${step}**\n\n${result.response}`);
+      await interaction.reply({ content: `Check your DMs — editing **${match.name}** (${step}).`, flags: 64 });
+    } catch (error) {
+      logger.error("Failed to start character edit:", error);
+      await interaction.reply({ content: "Failed to start edit. Make sure your DMs are open.", flags: 64 });
+    }
+  }
+
+  async function handleEditPrefix(message: Message, args: string[]): Promise<void> {
+    if (args.length < 2) {
+      await message.reply("Usage: `!character edit <name> <step>`\nSteps: metatype, archetype, attributes, skills, qualities, magic, gear, contacts, backstory");
+      return;
+    }
+
+    const step = args[args.length - 1].toLowerCase();
+    const name = args.slice(0, -1).join(" ");
+
+    const characters = await characterAccessor.getCharactersForUser(message.author.id);
+    const match = characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+
+    if (!match) {
+      await message.reply(`No character named "${name}" found. Your characters: ${characters.map((c) => `**${c.name}**`).join(", ") || "none"}`);
+      return;
+    }
+
+    try {
+      const dmChannel = await message.author.createDM();
+      const result = await characterCreationEngine.reopenStep(match.id, message.author.id, step as Parameters<typeof characterCreationEngine.reopenStep>[2]);
+      if (result.nextStep === null) {
+        await message.reply(result.response);
+        return;
+      }
+      await dmChannel.send(`Editing **${match.name}** — step: **${step}**\n\n${result.response}`);
+      await message.reply(`Check your DMs — editing **${match.name}** (${step}).`);
+    } catch (error) {
+      logger.error("Failed to start character edit:", error);
+      await message.reply("Failed to start edit. Make sure your DMs are open.");
+    }
+  }
+
+  async function handleCancel(interaction: ChatInputCommandInteraction): Promise<void> {
+    const result = await characterCreationEngine.cancelCreation(interaction.user.id);
+    if (result.cancelled) {
+      await interaction.reply({ content: `Character creation for **${result.characterName}** has been cancelled.`, flags: 64 });
+    } else {
+      await interaction.reply({ content: "You don't have any character creation in progress.", flags: 64 });
+    }
+  }
+
+  async function handleCancelPrefix(message: Message): Promise<void> {
+    const result = await characterCreationEngine.cancelCreation(message.author.id);
+    if (result.cancelled) {
+      await message.reply(`Character creation for **${result.characterName}** has been cancelled.`);
+    } else {
+      await message.reply("You don't have any character creation in progress.");
     }
   }
 }

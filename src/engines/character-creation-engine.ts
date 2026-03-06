@@ -79,6 +79,43 @@ export class CharacterCreationEngine {
     }
   }
 
+  async cancelCreation(userId: string): Promise<{ cancelled: boolean; characterName: string | null }> {
+    const inProgress = await this.characterAccessor.getInProgressCharacterForUser(userId);
+    if (!inProgress) {
+      return { cancelled: false, characterName: null };
+    }
+    const deleted = await this.characterAccessor.deleteCharacter(inProgress.id, userId);
+    return { cancelled: deleted, characterName: inProgress.name };
+  }
+
+  async reopenStep(characterId: number, userId: string, step: CharacterCreationStep): Promise<StepResult> {
+    const character = await this.characterAccessor.getCharacter(characterId);
+    if (!character) return { response: "Character not found.", nextStep: null, complete: false };
+    if (character.userId !== userId) return { response: "That's not your character.", nextStep: null, complete: false };
+    if (character.creationStatus !== "complete") {
+      return { response: "This character is still in progress — continue in your DMs.", nextStep: null, complete: false };
+    }
+    if (character.campaignId !== null) {
+      return { response: "This character is linked to a campaign and can't be edited.", nextStep: null, complete: false };
+    }
+
+    const validSteps: CharacterCreationStep[] = [
+      "metatype", "archetype", "attributes", "skills", "qualities", "magic", "gear", "contacts", "backstory",
+    ];
+    if (!validSteps.includes(step)) {
+      return { response: `Invalid step. Choose: ${validSteps.join(", ")}`, nextStep: null, complete: false };
+    }
+
+    await this.characterAccessor.updateCharacter(characterId, { creationStatus: "in_progress" });
+    await this.characterAccessor.setCreationStep(characterId, step);
+
+    const updated = await this.characterAccessor.getCharacter(characterId);
+    if (!updated) return { response: "Error loading character.", nextStep: null, complete: false };
+
+    const prompt = await this.getStepPrompt(updated);
+    return { response: prompt, nextStep: step, complete: false };
+  }
+
   async getCreationStatus(userId: string, campaignId: number): Promise<CharacterCreationState | null> {
     const character = await this.characterAccessor.getCharacterByUserAndCampaign(userId, campaignId);
     if (!character || character.creationStatus === "complete") return null;
@@ -221,6 +258,22 @@ export class CharacterCreationEngine {
   }
 
   private async processSkills(character: CharacterRow, input: string): Promise<StepResult> {
+    const lower = input.trim().toLowerCase();
+
+    // Handle confirmation of unspent points
+    if (lower === "confirm" && character.skills !== "[]") {
+      const isMagic = MAGIC_ARCHETYPES.includes(character.archetype ?? "");
+      const nextStep: CharacterCreationStep = "qualities";
+      await this.characterAccessor.setCreationStep(character.id, nextStep);
+      const existingSkills = JSON.parse(character.skills) as { name: string; rating: number }[];
+      const usedPoints = existingSkills.reduce((sum, s) => sum + s.rating, 0);
+      return {
+        response: `Skills confirmed (${usedPoints}/${CHARACTER_CREATION.skillPoints} points used — ${CHARACTER_CREATION.skillPoints - usedPoints} points lost).\n\nNow for **qualities**. These are special traits that define your character beyond raw stats.\n\n**Positive qualities** give you an edge — examples:\n- **Toughness** — +1 to Physical Condition Monitor\n- **Ambidextrous** — No off-hand penalty\n- **Catlike** — +2 dice for Sneaking\n- **Quick Healer** — +2 dice for healing tests\n- **Analytical Mind** — +2 dice for Logic-based tests\n\n**Negative qualities** give you flaws (but more karma) — examples:\n- **SINner** — You have a legal identity (trackable by corps)\n- **Addiction** — Dependent on a substance\n- **Bad Luck** — Edge costs double\n- **Gremlins** — Tech tends to malfunction around you\n- **Prejudiced** — Bias against a group\n\nSend as: \`+QualityName, -QualityName, ...\`\n(e.g., \`+Toughness, +Ambidextrous, -SINner, -Addiction\`)\n\nOr type \`skip\` to continue without qualities.`,
+        nextStep,
+        complete: false,
+      };
+    }
+
     const skillEntries = input.split(",").map((s) => s.trim()).filter(Boolean);
     const skills: { name: string; rating: number; specialization?: string }[] = [];
     let totalPoints = 0;
@@ -271,6 +324,16 @@ export class CharacterCreationEngine {
     await this.characterAccessor.updateCharacter(character.id, {
       skills: JSON.stringify(skills),
     });
+
+    // Warn about unspent points
+    const unspent = CHARACTER_CREATION.skillPoints - totalPoints;
+    if (unspent > 0) {
+      return {
+        response: `You've used **${totalPoints}/${CHARACTER_CREATION.skillPoints}** skill points — **${unspent} points unspent**. Unspent points are lost forever.\n\nType \`confirm\` to proceed anyway, or re-send your skills to adjust.`,
+        nextStep: "skills",
+        complete: false,
+      };
+    }
 
     const isMagic = MAGIC_ARCHETYPES.includes(character.archetype ?? "");
     const nextStep: CharacterCreationStep = "qualities";

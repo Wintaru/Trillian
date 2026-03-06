@@ -95,6 +95,9 @@ This registers commands to your development guild (instant). For global deployme
 | `/campaign history` | List past campaigns in the server | Everyone |
 | `/character create <name>` | Create a new Shadowrun character (DM wizard) | Everyone |
 | `/character sheet [@user]` | View a character sheet | Everyone |
+| `/character delete <name>` | Delete an unlinked character | Everyone |
+| `/character edit <name> <step>` | Reopen a creation step on a completed character | Everyone |
+| `/character cancel` | Cancel in-progress character creation | Everyone |
 | `/roll <pool> [limit] [description]` | Roll a Shadowrun dice pool | Everyone |
 | `/roll edge <pool> <edge_dice>` | Push the Limit roll | Everyone |
 | `/shadowrun info <topic>` | Look up Shadowrun game info | Everyone |
@@ -409,9 +412,15 @@ Create and view Shadowrun characters. Characters can be created independently of
 | Slash command | `/character create name:Razor` |
 | Slash command | `/character sheet` |
 | Slash command | `/character sheet user:@someone` |
+| Slash command | `/character delete name:Razor` |
+| Slash command | `/character edit name:Razor step:skills` |
+| Slash command | `/character cancel` |
 | Prefix command | `!character create Razor` |
 | Prefix command | `!character sheet` |
 | Prefix command | `!character sheet @someone` |
+| Prefix command | `!character delete Razor` |
+| Prefix command | `!character edit Razor skills` |
+| Prefix command | `!character cancel` |
 
 #### Parameters
 
@@ -419,6 +428,10 @@ Create and view Shadowrun characters. Characters can be created independently of
 |---|---|---|---|---|
 | `create` | `name` | String | Yes | Name for the new character |
 | `sheet` | `user` | User | No | View another player's character (public summary). Defaults to your own (full private sheet). |
+| `delete` | `name` | String | Yes | Name of the character to delete. Cannot delete campaign-linked characters. |
+| `edit` | `name` | String | Yes | Name of the completed character to edit |
+| `edit` | `step` | String (choice) | Yes | Step to reopen: metatype, archetype, attributes, skills, qualities, magic, gear, contacts, backstory |
+| `cancel` | — | — | — | Cancels your current in-progress character creation and deletes the partial character. |
 
 #### Permission
 
@@ -439,15 +452,20 @@ Everyone — no special permissions required.
 1. **Create:** Starts a step-by-step character creation wizard in your DMs. Walk through metatype, archetype, attributes, skills, qualities, magic, gear, contacts, and backstory. The character is saved without a campaign — when you're later added to a campaign via `/campaign addplayer`, it's automatically linked.
 2. **Sheet (own character):** Shows a detailed embed (ephemeral in slash, DM'd in prefix) with all attributes, skills, gear, spells, contacts, condition monitors, nuyen, karma, and backstory.
 3. **Sheet (other player):** Shows a public embed with name, metatype, archetype, key attributes, and a brief skills/gear summary.
-4. Only completed characters are shown — in-progress character creation is not viewable.
+4. **Delete:** Permanently deletes a character you own, as long as it's not linked to a campaign.
+5. **Edit:** Reopens a specific creation step on a completed (non-campaign-linked) character. The DM wizard resumes from that step; after completing it, you'll proceed through review again.
+6. **Cancel:** Cancels your in-progress character creation and deletes the partial character entirely.
+7. Only completed characters are shown — in-progress character creation is not viewable.
 
 #### Limitations
 
 | Limitation | Detail |
 |---|---|
 | **Sheet requires campaign** | `/character sheet` only works in the campaign channel with an active/paused campaign. |
-| **One creation at a time** | If you have an in-progress character, starting a new one resumes the existing creation. |
+| **One creation at a time** | If you have an in-progress character, starting a new one resumes the existing creation. Use `/character cancel` to abort. |
 | **Completed characters only** | Characters still in creation are not viewable via `sheet`. |
+| **Cannot delete campaign characters** | Characters linked to a campaign must be removed from the campaign first. |
+| **Edit reopens DM wizard** | Editing a step puts the character back in "in progress" state until you complete the review step again. |
 | **Auto-link uses most recent** | When added to a campaign, the most recently created unassigned character is linked. Future updates will add character selection. |
 
 ---

@@ -181,15 +181,40 @@ describe("CharacterCreationEngine", () => {
   });
 
   describe("processStep - skills", () => {
-    it("should accept valid skill allocation", async () => {
+    it("should accept valid skill allocation using all points", async () => {
+      vi.mocked(characterAccessor.getCharacter).mockResolvedValue(
+        makeCharacterRow({ creationStep: "skills" }),
+      );
+
+      const result = await engine.processStep(1, "Pistols:6, Sneaking:6, Perception:6, Con:6, Hacking:6, Computer:6");
+
+      expect(result.nextStep).toBe("qualities");
+      expect(result.response).toContain("qualities");
+    });
+
+    it("should warn about unspent skill points", async () => {
       vi.mocked(characterAccessor.getCharacter).mockResolvedValue(
         makeCharacterRow({ creationStep: "skills" }),
       );
 
       const result = await engine.processStep(1, "Pistols:5, Sneaking:4, Perception:3");
 
+      expect(result.nextStep).toBe("skills");
+      expect(result.response).toContain("unspent");
+      expect(result.response).toContain("confirm");
+    });
+
+    it("should allow confirming unspent skill points", async () => {
+      const char = makeCharacterRow({
+        creationStep: "skills",
+        skills: JSON.stringify([{ name: "Pistols", rating: 5 }, { name: "Sneaking", rating: 4 }]),
+      });
+      vi.mocked(characterAccessor.getCharacter).mockResolvedValue(char);
+
+      const result = await engine.processStep(1, "confirm");
+
       expect(result.nextStep).toBe("qualities");
-      expect(result.response).toContain("qualities");
+      expect(result.response).toContain("points lost");
     });
 
     it("should reject skills exceeding point total", async () => {
@@ -248,6 +273,60 @@ describe("CharacterCreationEngine", () => {
 
       expect(result.nextStep).toBe("attributes");
       expect(vi.mocked(characterAccessor.setCreationStep)).toHaveBeenCalledWith(1, "attributes");
+    });
+  });
+
+  describe("cancelCreation", () => {
+    it("should cancel in-progress character", async () => {
+      vi.mocked(characterAccessor.getInProgressCharacterForUser).mockResolvedValue(
+        makeCharacterRow({ id: 3, name: "Doomed" }),
+      );
+
+      const result = await engine.cancelCreation("user1");
+
+      expect(result.cancelled).toBe(true);
+      expect(result.characterName).toBe("Doomed");
+      expect(vi.mocked(characterAccessor.deleteCharacter)).toHaveBeenCalledWith(3, "user1");
+    });
+
+    it("should return cancelled false when no in-progress character", async () => {
+      const result = await engine.cancelCreation("user1");
+
+      expect(result.cancelled).toBe(false);
+      expect(result.characterName).toBeNull();
+    });
+  });
+
+  describe("reopenStep", () => {
+    it("should reopen a step on a completed character", async () => {
+      const char = makeCharacterRow({ creationStatus: "complete", campaignId: null });
+      vi.mocked(characterAccessor.getCharacter).mockResolvedValue(char);
+
+      const result = await engine.reopenStep(1, "user1", "skills");
+
+      expect(result.nextStep).toBe("skills");
+      expect(vi.mocked(characterAccessor.updateCharacter)).toHaveBeenCalledWith(1, { creationStatus: "in_progress" });
+      expect(vi.mocked(characterAccessor.setCreationStep)).toHaveBeenCalledWith(1, "skills");
+    });
+
+    it("should refuse to edit campaign-linked character", async () => {
+      const char = makeCharacterRow({ creationStatus: "complete", campaignId: 5 });
+      vi.mocked(characterAccessor.getCharacter).mockResolvedValue(char);
+
+      const result = await engine.reopenStep(1, "user1", "skills");
+
+      expect(result.nextStep).toBeNull();
+      expect(result.response).toContain("linked to a campaign");
+    });
+
+    it("should refuse to edit in-progress character", async () => {
+      const char = makeCharacterRow({ creationStatus: "in_progress" });
+      vi.mocked(characterAccessor.getCharacter).mockResolvedValue(char);
+
+      const result = await engine.reopenStep(1, "user1", "skills");
+
+      expect(result.nextStep).toBeNull();
+      expect(result.response).toContain("still in progress");
     });
   });
 
