@@ -3,6 +3,7 @@ import type { MetatypeData } from "../types/shadowrun-contracts.js";
 export const METATYPE_DATA: Record<string, MetatypeData> = {
   human: {
     name: "Human",
+    description: "The most common metatype. Balanced attributes across the board with no extremes — but they get extra Edge (luck), making them surprisingly versatile. Good at everything, masters of nothing.",
     attributeLimits: {
       body: { min: 1, max: 6 },
       agility: { min: 1, max: 6 },
@@ -18,6 +19,7 @@ export const METATYPE_DATA: Record<string, MetatypeData> = {
   },
   elf: {
     name: "Elf",
+    description: "Tall, graceful, and long-lived. Higher potential for Agility and Charisma, making them natural Faces, infiltrators, and sharpshooters. Low-light vision lets them see in dim conditions. Often viewed with a mix of envy and suspicion by other metatypes.",
     attributeLimits: {
       body: { min: 1, max: 6 },
       agility: { min: 1, max: 7 },
@@ -33,6 +35,7 @@ export const METATYPE_DATA: Record<string, MetatypeData> = {
   },
   dwarf: {
     name: "Dwarf",
+    description: "Short but stout. High Body and Strength caps make them surprisingly tough, and extra Willpower means strong mental defenses. Thermographic vision lets them see heat signatures in total darkness. Naturally resistant to toxins and diseases.",
     attributeLimits: {
       body: { min: 3, max: 8 },
       agility: { min: 1, max: 6 },
@@ -48,6 +51,7 @@ export const METATYPE_DATA: Record<string, MetatypeData> = {
   },
   ork: {
     name: "Ork",
+    description: "Big, strong, and tough. The highest Body cap of the common metatypes and great Strength — ideal for frontline fighters and heavy hitters. Lower Logic and Charisma caps mean they struggle with tech and social situations. Low-light vision included.",
     attributeLimits: {
       body: { min: 4, max: 9 },
       agility: { min: 1, max: 6 },
@@ -63,6 +67,7 @@ export const METATYPE_DATA: Record<string, MetatypeData> = {
   },
   troll: {
     name: "Troll",
+    description: "Massive and terrifying. The strongest and toughest metatype with natural dermal armor and extended melee reach. The tradeoff: lower caps on Agility, Logic, Intuition, and Charisma. Thermographic vision lets them see in total darkness. When a Troll walks into a room, people notice.",
     attributeLimits: {
       body: { min: 5, max: 10 },
       agility: { min: 1, max: 5 },
@@ -91,6 +96,31 @@ export const ARCHETYPES = [
   "Physical Infiltrator",
   "Weapons Specialist",
 ] as const;
+
+export const ARCHETYPE_DESCRIPTIONS: Record<string, string> = {
+  "Street Samurai": "Cybernetically enhanced combat specialist. Wired reflexes, dermal armor, and smartlinked weapons make them the deadliest fighters on the street. Heavy on cyberware, which costs Essence (and limits magic potential).",
+  "Decker": "Elite hacker who jacks into the Matrix to crack systems, steal data, and disable security. Uses a cyberdeck to navigate virtual reality. The team's eyes and ears in the digital world.",
+  "Rigger": "Controls drones and vehicles through a direct neural interface. Can scout with flying drones, fight with combat drones, and drive the getaway car — all at the same time. Tech-heavy role.",
+  "Mage": "Hermetic spellcaster who uses logic and formulae to channel magic. Can cast combat spells, illusions, heal allies, and manipulate minds. Drains based on Logic + Willpower. Avoid cyberware — it kills your Essence and weakens magic.",
+  "Shaman": "Spiritual spellcaster who draws power from nature spirits and totems. Similar abilities to a Mage but drains based on Charisma + Willpower. Often better at summoning spirits than direct combat magic.",
+  "Adept": "Channels magic internally to enhance physical abilities — superhuman speed, unbreakable bones, killing hands. No spells, but doesn't need a cyberdeck or gun either. A martial arts master powered by mana.",
+  "Mystic Adept": "A hybrid of Mage and Adept — can cast spells AND enhance physical abilities with magic. Extremely versatile but spreads thin. Jack of two trades.",
+  "Technomancer": "Born with the ability to interface with the Matrix using only their mind — no cyberdeck needed. Can compile sprites (digital spirits) and use complex forms (innate Matrix abilities). Rare and mysterious.",
+  "Face": "The smooth talker. Masters of social engineering — negotiation, disguise, intimidation, and manipulation. Gets the team through doors that guns can't open. Often augmented with tailored pheromones and voice modulators.",
+  "Physical Infiltrator": "Stealth and breaking-and-entering specialist. Expert at sneaking past guards, bypassing locks, disabling alarms, and getting into places uninvited. The team's ghost.",
+  "Weapons Specialist": "Pure combat focus without the cyberware dependency. Master of multiple weapon types — firearms, melee, thrown, heavy weapons. Less chrome than a Street Samurai, more versatility in the armory.",
+};
+
+export const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
+  body: "**Body (BOD)** — Toughness, health, and resistance to damage. Determines your Physical Condition Monitor (how much damage you can take before going down) and helps soak incoming hits.",
+  agility: "**Agility (AGI)** — Coordination, dexterity, and fine motor skills. Used for shooting, sneaking, lockpicking, melee combat, and most physical skills. The most skill-linked attribute.",
+  reaction: "**Reaction (REA)** — Reflexes and response time. Determines Initiative (how fast you act in combat) and your defense against attacks. Paired with Intuition for dodging.",
+  strength: "**Strength (STR)** — Raw physical power. Affects melee damage, carrying capacity, and some physical skills like running and swimming. Important for melee fighters.",
+  willpower: "**Willpower (WIL)** — Mental toughness and determination. Determines your Stun Condition Monitor, helps resist magic and social manipulation, and is used for spell drain resistance.",
+  logic: "**Logic (LOG)** — Reasoning, memory, and analytical thinking. The key attribute for Deckers (hacking), mechanics, medicine, and any knowledge-based skill. Hermetic mages use it to resist drain.",
+  intuition: "**Intuition (INT)** — Gut feelings, awareness, and street smarts. Used for Perception, tracking, navigation, and Initiative. High Intuition means you notice things others miss.",
+  charisma: "**Charisma (CHA)** — Force of personality, social presence, and persuasiveness. The key attribute for Faces — used for negotiation, con, intimidation, and leadership. Shamans use it for drain resistance.",
+};
 
 export const MAGIC_ARCHETYPES = ["Mage", "Shaman", "Adept", "Mystic Adept", "Technomancer"];
 

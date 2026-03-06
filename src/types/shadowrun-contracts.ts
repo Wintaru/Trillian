@@ -159,6 +159,7 @@ export interface CharacterSummary {
 
 export interface MetatypeData {
   name: string;
+  description: string;
   attributeLimits: Record<string, { min: number; max: number }>;
   racialAbilities: string[];
   startingEdge: number;

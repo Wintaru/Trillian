@@ -5,6 +5,8 @@ import { DiceEngine } from "./dice-engine.js";
 import {
   METATYPE_DATA,
   ARCHETYPES,
+  ARCHETYPE_DESCRIPTIONS,
+  ATTRIBUTE_DESCRIPTIONS,
   MAGIC_ARCHETYPES,
   CHARACTER_CREATION,
   SKILL_LIST,
@@ -45,10 +47,10 @@ export class CharacterCreationEngine {
     const { id } = await this.characterAccessor.createCharacter(userId, campaignId, characterName, "human", now);
 
     const metatypeList = Object.entries(METATYPE_DATA)
-      .map(([key, data]) => `**${data.name}** — ${data.racialAbilities.join(", ")}`)
-      .join("\n");
+      .map(([key, data]) => `**${data.name}** — ${data.description}\n  _Abilities: ${data.racialAbilities.join(", ")} | Edge: ${data.startingEdge}_`)
+      .join("\n\n");
 
-    const prompt = `Alright chummer, let's get you set up. First things first — **what metatype are you?**\n\n${metatypeList}\n\nReply with your choice (human, elf, dwarf, ork, or troll).`;
+    const prompt = `Alright chummer, let's get you set up. First things first — **what metatype are you?** This determines your physical form, attribute limits, and racial abilities.\n\n${metatypeList}\n\nReply with your choice (human, elf, dwarf, ork, or troll).`;
 
     return { characterId: id, prompt };
   }
@@ -113,9 +115,11 @@ export class CharacterCreationEngine {
     });
     await this.characterAccessor.setCreationStep(character.id, "archetype");
 
-    const archetypeList = ARCHETYPES.map((a) => `**${a}**`).join(", ");
+    const archetypeList = ARCHETYPES
+      .map((a) => `**${a}** — ${ARCHETYPE_DESCRIPTIONS[a] ?? ""}`)
+      .join("\n\n");
     return {
-      response: `**${data.name}** — solid choice. ${data.racialAbilities.join(", ")}.\n\nNow, what's your **archetype**? This determines your role on the team:\n${archetypeList}\n\nWhat are you?`,
+      response: `**${data.name}** — solid choice. ${data.racialAbilities.join(", ")}.\n\nNow, what's your **archetype**? This determines your role on the team, starting gear budget, and playstyle.\n\n${archetypeList}\n\nWhat are you?`,
       nextStep: "archetype",
       complete: false,
     };
@@ -141,15 +145,19 @@ export class CharacterCreationEngine {
     await this.characterAccessor.setCreationStep(character.id, "attributes");
 
     const metatypeData = METATYPE_DATA[character.metatype];
-    const attrLines = Object.entries(metatypeData.attributeLimits)
-      .map(([attr, limits]) => `**${attr}**: ${limits.min}-${limits.max}`)
-      .join(" | ");
+    const attrDescriptions = Object.keys(metatypeData.attributeLimits)
+      .map((attr) => {
+        const limits = metatypeData.attributeLimits[attr];
+        const desc = ATTRIBUTE_DESCRIPTIONS[attr] ?? attr;
+        return `${desc} _(${limits.min}-${limits.max} for ${metatypeData.name})_`;
+      })
+      .join("\n");
 
     const minTotal = Object.values(metatypeData.attributeLimits).reduce((sum, l) => sum + l.min, 0);
     const pointsToSpend = CHARACTER_CREATION.attributePoints;
 
     return {
-      response: `A **${matched}**, huh? You've got ${startingNuyen.toLocaleString()} nuyen to gear up with later.\n\nNow let's set your **attributes**. You have **${pointsToSpend} points** to distribute. Your metatype minimums are already set.\n\nRanges: ${attrLines}\n\nSend your attributes as: \`body agility reaction strength willpower logic intuition charisma\`\n(e.g., \`4 5 3 3 4 3 4 3\` — 8 numbers that add up to ${minTotal + pointsToSpend} total)`,
+      response: `A **${matched}**, huh? You've got ${startingNuyen.toLocaleString()} nuyen to gear up with later.\n\nNow let's set your **attributes**. You have **${pointsToSpend} points** to distribute. Your metatype minimums are already set.\n\nHere's what each attribute does:\n${attrDescriptions}\n\nSend your attributes as: \`body agility reaction strength willpower logic intuition charisma\`\n(e.g., \`4 5 3 3 4 3 4 3\` — 8 numbers that add up to ${minTotal + pointsToSpend} total)`,
       nextStep: "attributes",
       complete: false,
     };
@@ -206,7 +214,7 @@ export class CharacterCreationEngine {
       .join("\n");
 
     return {
-      response: `Attributes locked in. Physical CM: ${physCm}, Stun CM: ${stunCm}.\n\nNow for **skills**. You have **${CHARACTER_CREATION.skillPoints} skill points**. Assign them as:\n\`SkillName:Rating, SkillName:Rating, ...\`\n(e.g., \`Pistols:5, Sneaking:4, Perception:3, Con:4, Hacking:6\`)\n\nMax rating is 6. Available skills by attribute:\n${allSkills}`,
+      response: `Attributes locked in. Physical CM: ${physCm}, Stun CM: ${stunCm}.\n\nNow for **skills**. Skills represent what your character has trained to do. When you attempt something, you roll your skill rating + the linked attribute as your dice pool. Higher rating = more dice = more hits.\n\nYou have **${CHARACTER_CREATION.skillPoints} skill points** to distribute. Max rating per skill is 6. You don't need to spend all points — unspent points are lost.\n\nAssign them as: \`SkillName:Rating, SkillName:Rating, ...\`\n(e.g., \`Pistols:5, Sneaking:4, Perception:3, Con:4, Hacking:6\`)\n\nAvailable skills (grouped by linked attribute):\n${allSkills}`,
       nextStep: "skills",
       complete: false,
     };
@@ -269,7 +277,7 @@ export class CharacterCreationEngine {
     await this.characterAccessor.setCreationStep(character.id, nextStep);
 
     return {
-      response: `Skills set (${totalPoints}/${CHARACTER_CREATION.skillPoints} points used).\n\nNow for **qualities**. You can take positive qualities (cost karma) and negative qualities (grant karma). Max 25 karma each way.\n\nSend as: \`+QualityName, -QualityName, ...\`\n(e.g., \`+Toughness, +Ambidextrous, -SINner, -Addiction\`)\n\nOr type \`skip\` to continue without qualities.`,
+      response: `Skills set (${totalPoints}/${CHARACTER_CREATION.skillPoints} points used).\n\nNow for **qualities**. These are special traits that define your character beyond raw stats.\n\n**Positive qualities** give you an edge — examples:\n- **Toughness** — +1 to Physical Condition Monitor\n- **Ambidextrous** — No off-hand penalty\n- **Catlike** — +2 dice for Sneaking\n- **Quick Healer** — +2 dice for healing tests\n- **Analytical Mind** — +2 dice for Logic-based tests\n\n**Negative qualities** give you flaws (but more karma) — examples:\n- **SINner** — You have a legal identity (trackable by corps)\n- **Addiction** — Dependent on a substance\n- **Bad Luck** — Edge costs double\n- **Gremlins** — Tech tends to malfunction around you\n- **Prejudiced** — Bias against a group\n\nSend as: \`+QualityName, -QualityName, ...\`\n(e.g., \`+Toughness, +Ambidextrous, -SINner, -Addiction\`)\n\nOr type \`skip\` to continue without qualities.`,
       nextStep,
       complete: false,
     };

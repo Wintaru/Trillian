@@ -38,6 +38,8 @@ function createMockCharacterAccessor(): CharacterAccessor {
     getInProgressCharacterForUser: vi.fn().mockResolvedValue(null),
     getUnassignedCharactersForUser: vi.fn().mockResolvedValue([]),
     assignCharacterToCampaign: vi.fn().mockResolvedValue(undefined),
+    deleteCharacter: vi.fn().mockResolvedValue(true),
+    getCharactersForUser: vi.fn().mockResolvedValue([]),
   } as unknown as CharacterAccessor;
 }
 

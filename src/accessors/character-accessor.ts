@@ -131,6 +131,26 @@ export class CharacterAccessor {
       .where(eq(characters.id, characterId));
   }
 
+  async deleteCharacter(characterId: number, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(characters)
+      .where(
+        and(
+          eq(characters.id, characterId),
+          eq(characters.userId, userId),
+        ),
+      )
+      .returning({ id: characters.id });
+    return result.length > 0;
+  }
+
+  async getCharactersForUser(userId: string): Promise<CharacterRow[]> {
+    return db
+      .select()
+      .from(characters)
+      .where(eq(characters.userId, userId)) as Promise<CharacterRow[]>;
+  }
+
   async getInProgressCharacterForUser(userId: string): Promise<CharacterRow | null> {
     const rows = await db
       .select()

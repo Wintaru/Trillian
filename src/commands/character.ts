@@ -29,6 +29,12 @@ export function createCharacterCommand(
           .setName("sheet")
           .setDescription("View a character sheet")
           .addUserOption((opt) => opt.setName("user").setDescription("View another player's character (public summary)")),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("delete")
+          .setDescription("Delete one of your characters")
+          .addStringOption((opt) => opt.setName("name").setDescription("Character name to delete").setRequired(true)),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -40,6 +46,9 @@ export function createCharacterCommand(
           break;
         case "sheet":
           await handleSheet(interaction);
+          break;
+        case "delete":
+          await handleDelete(interaction);
           break;
         default:
           await interaction.reply({ content: `Unknown subcommand: ${sub}`, flags: 64 });
@@ -56,8 +65,11 @@ export function createCharacterCommand(
         case "sheet":
           await handleSheetPrefix(message);
           break;
+        case "delete":
+          await handleDeletePrefix(message, context.args.slice(1).join(" "));
+          break;
         default:
-          await message.reply("Usage: `!character <create|sheet> [args]`");
+          await message.reply("Usage: `!character <create|sheet|delete> [args]`");
       }
     },
   };
@@ -125,6 +137,56 @@ export function createCharacterCommand(
     } else {
       const embed = formatCharacterSummaryEmbed(character);
       await interaction.reply({ embeds: [embed] });
+    }
+  }
+
+  async function handleDelete(interaction: ChatInputCommandInteraction): Promise<void> {
+    const name = interaction.options.getString("name", true);
+    const characters = await characterAccessor.getCharactersForUser(interaction.user.id);
+    const match = characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+
+    if (!match) {
+      await interaction.reply({ content: `No character named "${name}" found. Your characters: ${characters.map((c) => `**${c.name}**`).join(", ") || "none"}`, flags: 64 });
+      return;
+    }
+
+    if (match.campaignId !== null) {
+      await interaction.reply({ content: `**${match.name}** is linked to an active campaign and can't be deleted. Remove them from the campaign first.`, flags: 64 });
+      return;
+    }
+
+    const deleted = await characterAccessor.deleteCharacter(match.id, interaction.user.id);
+    if (deleted) {
+      await interaction.reply({ content: `**${match.name}** has been deleted.`, flags: 64 });
+    } else {
+      await interaction.reply({ content: "Failed to delete character.", flags: 64 });
+    }
+  }
+
+  async function handleDeletePrefix(message: Message, name: string): Promise<void> {
+    if (!name) {
+      await message.reply("Usage: `!character delete <name>`");
+      return;
+    }
+
+    const characters = await characterAccessor.getCharactersForUser(message.author.id);
+    const match = characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+
+    if (!match) {
+      await message.reply(`No character named "${name}" found. Your characters: ${characters.map((c) => `**${c.name}**`).join(", ") || "none"}`);
+      return;
+    }
+
+    if (match.campaignId !== null) {
+      await message.reply(`**${match.name}** is linked to an active campaign and can't be deleted. Remove them from the campaign first.`);
+      return;
+    }
+
+    const deleted = await characterAccessor.deleteCharacter(match.id, message.author.id);
+    if (deleted) {
+      await message.reply(`**${match.name}** has been deleted.`);
+    } else {
+      await message.reply("Failed to delete character.");
     }
   }
 
