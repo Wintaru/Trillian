@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Events } from "discord.js";
+import { Client, GatewayIntentBits, Events, Partials } from "discord.js";
 import type { ChatInputCommandInteraction } from "discord.js";
 import type { CommandEngine } from "../engines/command-engine.js";
 import type { EventHandler } from "../types/event.js";
@@ -19,7 +19,9 @@ export class DiscordClient {
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.DirectMessages,
       ],
+      partials: [Partials.Channel],
     });
 
     this.registerEvents(events);

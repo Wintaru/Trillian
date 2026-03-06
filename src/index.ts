@@ -20,6 +20,19 @@ import staticCommands from "./commands/index.js";
 import staticEvents from "./events/index.js";
 import * as logger from "./utilities/logger.js";
 
+// Shadowrun campaign system
+import { CampaignAccessor } from "./accessors/campaign-accessor.js";
+import { CharacterAccessor } from "./accessors/character-accessor.js";
+import { DiceEngine } from "./engines/dice-engine.js";
+import { CampaignEngine } from "./engines/campaign-engine.js";
+import { CharacterCreationEngine } from "./engines/character-creation-engine.js";
+import { createCampaignCommand } from "./commands/campaign.js";
+import { createCharacterCommand } from "./commands/character.js";
+import { createRollCommand } from "./commands/roll.js";
+import { createShadowrunInfoCommand } from "./commands/shadowrun-info.js";
+import { createMessageCampaignHandler } from "./events/message-campaign.js";
+import { createCharacterCreationDmHandler } from "./events/message-character-creation.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -32,11 +45,19 @@ await xpAccessor.seedRanks(defaultRanks);
 logger.info("Rank data seeded.");
 
 const ollamaAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaModel);
+const ollamaGmAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaModel, config.ollamaGmTimeoutMs);
 const chatEngine = new ChatEngine(ollamaAccessor);
 
 const pollAccessor = new PollAccessor();
 const pollEngine = new PollEngine(pollAccessor);
 const pollButtonHandler = new PollButtonHandler(pollEngine);
+
+// Shadowrun campaign setup
+const campaignAccessor = new CampaignAccessor();
+const characterAccessor = new CharacterAccessor();
+const diceEngine = new DiceEngine();
+const campaignEngine = new CampaignEngine(campaignAccessor, characterAccessor, ollamaGmAccessor, diceEngine);
+const characterCreationEngine = new CharacterCreationEngine(characterAccessor, ollamaGmAccessor);
 
 const commands = [
   ...staticCommands,
@@ -44,11 +65,19 @@ const commands = [
   createLeaderboardCommand(xpEngine),
   createXpCommand(xpEngine),
   createPollCommand(pollEngine),
+  createCampaignCommand(campaignEngine, characterCreationEngine, campaignAccessor, characterAccessor, config.campaignChannelId),
+  createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
+  createRollCommand(diceEngine),
+  createShadowrunInfoCommand(ollamaGmAccessor),
 ];
 
 const events = [
   ...staticEvents,
   createMessageXpHandler(xpEngine, config.levelUpChannelId),
+  ...(config.campaignChannelId
+    ? [createMessageCampaignHandler(campaignEngine, campaignAccessor, config.campaignChannelId)]
+    : []),
+  createCharacterCreationDmHandler(characterCreationEngine, characterAccessor, campaignAccessor),
   createMessageChatHandler(chatEngine, config.ollamaContextMessages),
 ];
 
