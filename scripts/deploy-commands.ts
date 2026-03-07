@@ -19,6 +19,8 @@ import { createCampaignCommand } from "../src/commands/campaign.js";
 import { createCharacterCommand } from "../src/commands/character.js";
 import { createRollCommand } from "../src/commands/roll.js";
 import { createShadowrunInfoCommand } from "../src/commands/shadowrun-info.js";
+import { EmbedEngine } from "../src/engines/embed-engine.js";
+import { createEmbedCommand } from "../src/commands/embed.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -40,12 +42,15 @@ const diceEngine = new DiceEngine();
 const campaignEngine = new CampaignEngine(campaignAccessor, characterAccessor, ollamaAccessor, diceEngine);
 const characterCreationEngine = new CharacterCreationEngine(characterAccessor, ollamaAccessor);
 
+const embedEngine = new EmbedEngine();
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
   createLeaderboardCommand(xpEngine),
   createXpCommand(xpEngine),
   createPollCommand(pollEngine),
+  createEmbedCommand(embedEngine),
   createCampaignCommand(campaignEngine, characterCreationEngine, campaignAccessor, characterAccessor, config.campaignChannelId),
   createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
   createRollCommand(diceEngine),

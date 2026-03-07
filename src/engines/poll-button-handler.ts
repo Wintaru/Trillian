@@ -7,6 +7,10 @@ import * as logger from "../utilities/logger.js";
 export class PollButtonHandler implements ButtonHandler {
   constructor(private pollEngine: PollEngine) {}
 
+  canHandle(customId: string): boolean {
+    return customId.startsWith("poll_");
+  }
+
   async handleButton(interaction: ButtonInteraction): Promise<void> {
     const customId = interaction.customId;
 

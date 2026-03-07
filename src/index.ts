@@ -33,6 +33,12 @@ import { createShadowrunInfoCommand } from "./commands/shadowrun-info.js";
 import { createMessageCampaignHandler } from "./events/message-campaign.js";
 import { createCharacterCreationDmHandler } from "./events/message-character-creation.js";
 
+// Custom embeds
+import { EmbedTemplateAccessor } from "./accessors/embed-template-accessor.js";
+import { EmbedEngine } from "./engines/embed-engine.js";
+import { EmbedButtonHandler } from "./engines/embed-button-handler.js";
+import { createEmbedCommand } from "./commands/embed.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -59,12 +65,17 @@ const diceEngine = new DiceEngine();
 const campaignEngine = new CampaignEngine(campaignAccessor, characterAccessor, ollamaGmAccessor, diceEngine);
 const characterCreationEngine = new CharacterCreationEngine(characterAccessor, ollamaGmAccessor);
 
+const embedTemplateAccessor = new EmbedTemplateAccessor();
+const embedEngine = new EmbedEngine(embedTemplateAccessor);
+const embedButtonHandler = new EmbedButtonHandler(embedEngine);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
   createLeaderboardCommand(xpEngine),
   createXpCommand(xpEngine),
   createPollCommand(pollEngine),
+  createEmbedCommand(embedEngine),
   createCampaignCommand(campaignEngine, characterCreationEngine, campaignAccessor, characterAccessor, config.campaignChannelId),
   createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
   createRollCommand(diceEngine),
@@ -82,7 +93,13 @@ const events = [
 ];
 
 const commandEngine = new CommandEngine(commands);
-const discordClient = new DiscordClient(commandEngine, events, config.prefix, pollButtonHandler);
+const discordClient = new DiscordClient(
+  commandEngine,
+  events,
+  config.prefix,
+  [pollButtonHandler, embedButtonHandler],
+  [embedButtonHandler],
+);
 
 await discordClient.start(config.token);
 startPollTimer(discordClient.getClient(), pollEngine);

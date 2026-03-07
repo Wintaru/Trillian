@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Events, Partials } from "discord.js";
 import type { ChatInputCommandInteraction } from "discord.js";
 import type { CommandEngine } from "../engines/command-engine.js";
 import type { EventHandler } from "../types/event.js";
-import type { ButtonHandler } from "../types/button-handler.js";
+import type { ButtonHandler, ModalHandler } from "../types/button-handler.js";
 
 export class DiscordClient {
   private client: Client;
@@ -11,7 +11,8 @@ export class DiscordClient {
     private commandEngine: CommandEngine,
     events: EventHandler[],
     private prefix: string,
-    private buttonHandler?: ButtonHandler,
+    private buttonHandlers: ButtonHandler[] = [],
+    private modalHandlers: ModalHandler[] = [],
   ) {
     this.client = new Client({
       intents: [
@@ -42,8 +43,20 @@ export class DiscordClient {
     this.client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.isChatInputCommand()) {
         await this.commandEngine.handleSlashCommand(interaction as ChatInputCommandInteraction);
-      } else if (interaction.isButton() && this.buttonHandler) {
-        await this.buttonHandler.handleButton(interaction);
+      } else if (interaction.isButton()) {
+        for (const handler of this.buttonHandlers) {
+          if (handler.canHandle(interaction.customId)) {
+            await handler.handleButton(interaction);
+            break;
+          }
+        }
+      } else if (interaction.isModalSubmit()) {
+        for (const handler of this.modalHandlers) {
+          if (handler.canHandle(interaction.customId)) {
+            await handler.handleModal(interaction);
+            break;
+          }
+        }
       }
     });
 

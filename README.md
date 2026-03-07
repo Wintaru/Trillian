@@ -82,6 +82,11 @@ This registers commands to your development guild (instant). For global deployme
 | `/xp add @user <amount>` | Add XP to a user | Manage Server |
 | `/xp reset @user` | Reset a user's XP to zero | Manage Server |
 | `/poll` | Create an anonymous poll | Everyone |
+| `/embed create` | Open the embed builder wizard | Manage Messages |
+| `/embed edit <message_id> [channel]` | Edit an existing bot-posted embed | Manage Messages |
+| `/embed template list` | List your saved embed templates | Manage Messages |
+| `/embed template load <name>` | Load a template into the builder | Manage Messages |
+| `/embed template delete <name>` | Delete a saved template | Manage Messages |
 | `/campaign start [premise]` | Start a new Shadowrun campaign | Everyone |
 | `/campaign stop` | End the active campaign | Campaign GM / Admin |
 | `/campaign pause` | Pause the active campaign | Campaign GM / Admin |
@@ -320,6 +325,71 @@ None — works out of the box.
 | **Timers don't survive restarts** | If the bot restarts, expired polls are caught and closed on the next 30-second check cycle. |
 | **No undo** | Votes are irreversibly anonymous — there is no audit trail by design. |
 | **One vote per user** | Each user can only vote for one option. Clicking a different option changes their vote. |
+
+---
+
+### `/embed`
+
+Create, edit, and manage rich Discord embeds through an interactive button-based wizard with live preview. Supports saveable templates and editing previously posted embeds.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/embed create` |
+| Slash command | `/embed edit message_id:123456789` |
+| Slash command | `/embed edit message_id:123456789 channel:#announcements` |
+| Slash command | `/embed template list` |
+| Slash command | `/embed template load name:my-announcement` |
+| Slash command | `/embed template delete name:my-announcement` |
+| Prefix command | `!embed` (redirects to slash command) |
+
+#### Parameters
+
+| Subcommand | Parameter | Type | Required | Description |
+|---|---|---|---|---|
+| `create` | — | — | — | Opens a blank embed builder wizard |
+| `edit` | `message_id` | String | Yes | The message ID of the bot-posted embed to edit |
+| `edit` | `channel` | Channel | No | Channel the message is in (defaults to current channel) |
+| `template list` | — | — | — | Lists your saved templates |
+| `template load` | `name` | String | Yes | Name of the template to load |
+| `template delete` | `name` | String | Yes | Name of the template to delete |
+
+#### Permission
+
+Manage Messages — users without this permission cannot see or use the command. For slash commands, Discord enforces this automatically. Prefix invocation redirects to the slash command.
+
+#### Configuration
+
+None — works out of the box.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+- Read Message History (for editing existing embeds)
+
+#### Behavior
+
+1. **Create:** `/embed create` opens an ephemeral message with an empty embed preview and wizard buttons
+2. **Wizard buttons:** Set Title, Set Description, Set Color, Add Field, Set Image, Set Footer, Set Author — each opens a modal form for that field
+3. **Live preview:** The embed preview updates after each modal submission so you can see your changes immediately
+4. **Send:** Click "Send to Channel" and provide a channel ID — the bot sends the finished embed to that channel
+5. **Save Template:** Click "Save Template" to save the current embed as a reusable template (up to 25 per user per server)
+6. **Cancel:** Click "Cancel" to discard the embed and close the wizard
+7. **Edit:** `/embed edit` fetches an existing bot-posted message, extracts its embed data, and opens the wizard pre-populated. When sent, the original message is edited in place.
+8. **Templates:** `/embed template load` opens the wizard pre-populated from a saved template. `/embed template list` shows all your templates. `/embed template delete` removes one.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **Slash only** | The interactive wizard requires Discord components (buttons/modals) which only work with slash commands. Prefix invocation displays a redirect message. |
+| **Ephemeral wizard** | The wizard is only visible to you. It expires after 15 minutes of inactivity. |
+| **Max 25 fields** | Discord embeds support up to 25 fields. The "Add Field" button is disabled at the limit. |
+| **Max 25 templates** | Each user can save up to 25 templates per server. |
+| **Bot messages only** | `/embed edit` can only edit messages posted by the bot. |
+| **Channel ID input** | The "Send to Channel" modal requires a channel ID or `#channel` mention — there is no channel picker dropdown. |
 
 ---
 

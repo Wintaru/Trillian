@@ -159,6 +159,16 @@ pnpm test
 
 ## Project-Specific Details
 
+### Shell Environment
+
+Node.js is managed via **nvm**. In non-interactive shells (like Claude Code's Bash tool), nvm isn't loaded automatically. Prefix commands with:
+
+```bash
+export PATH="/Users/jdonner/.nvm/versions/node/v22.18.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+```
+
+Or source nvm first. All `pnpm` commands below require node/pnpm on `PATH`.
+
 ### Essential Commands
 
 ```bash

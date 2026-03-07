@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const userXp = sqliteTable(
   "user_xp",
@@ -121,6 +121,28 @@ export const characters = sqliteTable("characters", {
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
+
+// --- Custom Embeds ---
+
+export const embedTemplates = sqliteTable(
+  "embed_templates",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    embedData: text("embed_data").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("embed_templates_guild_user_name_unique").on(
+      table.guildId,
+      table.userId,
+      table.name,
+    ),
+  ],
+);
 
 export const campaignNarrativeLog = sqliteTable("campaign_narrative_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
