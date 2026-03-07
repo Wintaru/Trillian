@@ -13,6 +13,11 @@ export interface Config {
   ollamaContextMessages: number;
   campaignChannelId: string | undefined;
   ollamaGmTimeoutMs: number;
+  weatherChannelId: string | undefined;
+  weatherLocation: string;
+  weatherDailyTime: string;
+  weatherApiKey: string | undefined;
+  weatherAlertIntervalMs: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -44,5 +49,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     ollamaContextMessages: parseInt(env["OLLAMA_CONTEXT_MESSAGES"] ?? "10", 10),
     campaignChannelId: env["CAMPAIGN_CHANNEL_ID"] ?? undefined,
     ollamaGmTimeoutMs: parseInt(env["OLLAMA_GM_TIMEOUT_MS"] ?? "120000", 10),
+    weatherChannelId: env["WEATHER_CHANNEL_ID"] ?? undefined,
+    weatherLocation: env["WEATHER_LOCATION"] ?? "",
+    weatherDailyTime: env["WEATHER_DAILY_TIME"] ?? "07:00",
+    weatherApiKey: env["WEATHERAPI_KEY"] ?? undefined,
+    weatherAlertIntervalMs: parseInt(env["WEATHER_ALERT_INTERVAL_MS"] ?? "300000", 10),
   });
 }

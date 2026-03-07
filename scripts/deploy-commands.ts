@@ -21,6 +21,10 @@ import { createRollCommand } from "../src/commands/roll.js";
 import { createShadowrunInfoCommand } from "../src/commands/shadowrun-info.js";
 import { EmbedEngine } from "../src/engines/embed-engine.js";
 import { createEmbedCommand } from "../src/commands/embed.js";
+import { NwsAccessor } from "../src/accessors/nws-accessor.js";
+import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
+import { WeatherEngine } from "../src/engines/weather-engine.js";
+import { createWeatherCommand } from "../src/commands/weather.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -44,6 +48,12 @@ const characterCreationEngine = new CharacterCreationEngine(characterAccessor, o
 
 const embedEngine = new EmbedEngine();
 
+const nwsAccessor = new NwsAccessor();
+const weatherApiAccessor = config.weatherApiKey
+  ? new WeatherApiAccessor(config.weatherApiKey)
+  : null;
+const weatherEngine = new WeatherEngine(nwsAccessor, weatherApiAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -55,6 +65,7 @@ const commands = [
   createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
   createRollCommand(diceEngine),
   createShadowrunInfoCommand(ollamaAccessor),
+  createWeatherCommand(weatherEngine, config.weatherLocation),
 ];
 
 const commandEngine = new CommandEngine(commands);

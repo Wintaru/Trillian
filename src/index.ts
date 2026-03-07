@@ -39,6 +39,14 @@ import { EmbedEngine } from "./engines/embed-engine.js";
 import { EmbedButtonHandler } from "./engines/embed-button-handler.js";
 import { createEmbedCommand } from "./commands/embed.js";
 
+// Weather system
+import { NwsAccessor } from "./accessors/nws-accessor.js";
+import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
+import { WeatherAlertAccessor } from "./accessors/weather-alert-accessor.js";
+import { WeatherEngine } from "./engines/weather-engine.js";
+import { createWeatherCommand } from "./commands/weather.js";
+import { startWeatherTimer } from "./utilities/weather-timer.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -69,6 +77,14 @@ const embedTemplateAccessor = new EmbedTemplateAccessor();
 const embedEngine = new EmbedEngine(embedTemplateAccessor);
 const embedButtonHandler = new EmbedButtonHandler(embedEngine);
 
+// Weather system
+const nwsAccessor = new NwsAccessor();
+const weatherApiAccessor = config.weatherApiKey
+  ? new WeatherApiAccessor(config.weatherApiKey)
+  : null;
+const weatherAlertAccessor = new WeatherAlertAccessor();
+const weatherEngine = new WeatherEngine(nwsAccessor, weatherApiAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -80,6 +96,7 @@ const commands = [
   createCharacterCommand(characterAccessor, campaignAccessor, characterCreationEngine),
   createRollCommand(diceEngine),
   createShadowrunInfoCommand(ollamaGmAccessor),
+  createWeatherCommand(weatherEngine, config.weatherLocation),
 ];
 
 const events = [
@@ -103,3 +120,16 @@ const discordClient = new DiscordClient(
 
 await discordClient.start(config.token);
 startPollTimer(discordClient.getClient(), pollEngine);
+
+if (config.weatherChannelId && config.weatherLocation) {
+  startWeatherTimer(
+    discordClient.getClient(),
+    weatherEngine,
+    weatherAlertAccessor,
+    config.weatherChannelId,
+    config.weatherLocation,
+    config.weatherDailyTime,
+    config.weatherAlertIntervalMs,
+  );
+  logger.info(`Weather timer started for "${config.weatherLocation}" in channel ${config.weatherChannelId}`);
+}

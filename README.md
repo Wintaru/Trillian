@@ -48,6 +48,11 @@ cp .env.example .env
 | `OLLAMA_CONTEXT_MESSAGES` | Number of recent channel messages to include as conversation context (default: `10`) |
 | `CAMPAIGN_CHANNEL_ID` | Channel ID where Shadowrun campaigns run (required for campaign system) |
 | `OLLAMA_GM_TIMEOUT_MS` | Timeout for Ollama GM narrative generation in milliseconds (default: `120000`) |
+| `WEATHER_CHANNEL_ID` | Channel ID for scheduled weather posts (daily forecast + alerts) |
+| `WEATHER_LOCATION` | Default location for scheduled posts and `/weather` with no args (e.g., `90210` or `Chicago, IL`) |
+| `WEATHER_DAILY_TIME` | Time to post daily forecast in 24h format (default: `07:00`) |
+| `WEATHERAPI_KEY` | API key from [WeatherAPI.com](https://www.weatherapi.com/) — required for international locations |
+| `WEATHER_ALERT_INTERVAL_MS` | How often to check for weather alerts in milliseconds (default: `300000` / 5 minutes) |
 
 ## Running
 
@@ -106,6 +111,7 @@ This registers commands to your development guild (instant). For global deployme
 | `/roll <pool> [limit] [description]` | Roll a Shadowrun dice pool | Everyone |
 | `/roll edge <pool> <edge_dice>` | Push the Limit roll | Everyone |
 | `/shadowrun info <topic>` | Look up Shadowrun game info | Everyone |
+| `/weather [location]` | Get current weather and forecast | Everyone |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -644,6 +650,88 @@ None for built-in topics. Ollama must be running for custom topic queries.
 |---|---|
 | **AI fallback** | Custom topics require Ollama to be running. If Ollama is down, only built-in topics work. |
 | **Response length** | AI responses are truncated to 2000 characters (Discord message limit). |
+
+---
+
+### `/weather`
+
+Get current weather conditions, forecast, and active alerts for a location. US locations use the National Weather Service (free, no API key). International locations use WeatherAPI.com (requires a free API key). Includes a clickable link to the full forecast.
+
+When configured with `WEATHER_CHANNEL_ID` and `WEATHER_LOCATION`, the bot also posts a daily forecast at the configured time and pushes severe weather alerts as they are issued.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/weather` |
+| Slash command | `/weather location:Chicago, IL` |
+| Slash command | `/weather location:90210` |
+| Slash command | `/weather location:Seoul, Korea` |
+| Prefix command | `!weather` |
+| Prefix command | `!weather Chicago, IL` |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `location` | String | No | `WEATHER_LOCATION` env var | Location to look up. Accepts zip codes, city names, or "City, Country" format. |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Env Variable | Required | Example | Description |
+|---|---|---|---|
+| `WEATHER_LOCATION` | No | `Chicago, IL` | Default location for `/weather` with no args and for scheduled posts |
+| `WEATHER_CHANNEL_ID` | No | `123456789` | Channel for scheduled daily forecasts and weather alerts |
+| `WEATHER_DAILY_TIME` | No | `07:00` | Time to post the daily forecast (24h format, server local time). Default: `07:00` |
+| `WEATHERAPI_KEY` | No | `abc123` | API key from WeatherAPI.com. Required only if you want international location support. Get a free key at https://www.weatherapi.com/ |
+| `WEATHER_ALERT_INTERVAL_MS` | No | `300000` | Milliseconds between alert checks. Default: `300000` (5 minutes) |
+
+**Setup steps:**
+
+1. Set your default location in `.env`:
+   ```
+   WEATHER_LOCATION=Chicago, IL
+   ```
+2. (Optional) For scheduled posts, set the channel:
+   ```
+   WEATHER_CHANNEL_ID=123456789
+   WEATHER_DAILY_TIME=07:00
+   ```
+3. (Optional) For international locations, get a free API key from https://www.weatherapi.com/ and add it:
+   ```
+   WEATHERAPI_KEY=your-key-here
+   ```
+4. Run `pnpm deploy-commands` and restart the bot
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. **On-demand:** User runs `/weather [location]`. If no location is provided, uses the `WEATHER_LOCATION` default.
+2. The bot geocodes the location (via OpenStreetMap Nominatim) and determines if it's a US or international location.
+3. **US locations:** Fetches current conditions, forecast (6 periods), and active alerts from the National Weather Service API.
+4. **International locations:** Fetches weather from WeatherAPI.com (requires `WEATHERAPI_KEY`). If NWS fails for a US location, falls back to WeatherAPI.com.
+5. Replies with a rich embed containing current conditions, forecast periods, and a clickable title linking to the full forecast page.
+6. If there are active weather alerts, they are displayed as additional embeds (up to 3).
+7. **Scheduled daily forecast:** If `WEATHER_CHANNEL_ID` and `WEATHER_LOCATION` are set, the bot posts a daily forecast embed at the configured time.
+8. **Scheduled alert checks:** Every 5 minutes (configurable), the bot checks for active weather alerts. New alerts are posted to the weather channel. Previously posted alerts are tracked in the database to avoid duplicates.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **NWS is US-only** | The National Weather Service API only covers US territories. International locations require a `WEATHERAPI_KEY`. |
+| **Geocoding rate limit** | Location geocoding uses OpenStreetMap Nominatim, which has a 1 request/second policy. Fine for a single-server bot. |
+| **API latency** | NWS requires multiple API calls (points, forecast, observations, alerts). The slash command uses `deferReply()` to handle this. |
+| **Daily time is local** | `WEATHER_DAILY_TIME` uses the server's system timezone, not a user-configured timezone. |
+| **Alert dedup** | Posted alerts are tracked for 7 days. Alerts that expire and are reissued after 7 days may be re-posted. |
 
 ---
 

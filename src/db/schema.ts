@@ -152,6 +152,15 @@ export const campaignNarrativeLog = sqliteTable("campaign_narrative_log", {
   createdAt: integer("created_at").notNull(),
 });
 
+// --- Weather Alerts ---
+
+export const postedWeatherAlerts = sqliteTable("posted_weather_alerts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  alertId: text("alert_id").notNull().unique(),
+  channelId: text("channel_id").notNull(),
+  postedAt: integer("posted_at").notNull(),
+});
+
 export const diceRolls = sqliteTable("dice_rolls", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   campaignId: integer("campaign_id").notNull(),
