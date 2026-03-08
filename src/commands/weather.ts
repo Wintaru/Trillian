@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { WeatherEngine } from "../engines/weather-engine.js";
 import { buildWeatherEmbed, buildWeatherAlertEmbed } from "../utilities/weather-embed.js";
+import * as logger from "../utilities/logger.js";
 
 export function createWeatherCommand(
   weatherEngine: WeatherEngine,
@@ -50,6 +51,7 @@ export function createWeatherCommand(
     },
 
     async executePrefix(message: Message, context: CommandContext): Promise<void> {
+      logger.info(`[WEATHER DEBUG] executePrefix called by ${message.author.tag} in ${message.channelId}, pid=${process.pid}`);
       const location = context.args.join(" ") || defaultLocation;
 
       if (!location) {
