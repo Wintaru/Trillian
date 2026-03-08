@@ -20,9 +20,17 @@ export class WeatherEngine {
   private async geocode(location: string): Promise<GeocodedLocation> {
     const cached = this.geocodeCache.get(location);
     if (cached) return cached;
-    const geo = await this.nwsAccessor.geocode(location);
-    this.geocodeCache.set(location, geo);
-    return geo;
+    try {
+      const geo = await this.nwsAccessor.geocode(location);
+      this.geocodeCache.set(location, geo);
+      return geo;
+    } catch (err) {
+      if (!this.weatherApiAccessor) throw err;
+      logger.warn(`Nominatim geocode failed, falling back to WeatherAPI:`, err);
+      const result = await this.weatherApiAccessor.getForecast(location);
+      this.geocodeCache.set(location, result.location);
+      return result.location;
+    }
   }
 
   async getWeather(request: GetWeatherRequest): Promise<GetWeatherResponse> {

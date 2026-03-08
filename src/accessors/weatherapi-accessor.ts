@@ -108,7 +108,7 @@ export class WeatherApiAccessor {
       lat: loc.lat,
       lon: loc.lon,
       displayName: locationDisplay,
-      isUS: false,
+      isUS: loc.country === "United States of America",
     };
 
     const current: CurrentConditions = {

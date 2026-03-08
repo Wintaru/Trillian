@@ -58,6 +58,11 @@ export function startWeatherTimer(
     }
   }, DAILY_CHECK_INTERVAL_MS);
 
+  // Warm the geocode cache at startup so the first alert tick doesn't cold-call Nominatim
+  weatherEngine.getAlerts({ location: defaultLocation }).catch(() => {
+    // Failure is fine — the interval will retry
+  });
+
   // Alert check
   setInterval(async () => {
     try {

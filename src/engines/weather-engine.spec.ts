@@ -140,6 +140,33 @@ describe("WeatherEngine", () => {
       ).rejects.toThrow("WEATHERAPI_KEY");
     });
 
+    it("should fall back to WeatherAPI geocoding when Nominatim fails", async () => {
+      vi.mocked(nws.geocode).mockRejectedValue(new Error("Nominatim timeout"));
+      vi.mocked(weatherApi.getForecast).mockResolvedValue({
+        location: usLocation,
+        current: mockCurrent,
+        forecast: mockForecast,
+        alerts: mockAlerts,
+        forecastUrl: "https://www.weatherapi.com/weather/q/41.8781%2C-87.6298",
+      });
+      vi.mocked(nws.getPointMetadata).mockResolvedValue({
+        properties: {
+          forecast: "https://api.weather.gov/gridpoints/LOT/75,73/forecast",
+          forecastGridData: "",
+          observationStations: "https://api.weather.gov/gridpoints/LOT/75,73/stations",
+          county: "",
+        },
+      });
+      vi.mocked(nws.getForecast).mockResolvedValue(mockForecast);
+      vi.mocked(nws.getCurrentObservation).mockResolvedValue(mockCurrent);
+      vi.mocked(nws.getActiveAlerts).mockResolvedValue(mockAlerts);
+
+      const result = await engine.getWeather({ location: "Chicago, IL" });
+
+      // Should still use NWS for the forecast since usLocation.isUS = true
+      expect(result.provider).toBe("nws");
+    });
+
     it("should throw if no location provided", async () => {
       await expect(engine.getWeather({ location: "" })).rejects.toThrow(
         "No location provided",
