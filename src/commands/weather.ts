@@ -67,7 +67,9 @@ export function createWeatherCommand(
           embeds.push(buildWeatherAlertEmbed(alert, result.location));
         }
 
-        await message.reply({ embeds });
+        if (message.channel.isSendable()) {
+          await message.channel.send({ embeds });
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "An unknown error occurred.";
         await message.reply(`Failed to fetch weather: ${msg}`);

@@ -7,6 +7,14 @@ import * as logger from "./logger.js";
 const DAILY_CHECK_INTERVAL_MS = 60_000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
+function toLocalDateString(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function toLocalTimeString(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 export function startWeatherTimer(
   client: Client,
   weatherEngine: WeatherEngine,
@@ -20,17 +28,16 @@ export function startWeatherTimer(
   // so we don't immediately fire a stale post (e.g. bot restarts at 6 PM
   // but dailyTime is "06:00").
   const startup = new Date();
-  const startupTime = `${String(startup.getHours()).padStart(2, "0")}:${String(startup.getMinutes()).padStart(2, "0")}`;
-  let lastDailyPostDate = startupTime >= dailyTime
-    ? startup.toISOString().slice(0, 10)
+  let lastDailyPostDate = toLocalTimeString(startup) >= dailyTime
+    ? toLocalDateString(startup)
     : "";
 
   // Daily forecast check
   setInterval(async () => {
     try {
       const now = new Date();
-      const todayDate = now.toISOString().slice(0, 10);
-      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const todayDate = toLocalDateString(now);
+      const currentTime = toLocalTimeString(now);
 
       if (currentTime >= dailyTime && todayDate !== lastDailyPostDate) {
         lastDailyPostDate = todayDate;
