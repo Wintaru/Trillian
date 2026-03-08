@@ -188,6 +188,20 @@ pnpm db:migrate           # Run DB migrations
 
 Copy `.env.example` to `.env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID`, `BOT_PREFIX`, `PURGE_CHANNEL_IDS`.
 
+### Deployment / Webhook
+
+The **Trillian Webhook** (PM2 process id 7, always running) is a separate server that listens for GitHub push events. On each push it automatically:
+
+1. `git pull` — pulls the latest code
+2. `pnpm build` — compiles TypeScript
+3. `pnpm db:migrate` — applies any new DB migrations
+4. `pnpm deploy-commands` — registers slash commands with Discord
+5. `pm2 restart Trillian` — restarts the bot with the new build
+
+This means **pushing to `main` deploys automatically** — no manual restart needed. On Windows this opens brief console popup windows for each shell command the Webhook spawns; that is expected behavior.
+
+Do **not** stop or restart the Webhook process unless explicitly asked.
+
 ### Repository Structure
 
 - `src/clients/` — Discord client (VBD Client layer). Handles connection and event wiring.
