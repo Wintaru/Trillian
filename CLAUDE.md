@@ -190,17 +190,33 @@ Copy `.env.example` to `.env` and fill in: `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`,
 
 ### Deployment / Webhook
 
-The **Trillian Webhook** (PM2 process id 7, always running) is a separate server that listens for GitHub push events. On each push it automatically:
+The **Trillian Webhook** (PM2 process, always running) is a separate server that listens for GitHub push events. On each push it automatically:
 
 1. `git pull` — pulls the latest code
 2. `pnpm build` — compiles TypeScript
 3. `pnpm db:migrate` — applies any new DB migrations
 4. `pnpm deploy-commands` — registers slash commands with Discord
-5. `pm2 restart Trillian` — restarts the bot with the new build
+5. `pm2 stop Trillian` — stops the bot
+6. *(45-second pause)* — waits for Discord to expire the old WebSocket session
+7. `pm2 start Trillian` — starts the bot with the new build
 
-This means **pushing to `main` deploys automatically** — no manual restart needed. On Windows this opens brief console popup windows for each shell command the Webhook spawns; that is expected behavior.
+This means **pushing to `main` deploys automatically** — no manual restart needed. On Windows this opens brief console popup windows for each shell command the Webhook spawns; that is expected behavior. **Total deploy time is ~45s longer than expected** due to the intentional delay (see below).
 
 Do **not** stop or restart the Webhook process unless explicitly asked.
+
+#### Windows Orphan Process Problem
+
+On Windows, `SIGTERM` never fires for Node.js processes — PM2 uses `TerminateProcess` (force-kill), which bypasses Node.js signal handling entirely. This means `process.on("SIGTERM", ...)` shutdown handlers do **not** run on restart/stop.
+
+When the bot is force-killed, its Discord WebSocket session stays alive on Discord's side for ~40 seconds. If a new bot instance connects before the old session expires, **both sessions receive and respond to every message**, causing duplicate bot responses.
+
+The deploy webhook works around this by using `pm2 stop` + a 45-second pause + `pm2 start` instead of `pm2 restart`, ensuring the old session is fully expired before the new instance connects.
+
+**If you see duplicate bot responses after a manual restart**, check for orphan node processes:
+```powershell
+Get-Process node | Select-Object Id, StartTime | Format-Table -AutoSize
+```
+Any process with a `StartTime` older than the current Trillian uptime (visible in `pm2 list`) is an orphan. Kill it with `Stop-Process -Id <PID> -Force`. **Be careful not to kill the PM2 daemon** — verify which PID is the daemon via `Get-Content $env:USERPROFILE\.pm2\pm2.pid` before killing anything.
 
 ### Repository Structure
 
