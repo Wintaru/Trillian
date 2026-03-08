@@ -26,28 +26,46 @@ function verifySignature(payload: string, signature: string | undefined): boolea
   return signature === expected;
 }
 
+// How long to wait between pm2 stop and pm2 start.
+// On Windows, SIGTERM never fires — PM2 force-kills the process, leaving its
+// Discord WebSocket session alive on Discord's side for ~40s. Waiting here
+// gives Discord time to detect the TCP disconnect and close the old session
+// before the new instance connects, preventing duplicate bot responses.
+const RESTART_DELAY_MS = 45_000;
+
+function runCommand(cmd: string): boolean {
+  console.log(`> ${cmd}`);
+  try {
+    execSync(cmd, { stdio: "inherit", cwd: process.cwd() });
+    return true;
+  } catch (error) {
+    console.error(`Deploy failed at: ${cmd}`);
+    console.error(error);
+    return false;
+  }
+}
+
 function deploy(): void {
-  const commands = [
+  const buildCommands = [
     "git pull origin main",
     "pnpm install --frozen-lockfile",
     "pnpm build",
     "pnpm db:migrate",
     "pnpm deploy-commands",
-    `pm2 restart ${PM2_NAME}`,
+    `pm2 stop ${PM2_NAME}`,
   ];
 
-  for (const cmd of commands) {
-    console.log(`> ${cmd}`);
-    try {
-      execSync(cmd, { stdio: "inherit", cwd: process.cwd() });
-    } catch (error) {
-      console.error(`Deploy failed at: ${cmd}`);
-      console.error(error);
-      return;
-    }
+  for (const cmd of buildCommands) {
+    if (!runCommand(cmd)) return;
   }
 
-  console.log("Deploy complete!");
+  // Wait for Discord to close the old WebSocket session before starting the
+  // new instance, so both sessions are never online simultaneously.
+  console.log(`Waiting ${RESTART_DELAY_MS / 1000}s for Discord session to expire...`);
+  setTimeout(() => {
+    if (!runCommand(`pm2 start ${PM2_NAME}`)) return;
+    console.log("Deploy complete!");
+  }, RESTART_DELAY_MS);
 }
 
 const server = createServer((req, res) => {
