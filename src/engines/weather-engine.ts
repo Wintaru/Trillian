@@ -10,17 +10,27 @@ import type {
 import * as logger from "../utilities/logger.js";
 
 export class WeatherEngine {
+  private geocodeCache = new Map<string, GeocodedLocation>();
+
   constructor(
     private nwsAccessor: NwsAccessor,
     private weatherApiAccessor: WeatherApiAccessor | null,
   ) {}
+
+  private async geocode(location: string): Promise<GeocodedLocation> {
+    const cached = this.geocodeCache.get(location);
+    if (cached) return cached;
+    const geo = await this.nwsAccessor.geocode(location);
+    this.geocodeCache.set(location, geo);
+    return geo;
+  }
 
   async getWeather(request: GetWeatherRequest): Promise<GetWeatherResponse> {
     if (!request.location) {
       throw new Error("No location provided. Set WEATHER_LOCATION or pass a location.");
     }
 
-    const geo = await this.nwsAccessor.geocode(request.location);
+    const geo = await this.geocode(request.location);
 
     if (geo.isUS) {
       try {
@@ -39,7 +49,7 @@ export class WeatherEngine {
       throw new Error("No location provided.");
     }
 
-    const geo = await this.nwsAccessor.geocode(request.location);
+    const geo = await this.geocode(request.location);
 
     if (geo.isUS) {
       try {

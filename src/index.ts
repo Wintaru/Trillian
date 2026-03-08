@@ -119,6 +119,14 @@ const discordClient = new DiscordClient(
 );
 
 await discordClient.start(config.token);
+
+const shutdown = () => {
+  logger.info("Shutting down...");
+  discordClient.stop();
+  process.exit(0);
+};
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 startPollTimer(discordClient.getClient(), pollEngine);
 
 if (config.weatherChannelId && config.weatherLocation) {

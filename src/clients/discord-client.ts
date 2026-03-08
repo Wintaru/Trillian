@@ -72,4 +72,8 @@ export class DiscordClient {
   async start(token: string): Promise<void> {
     await this.client.login(token);
   }
+
+  stop(): void {
+    this.client.destroy();
+  }
 }

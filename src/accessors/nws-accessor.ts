@@ -8,7 +8,7 @@ import type {
 const USER_AGENT = "DiscordWeatherBot/1.0";
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
 const NWS_BASE = "https://api.weather.gov";
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 30_000;
 
 interface NominatimResult {
   lat: string;

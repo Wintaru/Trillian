@@ -179,5 +179,16 @@ describe("WeatherEngine", () => {
 
       expect(result.alerts).toHaveLength(0);
     });
+
+    it("should only geocode once for repeated calls with the same location", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+      vi.mocked(nws.getActiveAlerts).mockResolvedValue([]);
+
+      await engine.getAlerts({ location: "Chicago, IL" });
+      await engine.getAlerts({ location: "Chicago, IL" });
+      await engine.getAlerts({ location: "Chicago, IL" });
+
+      expect(nws.geocode).toHaveBeenCalledTimes(1);
+    });
   });
 });
