@@ -16,7 +16,14 @@ export function startWeatherTimer(
   dailyTime: string,
   alertIntervalMs: number,
 ): void {
-  let lastDailyPostDate = "";
+  // If we start after the daily time has already passed, mark today as done
+  // so we don't immediately fire a stale post (e.g. bot restarts at 6 PM
+  // but dailyTime is "06:00").
+  const startup = new Date();
+  const startupTime = `${String(startup.getHours()).padStart(2, "0")}:${String(startup.getMinutes()).padStart(2, "0")}`;
+  let lastDailyPostDate = startupTime >= dailyTime
+    ? startup.toISOString().slice(0, 10)
+    : "";
 
   // Daily forecast check
   setInterval(async () => {
