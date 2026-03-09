@@ -18,14 +18,14 @@ export function buildPollEmbed(results: PollResults): EmbedBuilder {
   const statusText = results.status === "open" ? "Open" : "Closed";
   const timeText =
     results.closesAt && results.status === "open"
-      ? ` | Closes <t:${Math.floor(results.closesAt / 1000)}:R>`
+      ? `\n\nCloses <t:${Math.floor(results.closesAt / 1000)}:R>`
       : "";
 
   return new EmbedBuilder()
     .setTitle(results.question)
-    .setDescription(optionLines.join("\n\n"))
+    .setDescription(optionLines.join("\n\n") + timeText)
     .setFooter({
-      text: `Poll #${results.pollId} | ${statusText} | ${results.totalVotes} total vote${results.totalVotes !== 1 ? "s" : ""}${timeText}`,
+      text: `Poll #${results.pollId} | ${statusText} | ${results.totalVotes} total vote${results.totalVotes !== 1 ? "s" : ""}`,
     })
     .setColor(results.status === "open" ? 0x57f287 : 0xed4245);
 }
