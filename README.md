@@ -913,6 +913,68 @@ Ollama must be running (same setup as AI Chat). No additional Ollama configurati
 
 ---
 
+### `/lesson`
+
+Start, stop, or check the status of a private DM-based language tutoring session. An AI tutor (powered by Ollama) conducts an interactive conversation lesson in your chosen language. Conversation history is persisted with a 20-message rolling context window.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command (start) | `/lesson start` or `/lesson start language:FR` |
+| Slash command (stop) | `/lesson stop` |
+| Slash command (status) | `/lesson status` |
+| Prefix command (start) | `!lesson start` or `!lesson start FR` |
+| Prefix command (stop) | `!lesson stop` |
+| Prefix command (status) | `!lesson status` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `start [language]` | Start a new lesson. The bot DMs you a greeting and begins tutoring. Defaults to the server's configured language. |
+| `stop` | End your current lesson session. |
+| `status` | Check if you have an active lesson and see details. |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `language` | string | No | `VOCAB_DEFAULT_LANGUAGE` (default `ES`) | Language code (e.g. `ES`, `FR`, `DE`, `JA`). Case-insensitive. |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+No additional environment variables needed. Reuses `VOCAB_DEFAULT_LANGUAGE` for the default lesson language. Ollama must be running (same setup as AI Chat).
+
+#### Bot Permissions Required
+
+- Send Messages
+- Direct Messages (the bot must be able to DM users)
+
+#### Behavior
+
+1. **Start (`/lesson start`)** — Creates a new lesson session. The bot sends the user a DM with an AI-generated greeting in the target language and begins tutoring.
+2. **Conversation** — All subsequent DMs from the user are routed to the AI tutor. The tutor corrects mistakes, introduces vocabulary, asks follow-up questions, and adapts to the student's level. A rolling 20-message context window is maintained.
+3. **Stop (`/lesson stop`)** — Ends the active session. Can also type "stop", "end", "quit", or "exit" in DMs.
+4. **Status (`/lesson status`)** — Shows whether you have an active lesson, the language, and when it started.
+5. **Priority** — Character creation DMs always take priority over lesson DMs. If character creation is in progress, lesson messages are ignored until creation completes.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **One session at a time** | Users can only have one active lesson. Stop the current one before starting another. |
+| **AI quality** | Tutoring quality depends on the Ollama model. Larger models produce better lessons. |
+| **Context window** | Only the last 20 messages (plus system prompt) are sent to Ollama per turn. Earlier conversation is not included. |
+| **DM availability** | The bot must be able to DM the user. Users with DMs disabled from server members will not receive lessons. |
+| **Response length** | AI responses are truncated to 2000 characters (Discord message limit). |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

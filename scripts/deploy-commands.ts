@@ -30,6 +30,9 @@ import { createTranslateCommand } from "../src/commands/translate.js";
 import { VocabAccessor } from "../src/accessors/vocab-accessor.js";
 import { VocabEngine } from "../src/engines/vocab-engine.js";
 import { createVocabCommand } from "../src/commands/vocab.js";
+import { LessonAccessor } from "../src/accessors/lesson-accessor.js";
+import { LessonEngine } from "../src/engines/lesson-engine.js";
+import { createLessonCommand } from "../src/commands/lesson.js";
 import { NwsAccessor } from "../src/accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
@@ -68,6 +71,9 @@ const translateEngine = new TranslateEngine(ollamaAccessor, deeplAccessor);
 const vocabAccessor = new VocabAccessor();
 const vocabEngine = new VocabEngine(ollamaAccessor, vocabAccessor);
 
+const lessonAccessor = new LessonAccessor();
+const lessonEngine = new LessonEngine(ollamaAccessor, lessonAccessor);
+
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
   ? new WeatherApiAccessor(config.weatherApiKey)
@@ -89,6 +95,7 @@ const commands = [
   createDefineCommand(dictionaryEngine),
   createTranslateCommand(translateEngine),
   createVocabCommand(vocabEngine),
+  createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
 ];
 
 const commandEngine = new CommandEngine(commands);

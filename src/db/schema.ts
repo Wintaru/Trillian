@@ -212,3 +212,22 @@ export const diceRolls = sqliteTable("dice_rolls", {
   results: text("results").notNull(),
   createdAt: integer("created_at").notNull(),
 });
+
+// --- Language Lessons ---
+
+export const lessonSessions = sqliteTable("lesson_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").notNull(),
+  language: text("language").notNull(),
+  status: text("status").notNull().default("active"),
+  startedAt: integer("started_at").notNull(),
+  endedAt: integer("ended_at"),
+});
+
+export const lessonMessages = sqliteTable("lesson_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  sessionId: integer("session_id").notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: integer("created_at").notNull(),
+});

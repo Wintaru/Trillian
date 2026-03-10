@@ -57,6 +57,12 @@ import { VocabButtonHandler } from "./engines/vocab-button-handler.js";
 import { createVocabCommand } from "./commands/vocab.js";
 import { startVocabTimer } from "./utilities/vocab-timer.js";
 
+// Lesson system
+import { LessonAccessor } from "./accessors/lesson-accessor.js";
+import { LessonEngine } from "./engines/lesson-engine.js";
+import { createLessonCommand } from "./commands/lesson.js";
+import { createLessonDmHandler } from "./events/message-lesson.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -110,6 +116,10 @@ const vocabAccessor = new VocabAccessor();
 const vocabEngine = new VocabEngine(ollamaAccessor, vocabAccessor);
 const vocabButtonHandler = new VocabButtonHandler(vocabEngine);
 
+// Lesson system
+const lessonAccessor = new LessonAccessor();
+const lessonEngine = new LessonEngine(ollamaAccessor, lessonAccessor);
+
 // Weather system
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
@@ -133,6 +143,7 @@ const commands = [
   createDefineCommand(dictionaryEngine),
   createTranslateCommand(translateEngine),
   createVocabCommand(vocabEngine),
+  createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
 ];
 
 const events = [
@@ -143,6 +154,7 @@ const events = [
     ? [createMessageCampaignHandler(campaignEngine, campaignAccessor, config.campaignChannelId)]
     : []),
   createCharacterCreationDmHandler(characterCreationEngine, characterAccessor, campaignAccessor),
+  createLessonDmHandler(lessonEngine, characterAccessor),
   createMessageChatHandler(chatEngine, config.ollamaContextMessages),
 ];
 
