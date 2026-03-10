@@ -20,6 +20,9 @@ export interface Config {
   weatherAlertIntervalMs: number;
   announceChannelId: string | undefined;
   deeplApiKey: string | undefined;
+  vocabChannelId: string | undefined;
+  vocabDailyTime: string;
+  vocabDefaultLanguage: string;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -58,5 +61,8 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     weatherAlertIntervalMs: parseInt(env["WEATHER_ALERT_INTERVAL_MS"] ?? "300000", 10),
     announceChannelId: env["ANNOUNCE_CHANNEL_ID"] ?? undefined,
     deeplApiKey: env["DEEPL_API_KEY"] ?? undefined,
+    vocabChannelId: env["VOCAB_CHANNEL_ID"] ?? undefined,
+    vocabDailyTime: env["VOCAB_DAILY_TIME"] ?? "08:00",
+    vocabDefaultLanguage: env["VOCAB_DEFAULT_LANGUAGE"] ?? "ES",
   });
 }

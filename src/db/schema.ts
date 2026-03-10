@@ -161,6 +161,41 @@ export const postedWeatherAlerts = sqliteTable("posted_weather_alerts", {
   postedAt: integer("posted_at").notNull(),
 });
 
+// --- Vocabulary / Word of the Day ---
+
+export const dailyWords = sqliteTable(
+  "daily_words",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    word: text("word").notNull(),
+    language: text("language").notNull(),
+    translation: text("translation").notNull(),
+    pronunciation: text("pronunciation").notNull(),
+    exampleSentence: text("example_sentence").notNull(),
+    exampleTranslation: text("example_translation").notNull(),
+    linguisticNotes: text("linguistic_notes").notNull(),
+    postedAt: integer("posted_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("daily_words_word_language_unique").on(table.word, table.language),
+  ],
+);
+
+export const userVocabulary = sqliteTable(
+  "user_vocabulary",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    dailyWordId: integer("daily_word_id").notNull(),
+    savedAt: integer("saved_at").notNull(),
+    reviewCount: integer("review_count").notNull().default(0),
+    correctCount: integer("correct_count").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("user_vocabulary_user_word_unique").on(table.userId, table.dailyWordId),
+  ],
+);
+
 export const diceRolls = sqliteTable("dice_rolls", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   campaignId: integer("campaign_id").notNull(),

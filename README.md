@@ -852,6 +852,65 @@ Ollama must be running (same setup as AI Chat). No additional Ollama configurati
 | **Response time** | Ollama translation may take a few seconds depending on text length and hardware. |
 | **No conversation context** | Each translation is independent — the bot doesn't remember previous translations in the channel. |
 
+### `/vocab`
+
+Review, list, and quiz your saved vocabulary words. Words are posted daily in a configured channel (Word of the Day), and users can save them with a button. This command lets you interact with your saved vocabulary.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command (review) | `/vocab review` |
+| Slash command (list) | `/vocab list` |
+| Slash command (stats) | `/vocab stats` |
+| Prefix command (review) | `!vocab review` |
+| Prefix command (list) | `!vocab list` |
+| Prefix command (stats) | `!vocab stats` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `review` | Take a multiple-choice quiz on a random saved word |
+| `list` | View your saved vocabulary words with review accuracy |
+| `stats` | View aggregate vocabulary review statistics |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VOCAB_CHANNEL_ID` | No | — | Channel where daily Word of the Day is posted. If omitted, the daily timer is disabled. |
+| `VOCAB_DAILY_TIME` | No | `08:00` | Time (24h format, server local time) to post the daily word. |
+| `VOCAB_DEFAULT_LANGUAGE` | No | `ES` (Spanish) | Language code for generated vocabulary words. |
+
+Ollama must be running (same setup as AI Chat). No additional Ollama configuration needed.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. **Word of the Day** — Every day at the configured time, the bot generates a vocabulary word via Ollama and posts it as a rich embed with translation, pronunciation, example sentence, and linguistic notes. A "Save to Vocab" button is attached.
+2. **Save** — Users click "Save to Vocab" to add the word to their personal vocabulary. Duplicate saves are detected and handled gracefully.
+3. **Review (`/vocab review`)** — Picks a random word from the user's saved vocabulary and presents a 4-option multiple-choice quiz. Three distractors are pulled from other words in the same language. Answers are tracked for accuracy stats.
+4. **List (`/vocab list`)** — Shows the user's saved words with language, translation, review count, and accuracy percentage. Limited to 20 entries.
+5. **Stats (`/vocab stats`)** — Shows aggregate stats: total words saved, total reviews, correct answers, and overall accuracy percentage.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **AI word quality** | Word generation quality depends on the Ollama model. Common languages (ES, FR, DE) work best. |
+| **Quiz requires 4+ words** | If fewer than 4 words exist in the same language, distractors may be limited. |
+| **Daily post timing** | Uses a 60-second polling interval, so the post may be up to 1 minute late. |
+| **List limit** | Only the 20 most recent saved words are shown in the list embed. |
+
 ---
 
 ## Shadowrun Campaign System

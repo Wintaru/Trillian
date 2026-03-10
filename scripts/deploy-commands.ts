@@ -27,6 +27,9 @@ import { createDefineCommand } from "../src/commands/define.js";
 import { DeeplAccessor } from "../src/accessors/deepl-accessor.js";
 import { TranslateEngine } from "../src/engines/translate-engine.js";
 import { createTranslateCommand } from "../src/commands/translate.js";
+import { VocabAccessor } from "../src/accessors/vocab-accessor.js";
+import { VocabEngine } from "../src/engines/vocab-engine.js";
+import { createVocabCommand } from "../src/commands/vocab.js";
 import { NwsAccessor } from "../src/accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
@@ -62,6 +65,9 @@ const deeplAccessor = config.deeplApiKey
   : null;
 const translateEngine = new TranslateEngine(ollamaAccessor, deeplAccessor);
 
+const vocabAccessor = new VocabAccessor();
+const vocabEngine = new VocabEngine(ollamaAccessor, vocabAccessor);
+
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
   ? new WeatherApiAccessor(config.weatherApiKey)
@@ -82,6 +88,7 @@ const commands = [
   createWeatherCommand(weatherEngine, config.weatherLocation),
   createDefineCommand(dictionaryEngine),
   createTranslateCommand(translateEngine),
+  createVocabCommand(vocabEngine),
 ];
 
 const commandEngine = new CommandEngine(commands);
