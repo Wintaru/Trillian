@@ -122,7 +122,13 @@ export class TranslateEngine {
     ]);
 
     const ollama = ollamaResult.status === "fulfilled" ? ollamaResult.value : null;
-    const deepl = deeplResult.status === "fulfilled" ? deeplResult.value : null;
+    let deepl = deeplResult.status === "fulfilled" ? deeplResult.value : null;
+
+    // Discard DeepL result if it detected the same language as the target —
+    // this means it was asked to "translate" a language into itself, producing garbage.
+    if (deepl && deepl.detectedSourceLang === toLang) {
+      deepl = null;
+    }
 
     if (!ollama && !deepl) {
       throw new Error("Translation failed: both providers are unavailable.");

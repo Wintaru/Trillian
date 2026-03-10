@@ -180,6 +180,20 @@ describe("TranslateEngine", () => {
     expect(result.toLang).toBe("ES");
     expect(result.ollama).not.toBeNull();
   });
+
+  it("should discard DeepL result when its detected source matches target language", async () => {
+    vi.mocked(ollama.chat)
+      .mockRejectedValueOnce(new Error("Ollama timeout"))
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(deepl.translate).mockResolvedValue({
+      translations: [{ detected_source_language: "ES", text: "¡Qué pena!" }],
+    });
+
+    const result = await engine.translate({ text: "Que ganga!", fromLang: null, toLang: "ES" });
+
+    expect(result.deepl).toBeNull();
+    expect(result.ollama).not.toBeNull();
+  });
 });
 
 describe("parseOllamaResponse", () => {
