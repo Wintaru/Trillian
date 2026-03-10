@@ -234,6 +234,17 @@ describe("WeatherEngine", () => {
       ).rejects.toThrow("too far out");
     });
 
+    it("should re-validate date against WeatherAPI limit when NWS fails", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+      vi.mocked(nws.getPointMetadata).mockRejectedValue(new Error("NWS down"));
+
+      const fiveDaysOut = new Date();
+      fiveDaysOut.setDate(fiveDaysOut.getDate() + 5);
+      await expect(
+        engine.getWeather({ location: "Chicago, IL", targetDate: fiveDaysOut }),
+      ).rejects.toThrow("too far out");
+    });
+
     it("should throw a friendly message for international locations beyond 3 days", async () => {
       vi.mocked(nws.geocode).mockResolvedValue(intlLocation);
 
@@ -241,7 +252,7 @@ describe("WeatherEngine", () => {
       fourDaysOut.setDate(fourDaysOut.getDate() + 4);
       await expect(
         engine.getWeather({ location: "Seoul, Korea", targetDate: fourDaysOut }),
-      ).rejects.toThrow("3 days out");
+      ).rejects.toThrow("too far out");
     });
   });
 

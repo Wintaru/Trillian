@@ -55,6 +55,9 @@ export class WeatherEngine {
         response = await this.getWeatherFromNws(geo);
       } catch (err) {
         logger.warn(`NWS failed for ${geo.displayName}, trying WeatherAPI fallback:`, err);
+        if (request.targetDate) {
+          this.validateTargetDate(request.targetDate, false);
+        }
         response = await this.getWeatherFromWeatherApi(request.location);
       }
     } else {
@@ -139,13 +142,8 @@ export class WeatherEngine {
 
     const maxDays = isUS ? NWS_MAX_DAYS : WEATHERAPI_MAX_DAYS;
     if (diffDays > maxDays) {
-      if (!isUS) {
-        throw new Error(
-          `I can only go ${WEATHERAPI_MAX_DAYS} days out for destinations outside of the US. Try a date within the next ${WEATHERAPI_MAX_DAYS} days.`,
-        );
-      }
       throw new Error(
-        `That date is too far out. I can look up forecasts up to ${NWS_MAX_DAYS} days ahead.`,
+        `That date is too far out. I can only look up forecasts up to ${maxDays} days ahead.`,
       );
     }
   }
