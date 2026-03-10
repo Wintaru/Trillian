@@ -50,6 +50,13 @@ import { DeeplAccessor } from "./accessors/deepl-accessor.js";
 import { TranslateEngine } from "./engines/translate-engine.js";
 import { createTranslateCommand } from "./commands/translate.js";
 
+// Vocabulary system
+import { VocabAccessor } from "./accessors/vocab-accessor.js";
+import { VocabEngine } from "./engines/vocab-engine.js";
+import { VocabButtonHandler } from "./engines/vocab-button-handler.js";
+import { createVocabCommand } from "./commands/vocab.js";
+import { startVocabTimer } from "./utilities/vocab-timer.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -98,6 +105,11 @@ const deeplAccessor = config.deeplApiKey
   : null;
 const translateEngine = new TranslateEngine(ollamaAccessor, deeplAccessor);
 
+// Vocabulary system
+const vocabAccessor = new VocabAccessor();
+const vocabEngine = new VocabEngine(ollamaAccessor, vocabAccessor);
+const vocabButtonHandler = new VocabButtonHandler(vocabEngine);
+
 // Weather system
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
@@ -120,6 +132,7 @@ const commands = [
   createWeatherCommand(weatherEngine, config.weatherLocation),
   createDefineCommand(dictionaryEngine),
   createTranslateCommand(translateEngine),
+  createVocabCommand(vocabEngine),
 ];
 
 const events = [
@@ -138,7 +151,7 @@ const discordClient = new DiscordClient(
   commandEngine,
   events,
   config.prefix,
-  [pollButtonHandler, embedButtonHandler],
+  [pollButtonHandler, embedButtonHandler, vocabButtonHandler],
   [embedButtonHandler],
 );
 
@@ -164,4 +177,16 @@ if (config.weatherChannelId && config.weatherLocation) {
     config.weatherAlertIntervalMs,
   );
   logger.info(`Weather timer started for "${config.weatherLocation}" in channel ${config.weatherChannelId}`);
+}
+
+if (config.vocabChannelId) {
+  startVocabTimer(
+    discordClient.getClient(),
+    vocabEngine,
+    vocabAccessor,
+    config.vocabChannelId,
+    config.vocabDailyTime,
+    config.vocabDefaultLanguage,
+  );
+  logger.info(`Vocab timer started (${config.vocabDefaultLanguage}) in channel ${config.vocabChannelId}`);
 }
