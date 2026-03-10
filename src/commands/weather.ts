@@ -17,13 +17,13 @@ export function createWeatherCommand(
       .setDescription("Get current weather and forecast for a location")
       .addStringOption((opt) =>
         opt
-          .setName("location")
+          .setName("query")
           .setDescription("Where and when (e.g. 'Denver next tuesday', '90210', 'Seoul')")
           .setRequired(false),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
-      const rawInput = interaction.options.getString("location") ?? "";
+      const rawInput = interaction.options.getString("query") ?? "";
       const { location: parsedLocation, targetDate } = parseWeatherInput(rawInput);
       const location = parsedLocation || defaultLocation;
 
