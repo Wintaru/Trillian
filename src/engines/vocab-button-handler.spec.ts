@@ -7,6 +7,10 @@ function createMockVocabEngine(): VocabEngine {
   return {
     saveWord: vi.fn(),
     answerQuiz: vi.fn(),
+    getFlashcard: vi.fn(),
+    getFlashcardByWordId: vi.fn(),
+    rateFlashcard: vi.fn(),
+    getNextDueDate: vi.fn(),
   } as unknown as VocabEngine;
 }
 
@@ -15,6 +19,7 @@ function createMockInteraction(customId: string): ButtonInteraction {
     customId,
     user: { id: "user-123" },
     reply: vi.fn(),
+    update: vi.fn(),
   } as unknown as ButtonInteraction;
 }
 
@@ -31,6 +36,9 @@ describe("VocabButtonHandler", () => {
     it("should handle vocab_ prefixed IDs", () => {
       expect(handler.canHandle("vocab_save:1")).toBe(true);
       expect(handler.canHandle("vocab_quiz_answer:1:2:3")).toBe(true);
+      expect(handler.canHandle("vocab_fc_flip:1")).toBe(true);
+      expect(handler.canHandle("vocab_fc_rate:1:4")).toBe(true);
+      expect(handler.canHandle("vocab_fc_next")).toBe(true);
     });
 
     it("should not handle non-vocab IDs", () => {
@@ -131,6 +139,108 @@ describe("VocabButtonHandler", () => {
         content: "Failed to record answer.",
         flags: 64,
       });
+    });
+  });
+
+  describe("handleButton — flashcard flip", () => {
+    it("should update message with back of card", async () => {
+      vi.mocked(engine.getFlashcardByWordId).mockResolvedValue({
+        dailyWordId: 1,
+        word: "hola",
+        language: "ES",
+        translation: "hello",
+        pronunciation: "OH-lah",
+        exampleSentence: "¡Hola!",
+        exampleTranslation: "Hello!",
+      });
+      const interaction = createMockInteraction("vocab_fc_flip:1");
+
+      await handler.handleButton(interaction);
+
+      expect(vi.mocked(engine.getFlashcardByWordId)).toHaveBeenCalledWith("user-123", 1);
+      expect(vi.mocked(interaction.update)).toHaveBeenCalled();
+      const updateCall = vi.mocked(interaction.update).mock.calls[0][0] as { embeds: unknown[]; components: unknown[] };
+      expect(updateCall.embeds).toHaveLength(1);
+      expect(updateCall.components).toHaveLength(1);
+    });
+
+    it("should show message when word not found", async () => {
+      vi.mocked(engine.getFlashcardByWordId).mockResolvedValue(null);
+      const interaction = createMockInteraction("vocab_fc_flip:999");
+
+      await handler.handleButton(interaction);
+
+      expect(vi.mocked(interaction.update)).toHaveBeenCalledWith(
+        expect.objectContaining({ content: "Word not found." }),
+      );
+    });
+  });
+
+  describe("handleButton — flashcard rate", () => {
+    it("should rate and show confirmation", async () => {
+      vi.mocked(engine.rateFlashcard).mockResolvedValue({
+        nextReviewAt: Date.now() + 86400000,
+        interval: 1,
+        easeFactor: 2.5,
+      });
+      const interaction = createMockInteraction("vocab_fc_rate:1:4");
+
+      await handler.handleButton(interaction);
+
+      expect(vi.mocked(engine.rateFlashcard)).toHaveBeenCalledWith({
+        userId: "user-123",
+        dailyWordId: 1,
+        quality: 4,
+      });
+      expect(vi.mocked(interaction.update)).toHaveBeenCalled();
+      const updateCall = vi.mocked(interaction.update).mock.calls[0][0] as { embeds: unknown[]; components: unknown[] };
+      expect(updateCall.embeds).toHaveLength(1);
+      expect(updateCall.components).toHaveLength(1);
+    });
+
+    it("should show error on failure", async () => {
+      vi.mocked(engine.rateFlashcard).mockRejectedValue(new Error("DB error"));
+      const interaction = createMockInteraction("vocab_fc_rate:1:4");
+
+      await handler.handleButton(interaction);
+
+      expect(vi.mocked(interaction.update)).toHaveBeenCalledWith(
+        expect.objectContaining({ content: "Failed to record rating." }),
+      );
+    });
+  });
+
+  describe("handleButton — flashcard next", () => {
+    it("should show next card when available", async () => {
+      vi.mocked(engine.getFlashcard).mockResolvedValue({
+        dailyWordId: 2,
+        word: "adiós",
+        language: "ES",
+        translation: "goodbye",
+        pronunciation: "ah-dee-OHS",
+        exampleSentence: "¡Adiós!",
+        exampleTranslation: "Goodbye!",
+      });
+      const interaction = createMockInteraction("vocab_fc_next");
+
+      await handler.handleButton(interaction);
+
+      expect(vi.mocked(interaction.update)).toHaveBeenCalled();
+      const updateCall = vi.mocked(interaction.update).mock.calls[0][0] as { embeds: unknown[]; components: unknown[] };
+      expect(updateCall.embeds).toHaveLength(1);
+      expect(updateCall.components).toHaveLength(1);
+    });
+
+    it("should show no-cards-due message when none available", async () => {
+      vi.mocked(engine.getFlashcard).mockResolvedValue(null);
+      vi.mocked(engine.getNextDueDate).mockResolvedValue(Date.now() + 3600000);
+      const interaction = createMockInteraction("vocab_fc_next");
+
+      await handler.handleButton(interaction);
+
+      const updateCall = vi.mocked(interaction.update).mock.calls[0][0] as { content: string };
+      expect(updateCall.content).toContain("No words are due");
+      expect(updateCall.content).toContain("Next review");
     });
   });
 });

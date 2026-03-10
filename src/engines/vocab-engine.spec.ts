@@ -13,10 +13,15 @@ function createMockVocabAccessor(): VocabAccessor {
     hasWordBeenPosted: vi.fn(),
     saveUserWord: vi.fn(),
     getUserVocab: vi.fn(),
-    getRandomQuizWord: vi.fn(),
+    getDueQuizWord: vi.fn(),
     getDistractors: vi.fn(),
     recordReview: vi.fn(),
     getUserStats: vi.fn(),
+    getDueWord: vi.fn(),
+    getWordById: vi.fn(),
+    getSrsState: vi.fn().mockResolvedValue({ easeFactor: 2.5, interval: 0, repetition: 0 }),
+    updateSrsState: vi.fn(),
+    getNextDueDate: vi.fn(),
   } as unknown as VocabAccessor;
 }
 
@@ -112,7 +117,7 @@ describe("VocabEngine", () => {
 
   describe("getQuiz", () => {
     it("should return null when user has no saved words", async () => {
-      vi.mocked(accessor.getRandomQuizWord).mockResolvedValue(null);
+      vi.mocked(accessor.getDueQuizWord).mockResolvedValue(null);
 
       const result = await engine.getQuiz({ userId: "123" });
 
@@ -120,7 +125,7 @@ describe("VocabEngine", () => {
     });
 
     it("should return quiz with shuffled options", async () => {
-      vi.mocked(accessor.getRandomQuizWord).mockResolvedValue({
+      vi.mocked(accessor.getDueQuizWord).mockResolvedValue({
         dailyWordId: 1,
         word: "hola",
         language: "ES",
@@ -142,10 +147,10 @@ describe("VocabEngine", () => {
   });
 
   describe("answerQuiz", () => {
-    it("should record correct answer", async () => {
+    it("should record correct answer and update SRS state", async () => {
       vi.mocked(accessor.recordReview).mockResolvedValue({ reviewCount: 5, correctCount: 4 });
       vi.mocked(accessor.getUserVocab).mockResolvedValue([
-        { dailyWordId: 1, word: "hola", language: "ES", translation: "hello", reviewCount: 5, correctCount: 4, savedAt: 0 },
+        { dailyWordId: 1, word: "hola", language: "ES", translation: "hello", reviewCount: 5, correctCount: 4, savedAt: 0, nextReviewAt: null },
       ]);
 
       const result = await engine.answerQuiz({
@@ -157,14 +162,18 @@ describe("VocabEngine", () => {
 
       expect(result.correct).toBe(true);
       expect(result.correctAnswer).toBe("hello");
-      expect(result.reviewCount).toBe(5);
-      expect(result.correctCount).toBe(4);
+      expect(vi.mocked(accessor.getSrsState)).toHaveBeenCalledWith("123", 1);
+      expect(vi.mocked(accessor.updateSrsState)).toHaveBeenCalledWith("123", 1, expect.objectContaining({
+        interval: 1,
+        repetition: 1,
+      }));
     });
 
-    it("should record incorrect answer", async () => {
+    it("should record incorrect answer and reset SRS state", async () => {
       vi.mocked(accessor.recordReview).mockResolvedValue({ reviewCount: 3, correctCount: 1 });
+      vi.mocked(accessor.getSrsState).mockResolvedValue({ easeFactor: 2.5, interval: 6, repetition: 2 });
       vi.mocked(accessor.getUserVocab).mockResolvedValue([
-        { dailyWordId: 1, word: "hola", language: "ES", translation: "hello", reviewCount: 3, correctCount: 1, savedAt: 0 },
+        { dailyWordId: 1, word: "hola", language: "ES", translation: "hello", reviewCount: 3, correctCount: 1, savedAt: 0, nextReviewAt: null },
       ]);
 
       const result = await engine.answerQuiz({
@@ -175,6 +184,10 @@ describe("VocabEngine", () => {
       });
 
       expect(result.correct).toBe(false);
+      expect(vi.mocked(accessor.updateSrsState)).toHaveBeenCalledWith("123", 1, expect.objectContaining({
+        interval: 1,
+        repetition: 0,
+      }));
     });
   });
 
@@ -186,6 +199,58 @@ describe("VocabEngine", () => {
       const result = await engine.getStats({ userId: "123" });
 
       expect(result).toEqual(stats);
+    });
+  });
+
+  describe("getFlashcard", () => {
+    it("should return due word when available", async () => {
+      vi.mocked(accessor.getDueWord).mockResolvedValue({
+        dailyWordId: 1,
+        word: "hola",
+        language: "ES",
+        translation: "hello",
+        pronunciation: "OH-lah",
+        exampleSentence: "¡Hola!",
+        exampleTranslation: "Hello!",
+      });
+
+      const result = await engine.getFlashcard({ userId: "123" });
+
+      expect(result).not.toBeNull();
+      expect(result!.word).toBe("hola");
+      expect(result!.translation).toBe("hello");
+    });
+
+    it("should return null when no words are due", async () => {
+      vi.mocked(accessor.getDueWord).mockResolvedValue(null);
+
+      const result = await engine.getFlashcard({ userId: "123" });
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("rateFlashcard", () => {
+    it("should record review and update SRS state", async () => {
+      vi.mocked(accessor.recordReview).mockResolvedValue({ reviewCount: 1, correctCount: 1 });
+      vi.mocked(accessor.getSrsState).mockResolvedValue({ easeFactor: 2.5, interval: 0, repetition: 0 });
+
+      const result = await engine.rateFlashcard({ userId: "123", dailyWordId: 1, quality: 4 });
+
+      expect(result.interval).toBe(1);
+      expect(result.nextReviewAt).toBeGreaterThan(Date.now());
+      expect(vi.mocked(accessor.recordReview)).toHaveBeenCalledWith("123", 1, true);
+      expect(vi.mocked(accessor.updateSrsState)).toHaveBeenCalled();
+    });
+
+    it("should mark as incorrect for quality < 3", async () => {
+      vi.mocked(accessor.recordReview).mockResolvedValue({ reviewCount: 1, correctCount: 0 });
+      vi.mocked(accessor.getSrsState).mockResolvedValue({ easeFactor: 2.5, interval: 6, repetition: 2 });
+
+      const result = await engine.rateFlashcard({ userId: "123", dailyWordId: 1, quality: 0 });
+
+      expect(result.interval).toBe(1);
+      expect(vi.mocked(accessor.recordReview)).toHaveBeenCalledWith("123", 1, false);
     });
   });
 });

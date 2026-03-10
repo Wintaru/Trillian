@@ -43,6 +43,13 @@
       "when": 1773166604799,
       "tag": "0005_round_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1773169017922,
+      "tag": "0006_stiff_ultron",
+      "breakpoints": true
     }
   ]
 }

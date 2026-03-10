@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const userXp = sqliteTable(
   "user_xp",
@@ -190,6 +190,11 @@ export const userVocabulary = sqliteTable(
     savedAt: integer("saved_at").notNull(),
     reviewCount: integer("review_count").notNull().default(0),
     correctCount: integer("correct_count").notNull().default(0),
+    easeFactor: real("ease_factor").notNull().default(2.5),
+    interval: integer("interval").notNull().default(0),
+    repetition: integer("repetition").notNull().default(0),
+    nextReviewAt: integer("next_review_at"),
+    lastReviewedAt: integer("last_reviewed_at"),
   },
   (table) => [
     uniqueIndex("user_vocabulary_user_word_unique").on(table.userId, table.dailyWordId),

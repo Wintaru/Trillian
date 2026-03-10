@@ -863,17 +863,20 @@ Review, list, and quiz your saved vocabulary words. Words are posted daily in a 
 | Slash command (review) | `/vocab review` |
 | Slash command (list) | `/vocab list` |
 | Slash command (stats) | `/vocab stats` |
+| Slash command (flashcard) | `/vocab flashcard` |
 | Prefix command (review) | `!vocab review` |
 | Prefix command (list) | `!vocab list` |
 | Prefix command (stats) | `!vocab stats` |
+| Prefix command (flashcard) | `!vocab flashcard` |
 
 #### Subcommands
 
 | Subcommand | Description |
 |---|---|
-| `review` | Take a multiple-choice quiz on a random saved word |
-| `list` | View your saved vocabulary words with review accuracy |
+| `review` | Take a multiple-choice quiz on a due word (spaced repetition) |
+| `list` | View your saved vocabulary words with due dates and review accuracy |
 | `stats` | View aggregate vocabulary review statistics |
+| `flashcard` | Study due words with flip-card style review and self-rating |
 
 #### Permission
 
@@ -898,15 +901,17 @@ Ollama must be running (same setup as AI Chat). No additional Ollama configurati
 
 1. **Word of the Day** — Every day at the configured time, the bot generates a vocabulary word via Ollama and posts it as a rich embed with translation, pronunciation, example sentence, and linguistic notes. A "Save to Vocab" button is attached.
 2. **Save** — Users click "Save to Vocab" to add the word to their personal vocabulary. Duplicate saves are detected and handled gracefully.
-3. **Review (`/vocab review`)** — Picks a random word from the user's saved vocabulary and presents a 4-option multiple-choice quiz. Three distractors are pulled from other words in the same language. Answers are tracked for accuracy stats.
-4. **List (`/vocab list`)** — Shows the user's saved words with language, translation, review count, and accuracy percentage. Limited to 20 entries.
+3. **Review (`/vocab review`)** — Picks a due word from the user's saved vocabulary (using SM-2 spaced repetition scheduling) and presents a 4-option multiple-choice quiz. Three distractors are pulled from other words in the same language. Correct answers schedule the word further out; incorrect answers reset it. Falls back to a random word if none are due.
+4. **List (`/vocab list`)** — Shows the user's saved words with language, translation, due status (due now, hours, or days until next review), review count, and accuracy percentage. Limited to 20 entries.
 5. **Stats (`/vocab stats`)** — Shows aggregate stats: total words saved, total reviews, correct answers, and overall accuracy percentage.
+6. **Flashcard (`/vocab flashcard`)** — Presents due words one at a time in a flip-card format. The front shows the word; click "Flip Card" to reveal the translation, pronunciation, and example sentence. Rate your recall with Again/Hard/Good/Easy buttons (SM-2 quality ratings). The next review date is calculated based on your rating. Click "Next Card" to continue studying. If no words are due, shows when the next review is scheduled.
 
 #### Limitations
 
 | Limitation | Detail |
 |---|---|
 | **AI word quality** | Word generation quality depends on the Ollama model. Common languages (ES, FR, DE) work best. |
+| **Spaced repetition** | Review scheduling uses the SM-2 algorithm. New/unseen words are treated as immediately due. |
 | **Quiz requires 4+ words** | If fewer than 4 words exist in the same language, distractors may be limited. |
 | **Daily post timing** | Uses a 60-second polling interval, so the post may be up to 1 minute late. |
 | **List limit** | Only the 20 most recent saved words are shown in the list embed. |

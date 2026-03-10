@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } fro
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { VocabEngine } from "../engines/vocab-engine.js";
-import { buildVocabQuizEmbed, buildVocabListEmbed } from "../utilities/vocab-embed.js";
+import { buildVocabQuizEmbed, buildVocabListEmbed, buildFlashcardFrontEmbed } from "../utilities/vocab-embed.js";
 
 export function createVocabCommand(vocabEngine: VocabEngine): Command {
   return {
@@ -19,6 +19,9 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       )
       .addSubcommand((sub) =>
         sub.setName("stats").setDescription("View your vocabulary review stats"),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("flashcard").setDescription("Study due words with flip-card style review"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -31,6 +34,8 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
         await handleList(interaction, vocabEngine, userId);
       } else if (subcommand === "stats") {
         await handleStats(interaction, vocabEngine, userId);
+      } else if (subcommand === "flashcard") {
+        await handleFlashcard(interaction, vocabEngine, userId);
       }
     },
 
@@ -38,8 +43,8 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       const subcommand = context.args[0]?.toLowerCase();
       const userId = message.author.id;
 
-      if (!subcommand || !["review", "list", "stats"].includes(subcommand)) {
-        await message.reply("Usage: `!vocab review`, `!vocab list`, or `!vocab stats`");
+      if (!subcommand || !["review", "list", "stats", "flashcard"].includes(subcommand)) {
+        await message.reply("Usage: `!vocab review`, `!vocab list`, `!vocab stats`, or `!vocab flashcard`");
         return;
       }
 
@@ -49,6 +54,8 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
         await handleListPrefix(message, vocabEngine, userId);
       } else if (subcommand === "stats") {
         await handleStatsPrefix(message, vocabEngine, userId);
+      } else if (subcommand === "flashcard") {
+        await handleFlashcardPrefix(message, vocabEngine, userId);
       }
     },
   };
@@ -189,5 +196,73 @@ async function handleStatsPrefix(
   } catch (err) {
     const msg = err instanceof Error ? err.message : "An unknown error occurred.";
     await message.reply(`Failed to load stats: ${msg}`);
+  }
+}
+
+async function handleFlashcard(
+  interaction: ChatInputCommandInteraction,
+  vocabEngine: VocabEngine,
+  userId: string,
+): Promise<void> {
+  await interaction.deferReply({ flags: 64 });
+
+  try {
+    const card = await vocabEngine.getFlashcard({ userId });
+    if (!card) {
+      const nextDue = await vocabEngine.getNextDueDate(userId);
+      let message = "No words are due for review right now.";
+      if (nextDue) {
+        const diffMs = nextDue - Date.now();
+        const diffHours = Math.round(diffMs / 3_600_000);
+        const timeStr = diffHours < 24 ? `${diffHours} hour(s)` : `${Math.round(diffMs / 86_400_000)} day(s)`;
+        message += ` Next review in ${timeStr}.`;
+      } else {
+        message += " Save some words from the daily Word of the Day posts!";
+      }
+      await interaction.editReply(message);
+      return;
+    }
+
+    const embed = buildFlashcardFrontEmbed(card.word, card.language);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`vocab_fc_flip:${card.dailyWordId}`)
+        .setLabel("Flip Card")
+        .setStyle(ButtonStyle.Primary),
+    );
+
+    await interaction.editReply({ embeds: [embed], components: [row] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "An unknown error occurred.";
+    await interaction.editReply(`Failed to load flashcard: ${msg}`);
+  }
+}
+
+async function handleFlashcardPrefix(
+  message: Message,
+  vocabEngine: VocabEngine,
+  userId: string,
+): Promise<void> {
+  try {
+    const card = await vocabEngine.getFlashcard({ userId });
+    if (!card) {
+      await message.reply("No words are due for review right now. Save some from the daily Word of the Day posts!");
+      return;
+    }
+
+    const embed = buildFlashcardFrontEmbed(card.word, card.language);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`vocab_fc_flip:${card.dailyWordId}`)
+        .setLabel("Flip Card")
+        .setStyle(ButtonStyle.Primary),
+    );
+
+    if (message.channel.isSendable()) {
+      await message.channel.send({ embeds: [embed], components: [row] });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "An unknown error occurred.";
+    await message.reply(`Failed to load flashcard: ${msg}`);
   }
 }

@@ -12,8 +12,13 @@ import type {
   VocabListEntry,
   VocabStatsRequest,
   VocabStatsResponse,
+  VocabFlashcardRequest,
+  VocabFlashcardResponse,
+  VocabFlashcardRateRequest,
+  VocabFlashcardRateResponse,
 } from "../types/vocab-contracts.js";
 import { languageName } from "./translate-engine.js";
+import { calculateSm2, SM2_QUALITY_AGAIN, SM2_QUALITY_GOOD } from "../utilities/sm2.js";
 
 const MAX_GENERATION_RETRIES = 3;
 
@@ -107,7 +112,7 @@ export class VocabEngine {
   }
 
   async getQuiz(request: VocabQuizRequest): Promise<VocabQuizResponse | null> {
-    const quizWord = await this.vocabAccessor.getRandomQuizWord(request.userId);
+    const quizWord = await this.vocabAccessor.getDueQuizWord(request.userId, Date.now());
     if (!quizWord) return null;
 
     const distractors = await this.vocabAccessor.getDistractors(
@@ -138,6 +143,16 @@ export class VocabEngine {
       correct,
     );
 
+    // Update SRS state based on quiz result
+    const now = Date.now();
+    const srsState = await this.vocabAccessor.getSrsState(request.userId, request.dailyWordId);
+    const quality = correct ? SM2_QUALITY_GOOD : SM2_QUALITY_AGAIN;
+    const srsResult = calculateSm2(srsState, quality, now);
+    await this.vocabAccessor.updateSrsState(request.userId, request.dailyWordId, {
+      ...srsResult,
+      lastReviewedAt: now,
+    });
+
     const vocab = await this.vocabAccessor.getUserVocab(request.userId);
     const entry = vocab.find((v) => v.dailyWordId === request.dailyWordId);
 
@@ -155,6 +170,40 @@ export class VocabEngine {
 
   async getStats(request: VocabStatsRequest): Promise<VocabStatsResponse> {
     return this.vocabAccessor.getUserStats(request.userId);
+  }
+
+  async getFlashcardByWordId(userId: string, dailyWordId: number): Promise<VocabFlashcardResponse | null> {
+    return this.vocabAccessor.getWordById(dailyWordId);
+  }
+
+  async getFlashcard(request: VocabFlashcardRequest): Promise<VocabFlashcardResponse | null> {
+    const word = await this.vocabAccessor.getDueWord(request.userId, Date.now());
+    if (!word) return null;
+    return word;
+  }
+
+  async rateFlashcard(request: VocabFlashcardRateRequest): Promise<VocabFlashcardRateResponse> {
+    const now = Date.now();
+    const correct = request.quality >= 3;
+
+    await this.vocabAccessor.recordReview(request.userId, request.dailyWordId, correct);
+
+    const srsState = await this.vocabAccessor.getSrsState(request.userId, request.dailyWordId);
+    const srsResult = calculateSm2(srsState, request.quality, now);
+    await this.vocabAccessor.updateSrsState(request.userId, request.dailyWordId, {
+      ...srsResult,
+      lastReviewedAt: now,
+    });
+
+    return {
+      nextReviewAt: srsResult.nextReviewAt,
+      interval: srsResult.interval,
+      easeFactor: srsResult.easeFactor,
+    };
+  }
+
+  async getNextDueDate(userId: string): Promise<number | null> {
+    return this.vocabAccessor.getNextDueDate(userId);
   }
 }
 

@@ -56,6 +56,33 @@ export interface VocabListEntry {
   reviewCount: number;
   correctCount: number;
   savedAt: number;
+  nextReviewAt: number | null;
+}
+
+export interface VocabFlashcardRequest {
+  userId: string;
+}
+
+export interface VocabFlashcardResponse {
+  dailyWordId: number;
+  word: string;
+  language: string;
+  translation: string;
+  pronunciation: string;
+  exampleSentence: string;
+  exampleTranslation: string;
+}
+
+export interface VocabFlashcardRateRequest {
+  userId: string;
+  dailyWordId: number;
+  quality: number;
+}
+
+export interface VocabFlashcardRateResponse {
+  nextReviewAt: number;
+  interval: number;
+  easeFactor: number;
 }
 
 export interface VocabStatsRequest {
