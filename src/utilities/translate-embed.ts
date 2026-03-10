@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import type { TranslateResponse } from "../types/translate-contracts.js";
 import { languageName } from "../engines/translate-engine.js";
+import { pronunciationMarkdown } from "./pronunciation.js";
 
 const EMBED_COLOR = 0x5865f2;
 const FIELD_MAX_LENGTH = 1024;
@@ -16,15 +17,20 @@ export function buildTranslateEmbed(response: TranslateResponse): EmbedBuilder {
     .setColor(EMBED_COLOR)
     .setTimestamp();
 
+  const sourceLang = response.fromLang ?? response.deepl?.detectedSourceLang ?? null;
+  const originalHear = sourceLang
+    ? ` — ${pronunciationMarkdown(response.originalText, sourceLang)}`
+    : "";
   embed.addFields({
     name: "Original",
-    value: truncate(response.originalText, FIELD_MAX_LENGTH),
+    value: truncate(`${response.originalText}${originalHear}`, FIELD_MAX_LENGTH),
   });
 
   if (response.ollama) {
+    const hearLink = pronunciationMarkdown(response.ollama.translatedText, response.toLang);
     embed.addFields({
       name: "Translation (AI)",
-      value: truncate(response.ollama.translatedText, FIELD_MAX_LENGTH),
+      value: truncate(`${response.ollama.translatedText} — ${hearLink}`, FIELD_MAX_LENGTH),
     });
 
     if (response.ollama.explanation) {
@@ -36,9 +42,10 @@ export function buildTranslateEmbed(response: TranslateResponse): EmbedBuilder {
   }
 
   if (response.deepl) {
+    const hearLink = pronunciationMarkdown(response.deepl.translatedText, response.toLang);
     embed.addFields({
       name: "Translation (DeepL)",
-      value: truncate(response.deepl.translatedText, FIELD_MAX_LENGTH),
+      value: truncate(`${response.deepl.translatedText} — ${hearLink}`, FIELD_MAX_LENGTH),
     });
   }
 
