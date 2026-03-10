@@ -113,6 +113,7 @@ This registers commands to your development guild (instant). For global deployme
 | `/roll edge <pool> <edge_dice>` | Push the Limit roll | Everyone |
 | `/shadowrun info <topic>` | Look up Shadowrun game info | Everyone |
 | `/weather [location]` | Get current weather and forecast | Everyone |
+| `/define <word>` | Look up the definition of an English word | Everyone |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -733,6 +734,60 @@ Everyone — no special permissions required.
 | **API latency** | NWS requires multiple API calls (points, forecast, observations, alerts). The slash command uses `deferReply()` to handle this. |
 | **Daily time is local** | `WEATHER_DAILY_TIME` uses the server's system timezone, not a user-configured timezone. |
 | **Alert dedup** | Posted alerts are tracked for 7 days. Alerts that expire and are reissued after 7 days may be re-posted. |
+
+---
+
+### `/define`
+
+Look up the definition of an English word using the [Free Dictionary API](https://dictionaryapi.dev/). Returns pronunciation, definitions grouped by part of speech, usage examples, and synonyms — no API key required.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/define word:ephemeral` |
+| Prefix command | `!define ephemeral` |
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `word` | String | Yes | The English word to look up |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+None — works out of the box. No API key needed.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. User provides a word via `/define` or `!define`
+2. Bot queries the Free Dictionary API for definitions
+3. Bot replies with a rich embed containing:
+   - **Title:** The word, linked to its Wiktionary source page
+   - **Pronunciation:** Phonetic transcription (e.g., `/ɪˈfɛm.ər.əl/`)
+   - **Definitions:** Grouped by part of speech (noun, verb, adjective, etc.), numbered, with up to 3 definitions per group
+   - **Examples:** Usage examples shown in italics where available
+   - **Synonyms:** Up to 5 synonyms listed per part of speech
+4. If the word is not found, replies with a friendly error message
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **English only** | The Free Dictionary API only supports English words. |
+| **Single words** | Multi-word phrases and idioms may not return results. |
+| **Max 4 parts of speech** | Only the first 4 meanings (noun, verb, etc.) are shown to keep the embed readable. |
+| **Max 3 definitions each** | Each part of speech shows up to 3 definitions. |
+| **Synonym coverage** | Not all words have synonyms in the API. Coverage varies. |
 
 ---
 

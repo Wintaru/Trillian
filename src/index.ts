@@ -40,6 +40,11 @@ import { EmbedEngine } from "./engines/embed-engine.js";
 import { EmbedButtonHandler } from "./engines/embed-button-handler.js";
 import { createEmbedCommand } from "./commands/embed.js";
 
+// Dictionary
+import { DictionaryAccessor } from "./accessors/dictionary-accessor.js";
+import { DictionaryEngine } from "./engines/dictionary-engine.js";
+import { createDefineCommand } from "./commands/define.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -78,6 +83,10 @@ const embedTemplateAccessor = new EmbedTemplateAccessor();
 const embedEngine = new EmbedEngine(embedTemplateAccessor);
 const embedButtonHandler = new EmbedButtonHandler(embedEngine);
 
+// Dictionary
+const dictionaryAccessor = new DictionaryAccessor();
+const dictionaryEngine = new DictionaryEngine(dictionaryAccessor);
+
 // Weather system
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
@@ -98,6 +107,7 @@ const commands = [
   createRollCommand(diceEngine),
   createShadowrunInfoCommand(ollamaGmAccessor),
   createWeatherCommand(weatherEngine, config.weatherLocation),
+  createDefineCommand(dictionaryEngine),
 ];
 
 const events = [
