@@ -33,6 +33,9 @@ import { createVocabCommand } from "../src/commands/vocab.js";
 import { LessonAccessor } from "../src/accessors/lesson-accessor.js";
 import { LessonEngine } from "../src/engines/lesson-engine.js";
 import { createLessonCommand } from "../src/commands/lesson.js";
+import { ChallengeAccessor } from "../src/accessors/challenge-accessor.js";
+import { ChallengeEngine } from "../src/engines/challenge-engine.js";
+import { createChallengeCommand } from "../src/commands/challenge.js";
 import { NwsAccessor } from "../src/accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
@@ -80,6 +83,9 @@ const weatherApiAccessor = config.weatherApiKey
   : null;
 const weatherEngine = new WeatherEngine(nwsAccessor, weatherApiAccessor);
 
+const challengeAccessor = new ChallengeAccessor();
+const challengeEngine = new ChallengeEngine(ollamaAccessor, challengeAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -96,6 +102,7 @@ const commands = [
   createTranslateCommand(translateEngine),
   createVocabCommand(vocabEngine),
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
+  createChallengeCommand(challengeEngine),
 ];
 
 const commandEngine = new CommandEngine(commands);

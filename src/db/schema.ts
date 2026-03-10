@@ -236,3 +236,42 @@ export const lessonMessages = sqliteTable("lesson_messages", {
   content: text("content").notNull(),
   createdAt: integer("created_at").notNull(),
 });
+
+// --- Translation Challenges ---
+
+export const challenges = sqliteTable("challenges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  messageId: text("message_id").notNull().default(""),
+  language: text("language").notNull(),
+  direction: text("direction").notNull(),
+  sentence: text("sentence").notNull(),
+  referenceTranslation: text("reference_translation").notNull(),
+  context: text("context").notNull().default(""),
+  status: text("status").notNull().default("open"),
+  closesAt: integer("closes_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const challengeSubmissions = sqliteTable(
+  "challenge_submissions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    challengeId: integer("challenge_id").notNull(),
+    userId: text("user_id").notNull(),
+    translation: text("translation").notNull(),
+    accuracyScore: real("accuracy_score").notNull(),
+    grammarScore: real("grammar_score").notNull(),
+    naturalnessScore: real("naturalness_score").notNull(),
+    compositeScore: real("composite_score").notNull(),
+    feedback: text("feedback").notNull(),
+    submittedAt: integer("submitted_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("challenge_submissions_challenge_user_unique").on(
+      table.challengeId,
+      table.userId,
+    ),
+  ],
+);

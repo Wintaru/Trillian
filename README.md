@@ -980,6 +980,73 @@ No additional environment variables needed. Reuses `VOCAB_DEFAULT_LANGUAGE` for 
 
 ---
 
+### `/challenge`
+
+View results and leaderboards for daily translation challenges. Every day, the bot posts a sentence to translate; users submit translations via a modal dialog, and an AI grades each submission on accuracy, grammar, and naturalness (each 1–10). When the time window closes, results are posted automatically.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command (results) | `/challenge results` or `/challenge results id:5` |
+| Slash command (leaderboard) | `/challenge leaderboard` |
+| Prefix command (results) | `!challenge results 5` |
+| Prefix command (leaderboard) | `!challenge leaderboard` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `results [id]` | View results for a specific challenge. Defaults to the most recent challenge. |
+| `leaderboard` | View the overall translation challenge leaderboard ranked by average score. |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `id` | integer | No | Most recent | Challenge ID to view results for. |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CHALLENGE_CHANNEL_ID` | No | — | Channel where daily challenges are posted. If omitted, the daily timer is disabled. |
+| `CHALLENGE_DAILY_TIME` | No | `09:00` | Time (24h format, server local time) to post the daily challenge. |
+| `CHALLENGE_DIRECTION` | No | `to_english` | Translation direction: `to_english` or `from_english`. |
+| `CHALLENGE_DURATION_MINUTES` | No | `480` | How long (in minutes) submissions stay open before the challenge closes. |
+
+Reuses `VOCAB_DEFAULT_LANGUAGE` for the target language. Ollama must be running (same setup as AI Chat).
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. **Daily Challenge** — Every day at the configured time, the bot generates a sentence via Ollama (optionally incorporating recent vocabulary words) and posts it as a rich embed with a "Submit Translation" and "View Results" button.
+2. **Submit Translation** — Users click "Submit Translation" to open a modal dialog where they enter their translation. The translation is graded by Ollama on three dimensions: accuracy, grammar, and naturalness (each 1–10). A composite score (average of three) is calculated. Users receive an ephemeral grade embed immediately after submission.
+3. **Resubmission** — Users can resubmit to update their translation and grade before the challenge closes.
+4. **Auto-Close** — When the time window expires, the bot automatically closes the challenge, edits the original message to remove the submit button, and posts a results embed showing the top submissions ranked by composite score.
+5. **Results (`/challenge results`)** — View results for any challenge by ID, or the most recent challenge if no ID is provided.
+6. **Leaderboard (`/challenge leaderboard`)** — Shows the top 20 users ranked by average composite score across all challenges, with total challenges participated in.
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **AI grading consistency** | Grading is performed by Ollama and may vary slightly between runs for similar translations. |
+| **One submission per user** | Each user can only have one active submission per challenge (resubmission replaces the previous one). |
+| **Daily post timing** | Uses a 60-second polling interval, so the post may be up to 1 minute late. |
+| **Close timing** | Uses a 30-second polling interval to detect expired challenges. |
+| **Leaderboard limit** | Only the top 20 users are shown on the leaderboard. |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

@@ -127,4 +127,28 @@ describe("loadConfig", () => {
 
     expect(config.announceChannelId).toBe("112233");
   });
+
+  it("should default challenge config values when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.challengeChannelId).toBeUndefined();
+    expect(config.challengeDailyTime).toBe("09:00");
+    expect(config.challengeDirection).toBe("to_english");
+    expect(config.challengeDurationMinutes).toBe(480);
+  });
+
+  it("should use custom challenge config values when set", () => {
+    const config = loadConfig({
+      ...validEnv,
+      CHALLENGE_CHANNEL_ID: "555",
+      CHALLENGE_DAILY_TIME: "10:30",
+      CHALLENGE_DIRECTION: "from_english",
+      CHALLENGE_DURATION_MINUTES: "120",
+    });
+
+    expect(config.challengeChannelId).toBe("555");
+    expect(config.challengeDailyTime).toBe("10:30");
+    expect(config.challengeDirection).toBe("from_english");
+    expect(config.challengeDurationMinutes).toBe(120);
+  });
 });

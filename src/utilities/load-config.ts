@@ -23,6 +23,10 @@ export interface Config {
   vocabChannelId: string | undefined;
   vocabDailyTime: string;
   vocabDefaultLanguage: string;
+  challengeChannelId: string | undefined;
+  challengeDailyTime: string;
+  challengeDirection: string;
+  challengeDurationMinutes: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -64,5 +68,9 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     vocabChannelId: env["VOCAB_CHANNEL_ID"] ?? undefined,
     vocabDailyTime: env["VOCAB_DAILY_TIME"] ?? "08:00",
     vocabDefaultLanguage: env["VOCAB_DEFAULT_LANGUAGE"] ?? "ES",
+    challengeChannelId: env["CHALLENGE_CHANNEL_ID"] ?? undefined,
+    challengeDailyTime: env["CHALLENGE_DAILY_TIME"] ?? "09:00",
+    challengeDirection: env["CHALLENGE_DIRECTION"] ?? "to_english",
+    challengeDurationMinutes: parseInt(env["CHALLENGE_DURATION_MINUTES"] ?? "480", 10),
   });
 }

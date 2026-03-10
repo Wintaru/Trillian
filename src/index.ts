@@ -63,6 +63,13 @@ import { LessonEngine } from "./engines/lesson-engine.js";
 import { createLessonCommand } from "./commands/lesson.js";
 import { createLessonDmHandler } from "./events/message-lesson.js";
 
+// Translation challenges
+import { ChallengeAccessor } from "./accessors/challenge-accessor.js";
+import { ChallengeEngine } from "./engines/challenge-engine.js";
+import { ChallengeButtonHandler } from "./engines/challenge-button-handler.js";
+import { createChallengeCommand } from "./commands/challenge.js";
+import { startChallengePostTimer, startChallengeCloseTimer } from "./utilities/challenge-timer.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -128,6 +135,11 @@ const weatherApiAccessor = config.weatherApiKey
 const weatherAlertAccessor = new WeatherAlertAccessor();
 const weatherEngine = new WeatherEngine(nwsAccessor, weatherApiAccessor);
 
+// Translation challenges
+const challengeAccessor = new ChallengeAccessor();
+const challengeEngine = new ChallengeEngine(ollamaAccessor, challengeAccessor);
+const challengeButtonHandler = new ChallengeButtonHandler(challengeEngine);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -144,6 +156,7 @@ const commands = [
   createTranslateCommand(translateEngine),
   createVocabCommand(vocabEngine),
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
+  createChallengeCommand(challengeEngine),
 ];
 
 const events = [
@@ -163,8 +176,8 @@ const discordClient = new DiscordClient(
   commandEngine,
   events,
   config.prefix,
-  [pollButtonHandler, embedButtonHandler, vocabButtonHandler],
-  [embedButtonHandler],
+  [pollButtonHandler, embedButtonHandler, vocabButtonHandler, challengeButtonHandler],
+  [embedButtonHandler, challengeButtonHandler],
 );
 
 await discordClient.start(config.token);
@@ -201,4 +214,20 @@ if (config.vocabChannelId) {
     config.vocabDefaultLanguage,
   );
   logger.info(`Vocab timer started (${config.vocabDefaultLanguage}) in channel ${config.vocabChannelId}`);
+}
+
+if (config.challengeChannelId) {
+  startChallengePostTimer(
+    discordClient.getClient(),
+    challengeEngine,
+    challengeAccessor,
+    config.challengeChannelId,
+    config.challengeDailyTime,
+    config.vocabDefaultLanguage,
+    config.challengeDirection,
+    config.challengeDurationMinutes,
+    config.guildId,
+  );
+  startChallengeCloseTimer(discordClient.getClient(), challengeEngine);
+  logger.info(`Challenge timer started (${config.challengeDirection}) in channel ${config.challengeChannelId}`);
 }
