@@ -5,6 +5,7 @@ import type {
   ChallengeLeaderboardResponse,
 } from "../types/challenge-contracts.js";
 import { languageName } from "../engines/translate-engine.js";
+import { pronunciationMarkdown } from "./pronunciation.js";
 
 const EMBED_COLOR = 0x5865f2;
 const FIELD_MAX_LENGTH = 1024;
@@ -21,9 +22,11 @@ export function buildChallengeEmbed(
     ? `Translate to English`
     : `Translate to ${lang}`;
 
+  const hearLink = pronunciationMarkdown(sentence, language);
+
   const embed = new EmbedBuilder()
     .setTitle(`Translation Challenge — ${lang}`)
-    .setDescription(`> ${sentence}`)
+    .setDescription(`> ${sentence}\n${hearLink}`)
     .setColor(EMBED_COLOR)
     .setTimestamp();
 
@@ -73,7 +76,8 @@ export function buildResultsEmbed(results: ChallengeResultsResponse): EmbedBuild
     .setColor(EMBED_COLOR)
     .setTimestamp();
 
-  embed.addFields({ name: "Sentence", value: `> ${results.sentence}` });
+  const hearLink = pronunciationMarkdown(results.sentence, results.language);
+  embed.addFields({ name: "Sentence", value: `> ${results.sentence}\n${hearLink}` });
   embed.addFields({ name: "Reference Translation", value: results.referenceTranslation });
 
   if (results.context) {

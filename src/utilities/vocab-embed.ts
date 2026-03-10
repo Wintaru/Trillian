@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import type { GenerateWordResponse, VocabQuizResponse, VocabListEntry, VocabFlashcardResponse } from "../types/vocab-contracts.js";
 import { languageName } from "../engines/translate-engine.js";
+import { pronunciationMarkdown } from "./pronunciation.js";
 
 const EMBED_COLOR = 0x5865f2;
 const FIELD_MAX_LENGTH = 1024;
@@ -14,7 +15,7 @@ export function buildVocabEmbed(response: GenerateWordResponse): EmbedBuilder {
     .setTimestamp()
     .setFooter({ text: "Powered by Ollama" });
 
-  embed.addFields({ name: "Word", value: `**${response.word}**` });
+  embed.addFields({ name: "Word", value: `**${response.word}** — ${pronunciationMarkdown(response.word, response.language)}` });
   embed.addFields({ name: "Translation", value: truncate(response.translation, FIELD_MAX_LENGTH) });
 
   if (response.pronunciation) {
@@ -22,9 +23,10 @@ export function buildVocabEmbed(response: GenerateWordResponse): EmbedBuilder {
   }
 
   if (response.exampleSentence) {
+    const hearLink = pronunciationMarkdown(response.exampleSentence, response.language);
     embed.addFields({
       name: "Example",
-      value: truncate(`*${response.exampleSentence}*`, FIELD_MAX_LENGTH),
+      value: truncate(`*${response.exampleSentence}* — ${hearLink}`, FIELD_MAX_LENGTH),
     });
   }
 
@@ -96,9 +98,11 @@ export function buildFlashcardFrontEmbed(word: string, language: string): EmbedB
 export function buildFlashcardBackEmbed(card: VocabFlashcardResponse): EmbedBuilder {
   const lang = languageName(card.language);
 
+  const hearLink = pronunciationMarkdown(card.word, card.language);
+
   const embed = new EmbedBuilder()
     .setTitle(`Vocab Flashcard — ${lang}`)
-    .setDescription(`**${card.word}** → ${card.translation}`)
+    .setDescription(`**${card.word}** → ${card.translation} — ${hearLink}`)
     .setColor(EMBED_COLOR);
 
   if (card.pronunciation) {
