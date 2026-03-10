@@ -34,6 +34,10 @@ function weatherEmoji(description: string): string {
 }
 
 export function buildWeatherEmbed(response: GetWeatherResponse): EmbedBuilder {
+  if (response.targetDate) {
+    return buildDateForecastEmbed(response);
+  }
+
   const { current, forecast, location, forecastUrl, provider } = response;
   const emoji = weatherEmoji(current.description);
 
@@ -60,6 +64,34 @@ export function buildWeatherEmbed(response: GetWeatherResponse): EmbedBuilder {
       name: `${periodEmoji} ${period.name}`,
       value: `${period.shortForecast}\n${period.temperature}\u00B0${period.temperatureUnit} | Wind: ${period.windSpeed}`,
       inline: true,
+    });
+  }
+
+  return embed;
+}
+
+function buildDateForecastEmbed(response: GetWeatherResponse): EmbedBuilder {
+  const { forecast, location, forecastUrl, provider, targetDate } = response;
+
+  const dateLabel = targetDate!.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`Forecast for ${shortenDisplayName(location.displayName)} \u2014 ${dateLabel}`)
+    .setURL(forecastUrl)
+    .setColor(temperatureColor(forecast[0]?.temperature ?? 60))
+    .setTimestamp()
+    .setFooter({ text: `via ${provider === "nws" ? "National Weather Service" : "WeatherAPI.com"}` });
+
+  for (const period of forecast) {
+    const periodEmoji = weatherEmoji(period.shortForecast);
+    const detail = period.detailedForecast || period.shortForecast;
+    embed.addFields({
+      name: `${periodEmoji} ${period.name}`,
+      value: `${detail}\n**${period.temperature}\u00B0${period.temperatureUnit}** | Wind: ${period.windSpeed}`,
     });
   }
 

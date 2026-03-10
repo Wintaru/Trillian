@@ -3,7 +3,7 @@ import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { WeatherEngine } from "../engines/weather-engine.js";
 import { buildWeatherEmbed, buildWeatherAlertEmbed } from "../utilities/weather-embed.js";
-import * as logger from "../utilities/logger.js";
+import { parseWeatherInput } from "../utilities/parse-weather-input.js";
 
 export function createWeatherCommand(
   weatherEngine: WeatherEngine,
@@ -18,12 +18,14 @@ export function createWeatherCommand(
       .addStringOption((opt) =>
         opt
           .setName("location")
-          .setDescription("Location (zip, city, or 'City, Country'). Defaults to server location.")
+          .setDescription("Location and/or date (e.g. 'Chicago next tuesday', '90210 friday')")
           .setRequired(false),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
-      const location = interaction.options.getString("location") ?? defaultLocation;
+      const rawInput = interaction.options.getString("location") ?? "";
+      const { location: parsedLocation, targetDate } = parseWeatherInput(rawInput);
+      const location = parsedLocation || defaultLocation;
 
       if (!location) {
         await interaction.reply({
@@ -36,7 +38,7 @@ export function createWeatherCommand(
       await interaction.deferReply();
 
       try {
-        const result = await weatherEngine.getWeather({ location });
+        const result = await weatherEngine.getWeather({ location, targetDate });
         const embeds = [buildWeatherEmbed(result)];
 
         for (const alert of result.alerts.slice(0, 3)) {
@@ -51,8 +53,9 @@ export function createWeatherCommand(
     },
 
     async executePrefix(message: Message, context: CommandContext): Promise<void> {
-      logger.info(`[WEATHER DEBUG] executePrefix called by ${message.author.tag} in ${message.channelId}, pid=${process.pid}`);
-      const location = context.args.join(" ") || defaultLocation;
+      const rawInput = context.args.join(" ");
+      const { location: parsedLocation, targetDate } = parseWeatherInput(rawInput);
+      const location = parsedLocation || defaultLocation;
 
       if (!location) {
         await message.reply(
@@ -62,7 +65,7 @@ export function createWeatherCommand(
       }
 
       try {
-        const result = await weatherEngine.getWeather({ location });
+        const result = await weatherEngine.getWeather({ location, targetDate });
         const embeds = [buildWeatherEmbed(result)];
 
         for (const alert of result.alerts.slice(0, 3)) {

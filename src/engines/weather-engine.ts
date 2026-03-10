@@ -6,8 +6,12 @@ import type {
   GetAlertsRequest,
   GetAlertsResponse,
   GeocodedLocation,
+  ForecastPeriod,
 } from "../types/weather-contracts.js";
 import * as logger from "../utilities/logger.js";
+
+const NWS_MAX_DAYS = 7;
+const WEATHERAPI_MAX_DAYS = 3;
 
 export class WeatherEngine {
   private geocodeCache = new Map<string, GeocodedLocation>();
@@ -40,16 +44,32 @@ export class WeatherEngine {
 
     const geo = await this.geocode(request.location);
 
-    if (geo.isUS) {
-      try {
-        return await this.getWeatherFromNws(geo);
-      } catch (err) {
-        logger.warn(`NWS failed for ${geo.displayName}, trying WeatherAPI fallback:`, err);
-        return this.getWeatherFromWeatherApi(request.location);
-      }
+    if (request.targetDate) {
+      this.validateTargetDate(request.targetDate, geo.isUS);
     }
 
-    return this.getWeatherFromWeatherApi(request.location);
+    let response: GetWeatherResponse;
+
+    if (geo.isUS) {
+      try {
+        response = await this.getWeatherFromNws(geo);
+      } catch (err) {
+        logger.warn(`NWS failed for ${geo.displayName}, trying WeatherAPI fallback:`, err);
+        response = await this.getWeatherFromWeatherApi(request.location);
+      }
+    } else {
+      response = await this.getWeatherFromWeatherApi(request.location);
+    }
+
+    if (request.targetDate) {
+      response = {
+        ...response,
+        forecast: this.filterForecastByDate(response.forecast, request.targetDate),
+        targetDate: request.targetDate,
+      };
+    }
+
+    return response;
   }
 
   async getAlerts(request: GetAlertsRequest): Promise<GetAlertsResponse> {
@@ -105,6 +125,46 @@ export class WeatherEngine {
       ...result,
       provider: "weatherapi",
     };
+  }
+
+  private validateTargetDate(targetDate: Date, isUS: boolean): void {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      throw new Error("I can't look up weather for past dates.");
+    }
+
+    const maxDays = isUS ? NWS_MAX_DAYS : WEATHERAPI_MAX_DAYS;
+    if (diffDays > maxDays) {
+      if (!isUS) {
+        throw new Error(
+          `I can only go ${WEATHERAPI_MAX_DAYS} days out for destinations outside of the US. Try a date within the next ${WEATHERAPI_MAX_DAYS} days.`,
+        );
+      }
+      throw new Error(
+        `That date is too far out. I can look up forecasts up to ${NWS_MAX_DAYS} days ahead.`,
+      );
+    }
+  }
+
+  private filterForecastByDate(forecast: ForecastPeriod[], targetDate: Date): ForecastPeriod[] {
+    const targetStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+
+    const matching = forecast.filter((p) => {
+      if (!p.startTime) return false;
+      return p.startTime.startsWith(targetStr);
+    });
+
+    if (matching.length === 0) {
+      throw new Error(
+        `No forecast data available for ${targetDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}. It may be outside the forecast window.`,
+      );
+    }
+
+    return matching;
   }
 
   private async getAlertsFromWeatherApi(

@@ -53,11 +53,30 @@ const mockCurrent: CurrentConditions = {
 const mockForecast: ForecastPeriod[] = [
   {
     name: "Today",
+    startTime: "2026-03-10T06:00:00-05:00",
     temperature: 75,
     temperatureUnit: "F",
     shortForecast: "Partly Cloudy",
     detailedForecast: "Partly cloudy with a high of 75.",
     windSpeed: "10 mph",
+  },
+  {
+    name: "Tonight",
+    startTime: "2026-03-10T18:00:00-05:00",
+    temperature: 55,
+    temperatureUnit: "F",
+    shortForecast: "Clear",
+    detailedForecast: "Clear skies overnight.",
+    windSpeed: "5 mph",
+  },
+  {
+    name: "Wednesday",
+    startTime: "2026-03-11T06:00:00-05:00",
+    temperature: 70,
+    temperatureUnit: "F",
+    shortForecast: "Sunny",
+    detailedForecast: "Sunny with a high near 70.",
+    windSpeed: "8 mph",
   },
 ];
 
@@ -172,6 +191,58 @@ describe("WeatherEngine", () => {
         "No location provided",
       );
     });
+
+    it("should filter forecast by target date", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+      vi.mocked(nws.getPointMetadata).mockResolvedValue({
+        properties: {
+          forecast: "https://api.weather.gov/gridpoints/LOT/75,73/forecast",
+          forecastGridData: "",
+          observationStations: "https://api.weather.gov/gridpoints/LOT/75,73/stations",
+          county: "",
+        },
+      });
+      vi.mocked(nws.getForecast).mockResolvedValue(mockForecast);
+      vi.mocked(nws.getCurrentObservation).mockResolvedValue(mockCurrent);
+      vi.mocked(nws.getActiveAlerts).mockResolvedValue([]);
+
+      const targetDate = new Date(2026, 2, 10); // March 10, 2026
+      const result = await engine.getWeather({ location: "Chicago, IL", targetDate });
+
+      expect(result.targetDate).toEqual(targetDate);
+      // Should only include periods matching 2026-03-10
+      expect(result.forecast.every((p) => p.startTime.startsWith("2026-03-10"))).toBe(true);
+      expect(result.forecast).toHaveLength(2); // Today + Tonight
+    });
+
+    it("should throw for past target dates", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+
+      const pastDate = new Date(2020, 0, 1);
+      await expect(
+        engine.getWeather({ location: "Chicago, IL", targetDate: pastDate }),
+      ).rejects.toThrow("past dates");
+    });
+
+    it("should throw for dates beyond the forecast window", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+
+      const farFuture = new Date();
+      farFuture.setDate(farFuture.getDate() + 30);
+      await expect(
+        engine.getWeather({ location: "Chicago, IL", targetDate: farFuture }),
+      ).rejects.toThrow("too far out");
+    });
+
+    it("should throw a friendly message for international locations beyond 3 days", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(intlLocation);
+
+      const fourDaysOut = new Date();
+      fourDaysOut.setDate(fourDaysOut.getDate() + 4);
+      await expect(
+        engine.getWeather({ location: "Seoul, Korea", targetDate: fourDaysOut }),
+      ).rejects.toThrow("3 days out");
+    });
   });
 
   describe("getAlerts", () => {
@@ -205,6 +276,22 @@ describe("WeatherEngine", () => {
       const result = await engine.getAlerts({ location: "Chicago, IL" });
 
       expect(result.alerts).toHaveLength(0);
+    });
+
+    it("should fall back to WeatherAPI for alerts when NWS fails", async () => {
+      vi.mocked(nws.geocode).mockResolvedValue(usLocation);
+      vi.mocked(nws.getActiveAlerts).mockRejectedValue(new Error("NWS down"));
+      vi.mocked(weatherApi.getForecast).mockResolvedValue({
+        location: usLocation,
+        current: mockCurrent,
+        forecast: mockForecast,
+        alerts: [],
+        forecastUrl: "https://www.weatherapi.com/weather/q/41.8781%2C-87.6298",
+      });
+
+      const result = await engine.getAlerts({ location: "Chicago, IL" });
+
+      expect(result.provider).toBe("weatherapi");
     });
 
     it("should only geocode once for repeated calls with the same location", async () => {

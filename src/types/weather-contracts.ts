@@ -18,6 +18,7 @@ export interface CurrentConditions {
 
 export interface ForecastPeriod {
   name: string;
+  startTime: string;
   temperature: number;
   temperatureUnit: string;
   shortForecast: string;
@@ -37,6 +38,7 @@ export interface WeatherAlert {
 
 export interface GetWeatherRequest {
   location: string;
+  targetDate?: Date;
 }
 
 export interface GetWeatherResponse {
@@ -46,6 +48,7 @@ export interface GetWeatherResponse {
   alerts: WeatherAlert[];
   forecastUrl: string;
   provider: "nws" | "weatherapi";
+  targetDate?: Date;
 }
 
 export interface GetAlertsRequest {

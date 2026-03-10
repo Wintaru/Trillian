@@ -124,6 +124,7 @@ export class WeatherApiAccessor {
 
     const forecast: ForecastPeriod[] = data.forecast.forecastday.map((day) => ({
       name: day.date,
+      startTime: `${day.date}T12:00:00`,
       temperature: Math.round(day.day.maxtemp_f),
       temperatureUnit: "F",
       shortForecast: `${day.day.condition.text}, High ${Math.round(day.day.maxtemp_f)}F / Low ${Math.round(day.day.mintemp_f)}F`,

@@ -30,6 +30,7 @@ interface NwsForecastData {
   properties: {
     periods: Array<{
       name: string;
+      startTime: string;
       temperature: number;
       temperatureUnit: string;
       shortForecast: string;
@@ -102,8 +103,9 @@ export class NwsAccessor {
     });
     const data = (await response.json()) as NwsForecastData;
 
-    return data.properties.periods.slice(0, 6).map((p) => ({
+    return data.properties.periods.map((p) => ({
       name: p.name,
+      startTime: p.startTime,
       temperature: p.temperature,
       temperatureUnit: p.temperatureUnit,
       shortForecast: p.shortForecast,
