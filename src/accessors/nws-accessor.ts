@@ -66,19 +66,35 @@ interface NwsAlertFeature {
 
 export class NwsAccessor {
   async geocode(query: string): Promise<GeocodedLocation> {
+    // Try US-biased search first (prevents zip code collisions like 68510 → France)
+    const usResult = await this.nominatimSearch(query, "us");
+    if (usResult) return usResult;
+
+    // Fall back to global search for international locations
+    const globalResult = await this.nominatimSearch(query);
+    if (globalResult) return globalResult;
+
+    throw new Error(`Could not find location: ${query}`);
+  }
+
+  private async nominatimSearch(
+    query: string,
+    countryCode?: string,
+  ): Promise<GeocodedLocation | null> {
     const params = new URLSearchParams({
       q: query,
       format: "json",
       limit: "1",
       addressdetails: "1",
     });
+    if (countryCode) {
+      params.set("countrycodes", countryCode);
+    }
 
     const response = await this.fetch(`${NOMINATIM_BASE}/search?${params}`);
     const results = (await response.json()) as NominatimResult[];
 
-    if (results.length === 0) {
-      throw new Error(`Could not find location: ${query}`);
-    }
+    if (results.length === 0) return null;
 
     const result = results[0];
     return {
