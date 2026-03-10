@@ -18,7 +18,7 @@ export function createWeatherCommand(
       .addStringOption((opt) =>
         opt
           .setName("location")
-          .setDescription("Location and/or date (e.g. 'Chicago next tuesday', '90210 friday')")
+          .setDescription("Where and when (e.g. 'Denver next tuesday', '90210', 'Seoul')")
           .setRequired(false),
       ),
 
