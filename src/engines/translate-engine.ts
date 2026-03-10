@@ -44,6 +44,20 @@ function languageName(code: string): string {
   return LANGUAGE_NAMES[code.toUpperCase()] ?? code;
 }
 
+const DETECT_PROMPT = [
+  "Identify the language of the following text.",
+  "Respond with ONLY the ISO 639-1 language code in uppercase (e.g. EN, ES, FR, DE, JA).",
+  "Do not include any other text.",
+].join(" ");
+
+function parseDetectedLanguage(raw: string): string | null {
+  const code = raw.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  if (code.length === 2 && LANGUAGE_NAMES[code]) {
+    return code;
+  }
+  return null;
+}
+
 function buildSystemPrompt(fromLang: string | null, toLang: string): string {
   const source = fromLang ? languageName(fromLang) : "the detected language";
   const target = languageName(toLang);
@@ -84,8 +98,18 @@ export class TranslateEngine {
       throw new Error("Please provide text to translate.");
     }
 
-    const toLang = request.toLang.toUpperCase();
-    const fromLang = request.fromLang?.toUpperCase() ?? null;
+    let toLang = request.toLang.toUpperCase();
+    let fromLang = request.fromLang?.toUpperCase() ?? null;
+
+    if (!fromLang) {
+      const detected = await this.detectLanguage(text);
+      if (detected) {
+        fromLang = detected;
+        if (detected === toLang) {
+          toLang = "EN";
+        }
+      }
+    }
 
     const ollamaPromise = this.translateWithOllama(text, fromLang, toLang);
     const deeplPromise = this.deeplAccessor
@@ -111,6 +135,18 @@ export class TranslateEngine {
       ollama,
       deepl,
     };
+  }
+
+  private async detectLanguage(text: string): Promise<string | null> {
+    try {
+      const raw = await this.ollamaAccessor.chat([
+        { role: "system", content: DETECT_PROMPT },
+        { role: "user", content: text },
+      ]);
+      return parseDetectedLanguage(raw);
+    } catch {
+      return null;
+    }
   }
 
   private async translateWithOllama(
@@ -144,4 +180,4 @@ export class TranslateEngine {
   }
 }
 
-export { languageName, buildSystemPrompt, parseOllamaResponse };
+export { languageName, buildSystemPrompt, parseOllamaResponse, parseDetectedLanguage };

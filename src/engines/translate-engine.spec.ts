@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TranslateEngine, parseOllamaResponse } from "./translate-engine.js";
+import { TranslateEngine, parseOllamaResponse, parseDetectedLanguage } from "./translate-engine.js";
 import type { OllamaAccessor } from "../accessors/ollama-accessor.js";
 import type { DeeplAccessor } from "../accessors/deepl-accessor.js";
 
@@ -32,7 +32,9 @@ describe("TranslateEngine", () => {
   });
 
   it("should return both translations when both providers succeed", async () => {
-    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
     vi.mocked(deepl.translate).mockResolvedValue(DEEPL_RESPONSE);
 
     const result = await engine.translate({ text: "Hello world", fromLang: null, toLang: "ES" });
@@ -46,7 +48,9 @@ describe("TranslateEngine", () => {
   });
 
   it("should return ollama only when DeepL fails", async () => {
-    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
     vi.mocked(deepl.translate).mockRejectedValue(new Error("DeepL down"));
 
     const result = await engine.translate({ text: "Hello", fromLang: null, toLang: "ES" });
@@ -56,7 +60,9 @@ describe("TranslateEngine", () => {
   });
 
   it("should return DeepL only when Ollama fails", async () => {
-    vi.mocked(ollama.chat).mockRejectedValue(new Error("Ollama down"));
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockRejectedValueOnce(new Error("Ollama down"));
     vi.mocked(deepl.translate).mockResolvedValue(DEEPL_RESPONSE);
 
     const result = await engine.translate({ text: "Hello", fromLang: null, toLang: "ES" });
@@ -66,7 +72,9 @@ describe("TranslateEngine", () => {
   });
 
   it("should throw when both providers fail", async () => {
-    vi.mocked(ollama.chat).mockRejectedValue(new Error("Ollama down"));
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockRejectedValueOnce(new Error("Ollama down"));
     vi.mocked(deepl.translate).mockRejectedValue(new Error("DeepL down"));
 
     await expect(
@@ -76,7 +84,9 @@ describe("TranslateEngine", () => {
 
   it("should work with no DeepL accessor", async () => {
     const ollamaOnly = new TranslateEngine(ollama, null);
-    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
 
     const result = await ollamaOnly.translate({ text: "Hello", fromLang: null, toLang: "ES" });
 
@@ -105,17 +115,21 @@ describe("TranslateEngine", () => {
     expect(vi.mocked(deepl.translate)).toHaveBeenCalledWith("Hello", "ES", "EN");
   });
 
-  it("should pass fromLang as undefined to DeepL when null", async () => {
-    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+  it("should pass detected fromLang to DeepL", async () => {
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
     vi.mocked(deepl.translate).mockResolvedValue(DEEPL_RESPONSE);
 
     await engine.translate({ text: "Hello", fromLang: null, toLang: "ES" });
 
-    expect(vi.mocked(deepl.translate)).toHaveBeenCalledWith("Hello", "ES", undefined);
+    expect(vi.mocked(deepl.translate)).toHaveBeenCalledWith("Hello", "ES", "EN");
   });
 
   it("should preserve original text in response", async () => {
-    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("EN")
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
 
     const result = await new TranslateEngine(ollama, null).translate({
       text: "Hello world",
@@ -124,6 +138,47 @@ describe("TranslateEngine", () => {
     });
 
     expect(result.originalText).toBe("Hello world");
+  });
+
+  it("should flip toLang to EN when detected language matches target", async () => {
+    vi.mocked(ollama.chat)
+      .mockResolvedValueOnce("ES")
+      .mockResolvedValueOnce("TRANSLATION: I want Taco Bell\nEXPLANATION: Direct translation from Spanish to English.");
+    vi.mocked(deepl.translate).mockResolvedValue({
+      translations: [{ detected_source_language: "ES", text: "I want Taco Bell" }],
+    });
+
+    const result = await engine.translate({ text: "Yo quiero Taco Bell", fromLang: null, toLang: "ES" });
+
+    expect(result.fromLang).toBe("ES");
+    expect(result.toLang).toBe("EN");
+    expect(result.ollama!.translatedText).toBe("I want Taco Bell");
+  });
+
+  it("should skip detection when fromLang is explicitly provided", async () => {
+    vi.mocked(ollama.chat).mockResolvedValue(OLLAMA_STRUCTURED_RESPONSE);
+    vi.mocked(deepl.translate).mockResolvedValue(DEEPL_RESPONSE);
+
+    await engine.translate({ text: "Hello", fromLang: "EN", toLang: "ES" });
+
+    // Only one ollama call (translation), no detection call
+    expect(vi.mocked(ollama.chat)).toHaveBeenCalledTimes(1);
+  });
+
+  it("should proceed without detection when detection fails", async () => {
+    vi.mocked(ollama.chat)
+      .mockRejectedValueOnce(new Error("Ollama timeout"))
+      .mockResolvedValueOnce(OLLAMA_STRUCTURED_RESPONSE);
+
+    const result = await new TranslateEngine(ollama, null).translate({
+      text: "Hello",
+      fromLang: null,
+      toLang: "ES",
+    });
+
+    expect(result.fromLang).toBeNull();
+    expect(result.toLang).toBe("ES");
+    expect(result.ollama).not.toBeNull();
   });
 });
 
@@ -161,5 +216,23 @@ describe("parseOllamaResponse", () => {
     expect(result.translatedText).toContain("Línea uno");
     expect(result.translatedText).toContain("Línea dos");
     expect(result.explanation).toContain("multiple lines");
+  });
+});
+
+describe("parseDetectedLanguage", () => {
+  it("should parse a clean language code", () => {
+    expect(parseDetectedLanguage("ES")).toBe("ES");
+    expect(parseDetectedLanguage("en")).toBe("EN");
+  });
+
+  it("should handle whitespace and extra text", () => {
+    expect(parseDetectedLanguage(" ES ")).toBe("ES");
+    expect(parseDetectedLanguage("ES.")).toBe("ES");
+  });
+
+  it("should return null for unrecognized codes", () => {
+    expect(parseDetectedLanguage("XX")).toBeNull();
+    expect(parseDetectedLanguage("")).toBeNull();
+    expect(parseDetectedLanguage("This is English text")).toBeNull();
   });
 });
