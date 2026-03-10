@@ -1,14 +1,28 @@
-import type { Client } from "discord.js";
+import { ChannelType, type Client } from "discord.js";
 import type { EventHandler } from "../types/event.js";
 import * as logger from "../utilities/logger.js";
 
-const ready: EventHandler<"clientReady"> = {
-  event: "clientReady",
-  once: true,
+export function createReadyHandler(
+  announceChannelId: string | undefined,
+): EventHandler<"clientReady"> {
+  return {
+    event: "clientReady",
+    once: true,
 
-  async execute(client: Client<true>): Promise<void> {
-    logger.info(`Logged in as ${client.user.tag}`);
-  },
-};
+    async execute(client: Client<true>): Promise<void> {
+      logger.info(`Logged in as ${client.user.tag}`);
 
-export default ready;
+      if (!announceChannelId) return;
+
+      const channel = await client.channels.fetch(announceChannelId);
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        logger.warn(
+          `ANNOUNCE_CHANNEL_ID "${announceChannelId}" is not a valid text channel — skipping online announcement.`,
+        );
+        return;
+      }
+
+      await channel.send(`I'm back online! 🟢`);
+    },
+  };
+}

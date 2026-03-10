@@ -53,6 +53,7 @@ cp .env.example .env
 | `WEATHER_DAILY_TIME` | Time to post daily forecast in 24h format (default: `07:00`) |
 | `WEATHERAPI_KEY` | API key from [WeatherAPI.com](https://www.weatherapi.com/) — required for international locations |
 | `WEATHER_ALERT_INTERVAL_MS` | How often to check for weather alerts in milliseconds (default: `300000` / 5 minutes) |
+| `ANNOUNCE_CHANNEL_ID` | Channel where the bot posts a message when it comes online (optional — no announcement if unset) |
 
 ## Running
 

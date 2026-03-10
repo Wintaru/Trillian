@@ -115,4 +115,16 @@ describe("loadConfig", () => {
     expect(config.ollamaModel).toBe("llama3.1:8b");
     expect(config.ollamaContextMessages).toBe(5);
   });
+
+  it("should default announceChannelId to undefined when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.announceChannelId).toBeUndefined();
+  });
+
+  it("should use ANNOUNCE_CHANNEL_ID when set", () => {
+    const config = loadConfig({ ...validEnv, ANNOUNCE_CHANNEL_ID: "112233" });
+
+    expect(config.announceChannelId).toBe("112233");
+  });
 });

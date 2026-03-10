@@ -6,6 +6,7 @@ import { XpEngine } from "./engines/xp-engine.js";
 import { PollAccessor } from "./accessors/poll-accessor.js";
 import { PollEngine } from "./engines/poll-engine.js";
 import { PollButtonHandler } from "./engines/poll-button-handler.js";
+import { createReadyHandler } from "./events/ready.js";
 import { createMessageXpHandler } from "./events/message-xp.js";
 import { createMessageChatHandler } from "./events/message-chat.js";
 import { OllamaAccessor } from "./accessors/ollama-accessor.js";
@@ -101,6 +102,7 @@ const commands = [
 
 const events = [
   ...staticEvents,
+  createReadyHandler(config.announceChannelId),
   createMessageXpHandler(xpEngine, config.levelUpChannelId),
   ...(config.campaignChannelId
     ? [createMessageCampaignHandler(campaignEngine, campaignAccessor, config.campaignChannelId)]
