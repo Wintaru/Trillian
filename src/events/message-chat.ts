@@ -19,9 +19,18 @@ export function createMessageChatHandler(
       const botUser = message.client.user;
       if (!botUser) return;
 
-      // Only respond when the bot is directly mentioned in message content
+      // Respond when the bot is directly mentioned or replied to
       const mentionPattern = new RegExp(`<@!?${botUser.id}>`);
-      if (!mentionPattern.test(message.content)) return;
+      const isMentioned = mentionPattern.test(message.content);
+      const isReplyToBot =
+        message.reference?.messageId != null &&
+        (
+          await message.channel.messages
+            .fetch(message.reference.messageId)
+            .catch(() => null)
+        )?.author.id === botUser.id;
+
+      if (!isMentioned && !isReplyToBot) return;
 
       try {
         await message.channel.sendTyping();
