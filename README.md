@@ -791,6 +791,69 @@ None — works out of the box. No API key needed.
 
 ---
 
+### `/translate`
+
+Translate text between languages using AI (Ollama) with optional DeepL verification. The AI provides a translation plus linguistic notes explaining grammar, vocabulary, and cultural context — ideal for language learners. DeepL serves as a reference translation when configured.
+
+#### Usage
+
+| Invocation | Example |
+|---|---|
+| Slash command | `/translate text:Where is the train station? to:ES` |
+| Slash command (with source) | `/translate text:Bonjour le monde from:FR to:EN` |
+| Prefix command | `!translate Where is the train station?` |
+| Prefix command (with flags) | `!translate --from FR --to EN Bonjour le monde` |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `text` | String | Yes | — | The text to translate |
+| `to` | String | No | `ES` (Spanish) | Target language code (e.g. ES, FR, DE, JA) |
+| `from` | String | No | Auto-detect | Source language code (auto-detected if omitted) |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Required | Description |
+|---|---|---|
+| `DEEPL_API_KEY` | No | DeepL API key for reference translations. Get a free key at [deepl.com](https://www.deepl.com/pro-api). If omitted, only AI translation is used. |
+
+Ollama must be running (same setup as AI Chat). No additional Ollama configuration needed — uses the same instance and model.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. User provides text and optionally source/target languages
+2. Bot queries Ollama for a translation with linguistic explanation (grammar notes, vocabulary choices, idioms)
+3. If a DeepL API key is configured, bot also queries DeepL for a reference translation
+4. Both providers run in parallel — if one fails, the other's result is still shown
+5. Bot replies with a rich embed containing:
+   - **Original** — the source text
+   - **Translation (AI)** — Ollama's translation
+   - **Linguistic Notes** — grammar/vocabulary explanation from Ollama
+   - **Translation (DeepL)** — reference translation (if configured)
+   - **Footer** — provider attribution and detected source language
+
+#### Limitations
+
+| Limitation | Detail |
+|---|---|
+| **AI quality varies** | Ollama translation quality depends on the model. Common language pairs (EN↔ES, EN↔FR) work best. |
+| **DeepL free tier** | 500,000 characters/month. Sufficient for typical Discord usage. |
+| **Language codes** | Uses ISO 639-1 uppercase codes (EN, ES, FR, DE, JA, etc.). Invalid codes may produce unexpected results. |
+| **Response time** | Ollama translation may take a few seconds depending on text length and hardware. |
+| **No conversation context** | Each translation is independent — the bot doesn't remember previous translations in the channel. |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

@@ -45,6 +45,11 @@ import { DictionaryAccessor } from "./accessors/dictionary-accessor.js";
 import { DictionaryEngine } from "./engines/dictionary-engine.js";
 import { createDefineCommand } from "./commands/define.js";
 
+// Translation
+import { DeeplAccessor } from "./accessors/deepl-accessor.js";
+import { TranslateEngine } from "./engines/translate-engine.js";
+import { createTranslateCommand } from "./commands/translate.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -87,6 +92,12 @@ const embedButtonHandler = new EmbedButtonHandler(embedEngine);
 const dictionaryAccessor = new DictionaryAccessor();
 const dictionaryEngine = new DictionaryEngine(dictionaryAccessor);
 
+// Translation
+const deeplAccessor = config.deeplApiKey
+  ? new DeeplAccessor(config.deeplApiKey)
+  : null;
+const translateEngine = new TranslateEngine(ollamaAccessor, deeplAccessor);
+
 // Weather system
 const nwsAccessor = new NwsAccessor();
 const weatherApiAccessor = config.weatherApiKey
@@ -108,6 +119,7 @@ const commands = [
   createShadowrunInfoCommand(ollamaGmAccessor),
   createWeatherCommand(weatherEngine, config.weatherLocation),
   createDefineCommand(dictionaryEngine),
+  createTranslateCommand(translateEngine),
 ];
 
 const events = [
