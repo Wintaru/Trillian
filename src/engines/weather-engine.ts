@@ -53,6 +53,7 @@ export class WeatherEngine {
     if (geo.isUS) {
       try {
         response = await this.getWeatherFromNws(geo);
+        logger.info(`NWS weather OK for ${geo.displayName}`);
       } catch (err) {
         logger.warn(`NWS failed for ${geo.displayName}, trying WeatherAPI fallback:`, err);
         if (request.targetDate) {
@@ -85,6 +86,7 @@ export class WeatherEngine {
     if (geo.isUS) {
       try {
         const alerts = await this.nwsAccessor.getActiveAlerts(geo.lat, geo.lon);
+        logger.info(`NWS alerts OK for ${geo.displayName}`);
         return { location: geo, alerts, provider: "nws" };
       } catch (err) {
         logger.warn(`NWS alerts failed, trying WeatherAPI fallback:`, err);
