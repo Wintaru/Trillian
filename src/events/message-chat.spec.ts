@@ -142,6 +142,47 @@ describe("createMessageChatHandler", () => {
     expect(engine.respond).not.toHaveBeenCalled();
   });
 
+  it("should exclude non-reply bot messages from context", async () => {
+    const engine = createMockChatEngine("Hi!");
+    const handler = createMessageChatHandler(engine, 5);
+
+    const contextMessages = new Map();
+    // A standalone bot message (no reference) — e.g. startup announcement
+    contextMessages.set("ctx-announce", {
+      author: { displayName: "Trillian", id: BOT_ID },
+      content: "I'm back online! 🟢",
+      reference: null,
+    });
+    // A bot reply (has reference) — should be included
+    contextMessages.set("ctx-reply", {
+      author: { displayName: "Trillian", id: BOT_ID },
+      content: "Hey there!",
+      reference: { messageId: "some-msg" },
+    });
+    // A user message — should be included
+    contextMessages.set("ctx-user", {
+      author: { displayName: "Alice", id: "alice-1" },
+      content: "hi bot",
+      reference: null,
+    });
+
+    const message = createMockMessage({ content: `<@${BOT_ID}> hello` });
+    message.channel.messages.fetch = vi.fn().mockImplementation((arg: unknown) => {
+      if (typeof arg === "string") {
+        return Promise.resolve({ author: { id: "someone-else" } });
+      }
+      return Promise.resolve(contextMessages);
+    });
+
+    await handler.execute(message as never);
+
+    const recentMessages = (engine.respond as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    // Should have 2 context messages: bot reply + user message (not the announcement)
+    expect(recentMessages).toHaveLength(2);
+    expect(recentMessages[0].content).toBe("hi bot");
+    expect(recentMessages[1].content).toBe("Hey there!");
+  });
+
   it("should send typing indicator before responding", async () => {
     const engine = createMockChatEngine("response");
     const handler = createMessageChatHandler(engine, 5);

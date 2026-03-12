@@ -43,6 +43,10 @@ export function createMessageChatHandler(
         });
 
         for (const msg of [...fetched.values()].reverse()) {
+          // Skip the bot's own non-conversational messages (e.g. startup announcements)
+          // so they don't leak into the AI's conversation context
+          if (msg.author.id === botUser.id && !msg.reference) continue;
+
           recentMessages.push({
             authorName: msg.author.displayName,
             authorIsBot: msg.author.id === botUser.id,
