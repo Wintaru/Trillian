@@ -88,6 +88,7 @@ import { startWeatherTimer } from "./utilities/weather-timer.js";
 
 // Recipe system
 import { RecipeAccessor } from "./accessors/recipe-accessor.js";
+import { WebScraperAccessor } from "./accessors/web-scraper-accessor.js";
 import { RecipeEngine } from "./engines/recipe-engine.js";
 import { createRecipeCommand } from "./commands/recipe.js";
 import { createMessageRecipeHandler } from "./events/message-recipe.js";
@@ -163,7 +164,8 @@ const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
 
 // Recipe system
 const recipeAccessor = new RecipeAccessor();
-const recipeEngine = new RecipeEngine(ollamaAccessor, recipeAccessor);
+const webScraperAccessor = new WebScraperAccessor();
+const recipeEngine = new RecipeEngine(ollamaAccessor, recipeAccessor, webScraperAccessor);
 
 const commands = [
   ...staticCommands,

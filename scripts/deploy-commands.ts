@@ -45,6 +45,7 @@ import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
 import { createWeatherCommand } from "../src/commands/weather.js";
 import { RecipeAccessor } from "../src/accessors/recipe-accessor.js";
+import { WebScraperAccessor } from "../src/accessors/web-scraper-accessor.js";
 import { RecipeEngine } from "../src/engines/recipe-engine.js";
 import { createRecipeCommand } from "../src/commands/recipe.js";
 import staticCommands from "../src/commands/index.js";
@@ -115,7 +116,7 @@ const commands = [
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
-  createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor())),
+  createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor(), new WebScraperAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RecipeEngine } from "./recipe-engine.js";
 import type { OllamaAccessor } from "../accessors/ollama-accessor.js";
 import type { RecipeAccessor } from "../accessors/recipe-accessor.js";
+import type { WebScraperAccessor } from "../accessors/web-scraper-accessor.js";
 
 function createMockOllama(): OllamaAccessor {
   return { chat: vi.fn() } as unknown as OllamaAccessor;
@@ -15,6 +16,12 @@ function createMockRecipeAccessor(): RecipeAccessor {
     searchByIngredient: vi.fn(),
     getRecipeDetail: vi.fn(),
   } as unknown as RecipeAccessor;
+}
+
+function createMockWebScraper(): WebScraperAccessor {
+  return {
+    fetchPage: vi.fn(),
+  } as unknown as WebScraperAccessor;
 }
 
 const VALID_RECIPE_JSON = JSON.stringify({
@@ -34,12 +41,14 @@ const NOT_A_RECIPE_JSON = JSON.stringify({ isRecipe: false });
 describe("RecipeEngine", () => {
   let ollama: OllamaAccessor;
   let accessor: RecipeAccessor;
+  let scraper: WebScraperAccessor;
   let engine: RecipeEngine;
 
   beforeEach(() => {
     ollama = createMockOllama();
     accessor = createMockRecipeAccessor();
-    engine = new RecipeEngine(ollama, accessor);
+    scraper = createMockWebScraper();
+    engine = new RecipeEngine(ollama, accessor, scraper);
   });
 
   describe("parseAndStore", () => {
@@ -118,6 +127,91 @@ describe("RecipeEngine", () => {
 
       expect(result.saved).toBe(true);
       expect(result.title).toBe("Chicken Tacos");
+    });
+
+    it("should return parse_error when title is missing", async () => {
+      vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(false);
+      vi.mocked(ollama.chat).mockResolvedValue(JSON.stringify({
+        isRecipe: true,
+        title: null,
+        ingredients: [],
+        instructions: "Do stuff",
+        sourceUrl: null,
+      }));
+
+      const result = await engine.parseAndStore(baseRequest);
+
+      expect(result.saved).toBe(false);
+      expect(result.reason).toBe("parse_error");
+      expect(vi.mocked(accessor.insertRecipe)).not.toHaveBeenCalled();
+    });
+
+    it("should return parse_error when instructions is missing", async () => {
+      vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(false);
+      vi.mocked(ollama.chat).mockResolvedValue(JSON.stringify({
+        isRecipe: true,
+        title: "Tacos",
+        ingredients: [],
+        instructions: "",
+        sourceUrl: null,
+      }));
+
+      const result = await engine.parseAndStore(baseRequest);
+
+      expect(result.saved).toBe(false);
+      expect(result.reason).toBe("parse_error");
+      expect(vi.mocked(accessor.insertRecipe)).not.toHaveBeenCalled();
+    });
+
+    it("should fetch URL content when message contains a link", async () => {
+      const urlRequest = {
+        ...baseRequest,
+        messageContent: "Check this out https://example.com/recipe",
+      };
+      vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(false);
+      vi.mocked(scraper.fetchPage).mockResolvedValue({
+        url: "https://example.com/recipe",
+        text: "Chicken Tacos recipe with ingredients and steps...",
+        jsonLdRecipe: null,
+      });
+      vi.mocked(ollama.chat).mockResolvedValue(VALID_RECIPE_JSON);
+      vi.mocked(accessor.insertRecipe).mockResolvedValue({ id: 3 });
+
+      const result = await engine.parseAndStore(urlRequest);
+
+      expect(result.saved).toBe(true);
+      expect(vi.mocked(scraper.fetchPage)).toHaveBeenCalledWith("https://example.com/recipe");
+      // Source URL should be extracted from message
+      expect(vi.mocked(accessor.insertRecipe)).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceUrl: "https://example.com/recipe" }),
+      );
+    });
+
+    it("should use JSON-LD structured data when available", async () => {
+      const urlRequest = {
+        ...baseRequest,
+        messageContent: "https://example.com/recipe",
+      };
+      vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(false);
+      vi.mocked(scraper.fetchPage).mockResolvedValue({
+        url: "https://example.com/recipe",
+        text: "some page text",
+        jsonLdRecipe: {
+          name: "Honey Sriracha Wings",
+          recipeIngredient: ["2 lbs chicken wings", "3 tbsp honey", "2 tbsp sriracha"],
+          recipeInstructions: "1. Bake wings. 2. Toss in sauce.",
+        },
+      });
+      vi.mocked(ollama.chat).mockResolvedValue(VALID_RECIPE_JSON);
+      vi.mocked(accessor.insertRecipe).mockResolvedValue({ id: 4 });
+
+      await engine.parseAndStore(urlRequest);
+
+      // Ollama should receive the structured recipe content, not just a URL
+      const chatCall = vi.mocked(ollama.chat).mock.calls[0][0];
+      const userContent = chatCall[1].content;
+      expect(userContent).toContain("Honey Sriracha Wings");
+      expect(userContent).toContain("2 lbs chicken wings");
     });
   });
 
