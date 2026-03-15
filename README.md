@@ -1133,6 +1133,82 @@ Everyone can use all subcommands. Submitting and rating require music club membe
 
 ---
 
+### `/recipe`
+
+A recipe book that automatically scans a designated channel for recipes. When someone posts a recipe, the bot uses Ollama to extract the title, ingredients, and instructions, then stores them in a searchable database. Users can browse, search by ingredient, and view full recipe details.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/recipe list` |
+| Slash | `/recipe search ingredient:chicken` |
+| Slash | `/recipe view id:3` |
+| Slash | `/recipe help` |
+| Prefix | `!recipe list` |
+| Prefix | `!recipe search chicken` |
+| Prefix | `!recipe view 3` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `list` | Browse all saved recipes (paginated, 10 per page) |
+| `search` | Search recipes by ingredient name (fuzzy match) |
+| `view` | View full details for a recipe by its ID number |
+| `help` | Show available recipe commands and tips |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `page` (list/search) | integer | No | 1 | Page number for paginated results (min: 1) |
+| `ingredient` (search) | string | Yes | — | Ingredient to search for (e.g. "chicken", "garlic") |
+| `id` (view) | integer | Yes | — | Recipe ID number (shown in list/search results) |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Description | Default |
+|---|---|---|
+| `RECIPE_CHANNEL_ID` | Channel the bot watches for recipes (required to enable) | — |
+
+**Setup:**
+1. Create a channel in your server for sharing recipes.
+2. Copy the channel ID and set it as `RECIPE_CHANNEL_ID` in `.env`.
+3. Restart the bot. On startup, it will backfill any historical recipes already posted in the channel.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links (for rich recipe embeds)
+- Add Reactions (to react with a frying pan emoji when a recipe is saved)
+- Read Message History (to backfill old recipes on startup)
+
+#### Behavior
+
+1. **Automatic detection:** Any non-bot message over 30 characters in the recipe channel is sent to Ollama for analysis.
+2. **Parsing:** Ollama extracts the recipe title, ingredients (with quantities), instructions, and any source URL.
+3. **Storage:** The recipe and its ingredients are stored in the database. Ingredients are normalized (lowercased) for consistent search.
+4. **Confirmation:** The bot reacts to the message with a frying pan emoji to confirm the recipe was saved.
+5. **Deduplication:** Each message is only processed once (tracked by message ID). Re-running the backfill or restarting the bot won't create duplicates.
+6. **Backfill:** On startup, the bot scans all historical messages in the recipe channel, processing any that haven't been stored yet.
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Ollama required** | Recipe parsing uses the configured Ollama model; if Ollama is down, recipes won't be detected |
+| **Minimum message length** | Messages under 30 characters are skipped (unlikely to be recipes) |
+| **One recipe per message** | Each message is treated as a single recipe |
+| **Ingredient search is substring-based** | Searching "chicken" matches "chicken breast", "chicken thigh", etc. |
+| **Backfill runs sequentially** | Processing many historical messages may take time due to Ollama inference speed |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

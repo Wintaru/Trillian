@@ -32,6 +32,7 @@ export interface Config {
   musicClubRoundTime: string;
   musicClubSubmissionDays: number;
   musicClubRatingDays: number;
+  recipeChannelId: string | undefined;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -82,5 +83,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     musicClubRoundTime: env["MUSIC_CLUB_ROUND_TIME"] ?? "10:00",
     musicClubSubmissionDays: parseInt(env["MUSIC_CLUB_SUBMISSION_DAYS"] ?? "2", 10),
     musicClubRatingDays: parseInt(env["MUSIC_CLUB_RATING_DAYS"] ?? "2", 10),
+    recipeChannelId: env["RECIPE_CHANNEL_ID"] ?? undefined,
   });
 }

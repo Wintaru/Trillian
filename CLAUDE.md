@@ -249,6 +249,7 @@ When adding features that use new Discord capabilities, always remind the user t
 #### Command Requirements
 
 - Every command must support **both slash and prefix invocation** (`executeSlash` and `executePrefix`).
+- **Every command with subcommands must include a `help` subcommand** that displays an embed describing what the command does, lists all available subcommands with usage examples, and includes any relevant tips. For prefix invocation, unrecognized subcommands should also show the help embed. See `/recipe help` or `/musicclub help` for reference.
 - **Permission restrictions are per-command**, not global. Each command decides its own permission requirements via `setDefaultMemberPermissions` (slash) and manual permission checks (prefix).
 - Commands that perform destructive or sensitive operations should be restricted to specific channels or roles via configuration (env vars), not hardcoded.
 

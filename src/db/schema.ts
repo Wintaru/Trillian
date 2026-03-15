@@ -338,3 +338,31 @@ export const musicClubRatings = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.songId, table.userId] })],
 );
+
+// --- Recipes ---
+
+export const recipes = sqliteTable("recipes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id").notNull(),
+  channelId: text("channel_id").notNull(),
+  messageId: text("message_id").notNull(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull(),
+  instructions: text("instructions").notNull(),
+  sourceUrl: text("source_url"),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const recipeIngredients = sqliteTable(
+  "recipe_ingredients",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    recipeId: integer("recipe_id").notNull(),
+    name: text("name").notNull(),
+    quantity: text("quantity"),
+  },
+  (table) => [
+    index("recipe_ingredients_recipe_id_idx").on(table.recipeId),
+    index("recipe_ingredients_name_idx").on(table.name),
+  ],
+);

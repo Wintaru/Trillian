@@ -86,6 +86,13 @@ import { WeatherEngine } from "./engines/weather-engine.js";
 import { createWeatherCommand } from "./commands/weather.js";
 import { startWeatherTimer } from "./utilities/weather-timer.js";
 
+// Recipe system
+import { RecipeAccessor } from "./accessors/recipe-accessor.js";
+import { RecipeEngine } from "./engines/recipe-engine.js";
+import { createRecipeCommand } from "./commands/recipe.js";
+import { createMessageRecipeHandler } from "./events/message-recipe.js";
+import { backfillRecipes } from "./utilities/recipe-backfill.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -154,6 +161,10 @@ const odesliAccessor = new OdesliAccessor();
 const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor);
 const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
 
+// Recipe system
+const recipeAccessor = new RecipeAccessor();
+const recipeEngine = new RecipeEngine(ollamaAccessor, recipeAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -172,6 +183,7 @@ const commands = [
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
+  createRecipeCommand(recipeEngine),
 ];
 
 const events = [
@@ -184,6 +196,9 @@ const events = [
   createCharacterCreationDmHandler(characterCreationEngine, characterAccessor, campaignAccessor),
   createLessonDmHandler(lessonEngine, characterAccessor),
   createMessageChatHandler(chatEngine, config.ollamaContextMessages),
+  ...(config.recipeChannelId
+    ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
+    : []),
 ];
 
 const commandEngine = new CommandEngine(commands);
@@ -261,4 +276,12 @@ if (config.challengeChannelId) {
   );
   startChallengeCloseTimer(discordClient.getClient(), challengeEngine);
   logger.info(`Challenge timer started (${config.challengeDirection}) in channel ${config.challengeChannelId}`);
+}
+
+if (config.recipeChannelId) {
+  // Run backfill in background — don't block startup
+  backfillRecipes(discordClient.getClient(), recipeEngine, config.recipeChannelId).catch((err) =>
+    logger.error("Recipe backfill failed:", err),
+  );
+  logger.info(`Recipe system active in channel ${config.recipeChannelId}`);
 }

@@ -151,4 +151,16 @@ describe("loadConfig", () => {
     expect(config.challengeDirection).toBe("from_english");
     expect(config.challengeDurationMinutes).toBe(120);
   });
+
+  it("should default recipeChannelId to undefined when not set", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.recipeChannelId).toBeUndefined();
+  });
+
+  it("should use RECIPE_CHANNEL_ID when set", () => {
+    const config = loadConfig({ ...validEnv, RECIPE_CHANNEL_ID: "888" });
+
+    expect(config.recipeChannelId).toBe("888");
+  });
 });

@@ -44,6 +44,9 @@ import { NwsAccessor } from "../src/accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
 import { createWeatherCommand } from "../src/commands/weather.js";
+import { RecipeAccessor } from "../src/accessors/recipe-accessor.js";
+import { RecipeEngine } from "../src/engines/recipe-engine.js";
+import { createRecipeCommand } from "../src/commands/recipe.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -112,6 +115,7 @@ const commands = [
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
+  createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);
