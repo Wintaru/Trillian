@@ -7,6 +7,14 @@ import type { RecipeListEntry } from "../types/recipe-contracts.js";
 const PAGE_SIZE = 10;
 const EMBED_COLOR = 0xf5a623;
 
+function footerText(page: number, totalPages: number, total: number, noun: string, nextHint: string): string {
+  const base = `Page ${page}/${totalPages} · ${total} ${noun}${total === 1 ? "" : "s"}`;
+  if (page < totalPages) {
+    return `${base} · ${nextHint}${page + 1} for next page`;
+  }
+  return base;
+}
+
 const HELP_DESCRIPTION = [
   "**How it works:**",
   "Post a recipe in the designated recipe channel and the bot will automatically " +
@@ -43,7 +51,7 @@ function buildListEmbed(
   const embed = new EmbedBuilder()
     .setTitle("Recipe Book")
     .setColor(EMBED_COLOR)
-    .setFooter({ text: `Page ${page}/${totalPages} · ${total} recipe${total === 1 ? "" : "s"}` });
+    .setFooter({ text: footerText(page, totalPages, total, "recipe", "/recipe list page:") });
 
   if (recipes.length === 0) {
     embed.setDescription("No recipes found. Post a recipe in the recipe channel to get started!");
@@ -68,7 +76,7 @@ function buildSearchEmbed(
   const embed = new EmbedBuilder()
     .setTitle(`Recipes with "${searchTerm}"`)
     .setColor(0x4a90d9)
-    .setFooter({ text: `Page ${page}/${totalPages} · ${total} result${total === 1 ? "" : "s"}` });
+    .setFooter({ text: footerText(page, totalPages, total, "result", `/recipe search ingredient:${searchTerm} page:`) });
 
   if (recipes.length === 0) {
     embed.setDescription(`No recipes found containing "${searchTerm}".`);
