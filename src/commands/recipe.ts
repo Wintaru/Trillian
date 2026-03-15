@@ -100,7 +100,7 @@ function buildDetailEmbed(recipe: {
   channelId: string;
   messageId: string;
   createdAt: number;
-}): EmbedBuilder {
+}, guildId: string): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(recipe.title)
     .setColor(EMBED_COLOR)
@@ -124,7 +124,7 @@ function buildDetailEmbed(recipe: {
 
   embed.addFields({
     name: "Original Message",
-    value: `<#${recipe.channelId}> · [Jump to message](https://discord.com/channels/-/${recipe.channelId}/${recipe.messageId})`,
+    value: `<#${recipe.channelId}> · [Jump to message](https://discord.com/channels/${guildId}/${recipe.channelId}/${recipe.messageId})`,
   });
 
   embed.setDescription(`Shared by <@${recipe.userId}>`);
@@ -201,7 +201,7 @@ export function createRecipeCommand(recipeEngine: RecipeEngine): Command {
             await interaction.reply({ content: `Recipe #${recipeId} not found.`, flags: 64 });
             return;
           }
-          const embed = buildDetailEmbed(result.recipe);
+          const embed = buildDetailEmbed(result.recipe, guildId);
           await interaction.reply({ embeds: [embed] });
           break;
         }
@@ -252,7 +252,7 @@ export function createRecipeCommand(recipeEngine: RecipeEngine): Command {
           await message.reply(`Recipe #${recipeId} not found.`);
           return;
         }
-        const embed = buildDetailEmbed(result.recipe);
+        const embed = buildDetailEmbed(result.recipe, guildId);
         await message.channel.send({ embeds: [embed] });
       } else {
         await message.reply({ embeds: [buildHelpEmbed()] });
