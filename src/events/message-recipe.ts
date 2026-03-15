@@ -31,6 +31,7 @@ export function createMessageRecipeHandler(
 
         if (result.reason === "saved") {
           await message.react("🍳");
+          await message.reply(`Recipe saved to the recipe book as **#${result.recipeId}** — "${result.title}" 🍳\nUse \`/recipe view ${result.recipeId}\` to see it.`);
           logger.info(`Recipe saved: "${result.title}" (id=${result.recipeId}) from ${message.author.tag}`);
         }
       } catch (error) {
