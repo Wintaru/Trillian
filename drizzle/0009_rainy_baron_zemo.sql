@@ -1,0 +1,2 @@
+ALTER TABLE `music_club_rounds` ADD `submission_reminder_sent` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE `music_club_rounds` ADD `rating_reminder_sent` integer DEFAULT 0 NOT NULL;

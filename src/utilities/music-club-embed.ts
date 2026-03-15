@@ -118,6 +118,36 @@ export function buildResultsEmbed(results: RoundResultsResponse): EmbedBuilder {
   return embed;
 }
 
+export function buildSubmissionReminderEmbed(
+  roundId: number,
+  submissionsCloseAt: number,
+): EmbedBuilder {
+  return new EmbedBuilder()
+    .setTitle(`Music Club — Round #${roundId}`)
+    .setDescription(
+      `Submissions are closing soon! Get your song in before it's too late.\n\n` +
+      `Submissions close <t:${Math.floor(submissionsCloseAt / 1000)}:R>`,
+    )
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: "Use /musicclub submit or click the button on the announcement" })
+    .setTimestamp();
+}
+
+export function buildRatingReminderEmbed(
+  roundId: number,
+  ratingsCloseAt: number,
+): EmbedBuilder {
+  return new EmbedBuilder()
+    .setTitle(`Music Club — Round #${roundId}`)
+    .setDescription(
+      `Ratings are closing soon! Make sure you've rated all the songs.\n\n` +
+      `Ratings close <t:${Math.floor(ratingsCloseAt / 1000)}:R>`,
+    )
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: "Use /musicclub rate or click the Rate Songs button on the playlist" })
+    .setTimestamp();
+}
+
 export function buildSongRatingConfirmEmbed(
   song: MusicClubSongEntry,
   rating: number,

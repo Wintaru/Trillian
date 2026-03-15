@@ -8,7 +8,13 @@ import {
 } from "discord.js";
 import type { MusicClubEngine } from "../engines/music-club-engine.js";
 import type { MusicClubAccessor } from "../accessors/music-club-accessor.js";
-import { buildRoundAnnouncementEmbed, buildPlaylistEmbed, buildResultsEmbed } from "./music-club-embed.js";
+import {
+  buildRoundAnnouncementEmbed,
+  buildPlaylistEmbed,
+  buildResultsEmbed,
+  buildSubmissionReminderEmbed,
+  buildRatingReminderEmbed,
+} from "./music-club-embed.js";
 import * as logger from "./logger.js";
 
 const CHECK_INTERVAL_MS = 60_000;
@@ -103,6 +109,52 @@ export function startMusicClubTransitionTimer(
 ): void {
   setInterval(async () => {
     try {
+      const now = Date.now();
+
+      // Submission closing soon reminders
+      const submissionReminders = await accessor.getRoundsNeedingSubmissionReminder(now);
+      for (const round of submissionReminders) {
+        try {
+          const channel = await client.channels.fetch(round.channelId);
+          if (!channel?.isTextBased() || !channel.isSendable()) continue;
+
+          const embed = buildSubmissionReminderEmbed(round.id, round.submissionsCloseAt);
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`musicclub_submit:${round.id}`)
+              .setLabel("Submit a Song")
+              .setStyle(ButtonStyle.Primary),
+          );
+          await channel.send({ embeds: [embed], components: [row] });
+          await accessor.markSubmissionReminderSent(round.id);
+          logger.info(`Music club round #${round.id}: submission reminder sent.`);
+        } catch (err) {
+          logger.error(`Failed to send submission reminder for round #${round.id}:`, err);
+        }
+      }
+
+      // Rating closing soon reminders
+      const ratingReminders = await accessor.getRoundsNeedingRatingReminder(now);
+      for (const round of ratingReminders) {
+        try {
+          const channel = await client.channels.fetch(round.channelId);
+          if (!channel?.isTextBased() || !channel.isSendable()) continue;
+
+          const embed = buildRatingReminderEmbed(round.id, round.ratingsCloseAt);
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`musicclub_rate:${round.id}`)
+              .setLabel("Rate Songs")
+              .setStyle(ButtonStyle.Primary),
+          );
+          await channel.send({ embeds: [embed], components: [row] });
+          await accessor.markRatingReminderSent(round.id);
+          logger.info(`Music club round #${round.id}: rating reminder sent.`);
+        } catch (err) {
+          logger.error(`Failed to send rating reminder for round #${round.id}:`, err);
+        }
+      }
+
       // Transition open → listening (submissions closed, post playlist)
       const toListening = await engine.transitionToListening();
       for (const round of toListening) {

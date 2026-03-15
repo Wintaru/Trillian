@@ -185,6 +185,14 @@ function buildWizardRatingButtons(roundId: number, songId: number): ActionRowBui
 const HELP_DESCRIPTION = [
   "**Music Club** — Discover new music together!",
   "",
+  "**How it works:**",
+  "Each round, members submit one song. The bot announces when the round opens " +
+  "and sends reminders before each deadline. After submissions close, a playlist " +
+  "is posted with links for every major streaming platform. Everyone listens and " +
+  "rates each song 1-10. When ratings close, results are posted ranked by average " +
+  "rating, along with each rater's total points given.",
+  "",
+  "**Commands:**",
   "`/musicclub join` — Join the music club",
   "`/musicclub leave` — Leave the music club",
   "`/musicclub submit <url> [reason]` — Submit a song for the current round",
@@ -192,8 +200,10 @@ const HELP_DESCRIPTION = [
   "`/musicclub playlist [id]` — View the current or a past round's playlist",
   "`/musicclub results [id]` — View results for a completed round",
   "",
-  "Each round, members submit one song. After submissions close, everyone listens and rates. " +
-  "At the end, results are posted with average ratings and rater scores.",
+  "**Timeline:**",
+  "Round opens → Submit songs → Reminder before deadline → " +
+  "Submissions close → Listen & rate → Reminder before deadline → " +
+  "Ratings close → Results posted",
 ].join("\n");
 
 function buildHelpEmbed(): EmbedBuilder {

@@ -7,6 +7,7 @@ import {
   musicClubRatings,
 } from "../db/schema.js";
 
+const REMINDER_WINDOW_MS = 3 * 60 * 60 * 1000; // 3 hours before deadline
 
 // --- Members ---
 
@@ -187,6 +188,58 @@ export class MusicClubAccessor {
           lte(musicClubRounds.submissionsCloseAt, now),
         ),
       );
+  }
+
+  async getRoundsNeedingSubmissionReminder(now: number): Promise<
+    { id: number; channelId: string; submissionsCloseAt: number }[]
+  > {
+    return db
+      .select({
+        id: musicClubRounds.id,
+        channelId: musicClubRounds.channelId,
+        submissionsCloseAt: musicClubRounds.submissionsCloseAt,
+      })
+      .from(musicClubRounds)
+      .where(
+        and(
+          eq(musicClubRounds.status, "open"),
+          eq(musicClubRounds.submissionReminderSent, 0),
+          lte(musicClubRounds.submissionsCloseAt, now + REMINDER_WINDOW_MS),
+        ),
+      );
+  }
+
+  async getRoundsNeedingRatingReminder(now: number): Promise<
+    { id: number; channelId: string; ratingsCloseAt: number }[]
+  > {
+    return db
+      .select({
+        id: musicClubRounds.id,
+        channelId: musicClubRounds.channelId,
+        ratingsCloseAt: musicClubRounds.ratingsCloseAt,
+      })
+      .from(musicClubRounds)
+      .where(
+        and(
+          eq(musicClubRounds.status, "listening"),
+          eq(musicClubRounds.ratingReminderSent, 0),
+          lte(musicClubRounds.ratingsCloseAt, now + REMINDER_WINDOW_MS),
+        ),
+      );
+  }
+
+  async markSubmissionReminderSent(roundId: number): Promise<void> {
+    await db
+      .update(musicClubRounds)
+      .set({ submissionReminderSent: 1 })
+      .where(eq(musicClubRounds.id, roundId));
+  }
+
+  async markRatingReminderSent(roundId: number): Promise<void> {
+    await db
+      .update(musicClubRounds)
+      .set({ ratingReminderSent: 1 })
+      .where(eq(musicClubRounds.id, roundId));
   }
 
   async getRoundsReadyToClose(now: number): Promise<
