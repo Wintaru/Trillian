@@ -53,15 +53,28 @@ describe("RecipeEngine", () => {
 
   describe("parseAndStore", () => {
     const baseRequest = {
-      messageContent: "Chicken Tacos: 2 lbs chicken breast, 8 tortillas, 2 limes. Season, grill, serve.",
+      messageContent: "Check out this recipe https://example.com/chicken-tacos",
       messageId: "msg-123",
       userId: "user-456",
       guildId: "guild-789",
       channelId: "channel-012",
     };
 
-    it("should parse and save a valid recipe", async () => {
+    beforeEach(() => {
+      vi.mocked(scraper.fetchPage).mockResolvedValue({
+        url: "https://example.com/chicken-tacos",
+        text: "Recipe page content...",
+        jsonLdRecipe: null,
+      });
+    });
+
+    it("should parse and save a valid recipe from a URL", async () => {
       vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(false);
+      vi.mocked(scraper.fetchPage).mockResolvedValue({
+        url: "https://example.com/chicken-tacos",
+        text: "Chicken Tacos recipe content...",
+        jsonLdRecipe: null,
+      });
       vi.mocked(ollama.chat).mockResolvedValue(VALID_RECIPE_JSON);
       vi.mocked(accessor.insertRecipe).mockResolvedValue({ id: 1 });
 
@@ -78,13 +91,27 @@ describe("RecipeEngine", () => {
         userId: "user-456",
         title: "Chicken Tacos",
         instructions: "1. Season chicken. 2. Grill until done. 3. Slice and serve in tortillas with lime.",
-        sourceUrl: null,
+        sourceUrl: "https://example.com/chicken-tacos",
         ingredients: [
           { name: "chicken breast", quantity: "2 lbs" },
           { name: "tortillas", quantity: "8" },
           { name: "lime", quantity: "2" },
         ],
       });
+    });
+
+    it("should skip messages without URLs", async () => {
+      const plainTextRequest = {
+        ...baseRequest,
+        messageContent: "I made some great tacos last night with chicken and lime",
+        messageId: "msg-plain",
+      };
+
+      const result = await engine.parseAndStore(plainTextRequest);
+
+      expect(result.saved).toBe(false);
+      expect(result.reason).toBe("not_a_recipe");
+      expect(vi.mocked(ollama.chat)).not.toHaveBeenCalled();
     });
 
     it("should return duplicate when message already processed", async () => {

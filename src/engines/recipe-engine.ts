@@ -53,9 +53,15 @@ export class RecipeEngine {
       return { saved: false, recipeId: null, title: null, reason: "duplicate" };
     }
 
+    // Only process messages that contain a URL — plain text chat is not a recipe submission
+    const urls = request.messageContent.match(URL_REGEX);
+    if (!urls || urls.length === 0) {
+      logger.debug(`Recipe skip (no URL): message ${request.messageId}`);
+      return { saved: false, recipeId: null, title: null, reason: "not_a_recipe" };
+    }
+
     logger.debug(`Recipe: processing message ${request.messageId}...`);
 
-    // Check if the message contains URLs — if so, try to fetch page content
     const contentForParsing = await this.resolveContent(request.messageContent);
 
     let parsed: ParsedRecipe & { isRecipe: boolean };
