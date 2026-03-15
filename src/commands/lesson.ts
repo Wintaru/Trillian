@@ -1,8 +1,18 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { LessonEngine } from "../engines/lesson-engine.js";
 import { languageName } from "../engines/translate-engine.js";
+
+const HELP_DESCRIPTION = [
+  "**Language Lessons** — Private tutoring via DM!",
+  "",
+  "`/lesson start [language]` — Start a new lesson in your DMs",
+  "`/lesson stop` — End your current lesson",
+  "`/lesson status` — Check if you have an active lesson",
+  "",
+  "Lessons are conducted privately via direct messages with the bot.",
+].join("\n");
 
 export function createLessonCommand(lessonEngine: LessonEngine, defaultLanguage: string): Command {
   return {
@@ -27,6 +37,9 @@ export function createLessonCommand(lessonEngine: LessonEngine, defaultLanguage:
       )
       .addSubcommand((sub) =>
         sub.setName("status").setDescription("Check if you have an active lesson"),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("help").setDescription("Show available lesson commands"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -39,6 +52,8 @@ export function createLessonCommand(lessonEngine: LessonEngine, defaultLanguage:
         await handleStop(interaction, lessonEngine, userId);
       } else if (subcommand === "status") {
         await handleStatus(interaction, lessonEngine, userId);
+      } else if (subcommand === "help") {
+        await interaction.reply({ embeds: [new EmbedBuilder().setTitle("Language Lessons — Help").setDescription(HELP_DESCRIPTION).setColor(0xe67e22)], flags: 64 });
       }
     },
 
@@ -46,8 +61,8 @@ export function createLessonCommand(lessonEngine: LessonEngine, defaultLanguage:
       const subcommand = context.args[0]?.toLowerCase();
       const userId = message.author.id;
 
-      if (!subcommand || !["start", "stop", "status"].includes(subcommand)) {
-        await message.reply("Usage: `!lesson start [language]`, `!lesson stop`, or `!lesson status`");
+      if (!subcommand || subcommand === "help" || !["start", "stop", "status"].includes(subcommand)) {
+        await message.reply({ embeds: [new EmbedBuilder().setTitle("Language Lessons — Help").setDescription(HELP_DESCRIPTION).setColor(0xe67e22)] });
         return;
       }
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const userXp = sqliteTable(
   "user_xp",
@@ -274,4 +274,65 @@ export const challengeSubmissions = sqliteTable(
       table.userId,
     ),
   ],
+);
+
+// --- Music Club ---
+
+export const musicClubMembers = sqliteTable(
+  "music_club_members",
+  {
+    userId: text("user_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    joinedAt: integer("joined_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.guildId] })],
+);
+
+export const musicClubRounds = sqliteTable(
+  "music_club_rounds",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    messageId: text("message_id").notNull().default(""),
+    status: text("status").notNull().default("open"),
+    startsAt: integer("starts_at").notNull(),
+    submissionsCloseAt: integer("submissions_close_at").notNull(),
+    ratingsCloseAt: integer("ratings_close_at").notNull(),
+    playlistMessageId: text("playlist_message_id").notNull().default(""),
+    resultsMessageId: text("results_message_id").notNull().default(""),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("music_club_rounds_guild_status_idx").on(table.guildId, table.status),
+  ],
+);
+
+export const musicClubSongs = sqliteTable(
+  "music_club_songs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    roundId: integer("round_id").notNull(),
+    userId: text("user_id").notNull(),
+    originalUrl: text("original_url").notNull(),
+    title: text("title").notNull().default(""),
+    artist: text("artist").notNull().default(""),
+    odesliData: text("odesli_data").notNull().default("{}"),
+    reason: text("reason").notNull().default(""),
+    submittedAt: integer("submitted_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("music_club_songs_round_user_unique").on(table.roundId, table.userId),
+  ],
+);
+
+export const musicClubRatings = sqliteTable(
+  "music_club_ratings",
+  {
+    songId: integer("song_id").notNull(),
+    userId: text("user_id").notNull(),
+    rating: integer("rating").notNull(),
+    ratedAt: integer("rated_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.songId, table.userId] })],
 );

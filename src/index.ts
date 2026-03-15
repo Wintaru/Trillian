@@ -70,6 +70,14 @@ import { ChallengeButtonHandler } from "./engines/challenge-button-handler.js";
 import { createChallengeCommand } from "./commands/challenge.js";
 import { startChallengePostTimer, startChallengeCloseTimer } from "./utilities/challenge-timer.js";
 
+// Music club
+import { MusicClubAccessor } from "./accessors/music-club-accessor.js";
+import { OdesliAccessor } from "./accessors/odesli-accessor.js";
+import { MusicClubEngine } from "./engines/music-club-engine.js";
+import { MusicClubButtonHandler } from "./engines/music-club-button-handler.js";
+import { createMusicClubCommand } from "./commands/music-club.js";
+import { startMusicClubRoundTimer, startMusicClubTransitionTimer } from "./utilities/music-club-timer.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -140,6 +148,12 @@ const challengeAccessor = new ChallengeAccessor();
 const challengeEngine = new ChallengeEngine(ollamaAccessor, challengeAccessor);
 const challengeButtonHandler = new ChallengeButtonHandler(challengeEngine);
 
+// Music club
+const musicClubAccessor = new MusicClubAccessor();
+const odesliAccessor = new OdesliAccessor();
+const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor);
+const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -157,6 +171,7 @@ const commands = [
   createVocabCommand(vocabEngine),
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
+  createMusicClubCommand(musicClubEngine),
 ];
 
 const events = [
@@ -176,8 +191,8 @@ const discordClient = new DiscordClient(
   commandEngine,
   events,
   config.prefix,
-  [pollButtonHandler, embedButtonHandler, vocabButtonHandler, challengeButtonHandler],
-  [embedButtonHandler, challengeButtonHandler],
+  [pollButtonHandler, embedButtonHandler, vocabButtonHandler, challengeButtonHandler, musicClubButtonHandler],
+  [embedButtonHandler, challengeButtonHandler, musicClubButtonHandler],
 );
 
 await discordClient.start(config.token);
@@ -214,6 +229,22 @@ if (config.vocabChannelId) {
     config.vocabDefaultLanguage,
   );
   logger.info(`Vocab timer started (${config.vocabDefaultLanguage}) in channel ${config.vocabChannelId}`);
+}
+
+if (config.musicClubChannelId) {
+  startMusicClubRoundTimer(
+    discordClient.getClient(),
+    musicClubEngine,
+    musicClubAccessor,
+    config.musicClubChannelId,
+    config.musicClubRoundDay,
+    config.musicClubRoundTime,
+    config.musicClubSubmissionDays,
+    config.musicClubRatingDays,
+    config.guildId,
+  );
+  startMusicClubTransitionTimer(discordClient.getClient(), musicClubEngine, musicClubAccessor);
+  logger.info(`Music club timer started in channel ${config.musicClubChannelId}`);
 }
 
 if (config.challengeChannelId) {

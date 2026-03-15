@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { CharacterAccessor } from "../accessors/character-accessor.js";
@@ -6,6 +6,16 @@ import type { CampaignAccessor } from "../accessors/campaign-accessor.js";
 import type { CharacterCreationEngine } from "../engines/character-creation-engine.js";
 import { formatCharacterSheet } from "../utilities/shadowrun-format.js";
 import * as logger from "../utilities/logger.js";
+
+const HELP_DESCRIPTION = [
+  "**Shadowrun Characters** — Create and manage your runners!",
+  "",
+  "`/character create <name>` — Start character creation via DM wizard",
+  "`/character sheet [user]` — View your or another player's character sheet",
+  "`/character delete <name>` — Delete one of your characters",
+  "`/character edit <name> <step>` — Reopen a creation step on a completed character",
+  "`/character cancel` — Cancel an in-progress character creation",
+].join("\n");
 
 export function createCharacterCommand(
   characterAccessor: CharacterAccessor,
@@ -61,6 +71,9 @@ export function createCharacterCommand(
       )
       .addSubcommand((sub) =>
         sub.setName("cancel").setDescription("Cancel your in-progress character creation"),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("help").setDescription("Show available character commands"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -81,6 +94,9 @@ export function createCharacterCommand(
           break;
         case "cancel":
           await handleCancel(interaction);
+          break;
+        case "help":
+          await interaction.reply({ embeds: [new EmbedBuilder().setTitle("Shadowrun Characters — Help").setDescription(HELP_DESCRIPTION).setColor(0x9b59b6)], flags: 64 });
           break;
         default:
           await interaction.reply({ content: `Unknown subcommand: ${sub}`, flags: 64 });
@@ -106,8 +122,9 @@ export function createCharacterCommand(
         case "cancel":
           await handleCancelPrefix(message);
           break;
+        case "help":
         default:
-          await message.reply("Usage: `!character <create|sheet|delete|edit|cancel> [args]`");
+          await message.reply({ embeds: [new EmbedBuilder().setTitle("Shadowrun Characters — Help").setDescription(HELP_DESCRIPTION).setColor(0x9b59b6)] });
       }
     },
   };

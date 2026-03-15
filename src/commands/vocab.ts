@@ -1,8 +1,19 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { VocabEngine } from "../engines/vocab-engine.js";
 import { buildVocabQuizEmbed, buildVocabListEmbed, buildFlashcardFrontEmbed } from "../utilities/vocab-embed.js";
+
+const HELP_DESCRIPTION = [
+  "**Vocabulary** — Review and practice saved words!",
+  "",
+  "`/vocab review` — Take a quiz on a random saved word",
+  "`/vocab list` — View your saved vocabulary words",
+  "`/vocab stats` — View your review stats (accuracy, total reviews)",
+  "`/vocab flashcard` — Study due words with flip-card style review",
+  "",
+  "Save words from the daily Word of the Day posts, then practice them here.",
+].join("\n");
 
 export function createVocabCommand(vocabEngine: VocabEngine): Command {
   return {
@@ -22,6 +33,9 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       )
       .addSubcommand((sub) =>
         sub.setName("flashcard").setDescription("Study due words with flip-card style review"),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("help").setDescription("Show available vocab commands"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -36,6 +50,8 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
         await handleStats(interaction, vocabEngine, userId);
       } else if (subcommand === "flashcard") {
         await handleFlashcard(interaction, vocabEngine, userId);
+      } else if (subcommand === "help") {
+        await interaction.reply({ embeds: [new EmbedBuilder().setTitle("Vocabulary — Help").setDescription(HELP_DESCRIPTION).setColor(0x3498db)], flags: 64 });
       }
     },
 
@@ -43,8 +59,8 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       const subcommand = context.args[0]?.toLowerCase();
       const userId = message.author.id;
 
-      if (!subcommand || !["review", "list", "stats", "flashcard"].includes(subcommand)) {
-        await message.reply("Usage: `!vocab review`, `!vocab list`, `!vocab stats`, or `!vocab flashcard`");
+      if (!subcommand || subcommand === "help" || !["review", "list", "stats", "flashcard"].includes(subcommand)) {
+        await message.reply({ embeds: [new EmbedBuilder().setTitle("Vocabulary — Help").setDescription(HELP_DESCRIPTION).setColor(0x3498db)] });
         return;
       }
 

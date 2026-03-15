@@ -1,8 +1,18 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { ChallengeEngine } from "../engines/challenge-engine.js";
 import { buildResultsEmbed, buildChallengeLeaderboardEmbed } from "../utilities/challenge-embed.js";
+
+const HELP_DESCRIPTION = [
+  "**Translation Challenges** — Test your language skills!",
+  "",
+  "`/challenge results [id]` — View results for a challenge (defaults to most recent)",
+  "`/challenge leaderboard` — View the overall leaderboard ranked by average score",
+  "",
+  "Each day, the bot posts a sentence to translate. Submit your translation via the button, " +
+  "and an AI grades it on accuracy, grammar, and naturalness. Results are posted when the window closes.",
+].join("\n");
 
 export function createChallengeCommand(challengeEngine: ChallengeEngine): Command {
   return {
@@ -24,6 +34,9 @@ export function createChallengeCommand(challengeEngine: ChallengeEngine): Comman
       )
       .addSubcommand((sub) =>
         sub.setName("leaderboard").setDescription("View the translation challenge leaderboard"),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("help").setDescription("Show available challenge commands"),
       ),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -33,14 +46,16 @@ export function createChallengeCommand(challengeEngine: ChallengeEngine): Comman
         await handleResults(interaction, challengeEngine);
       } else if (subcommand === "leaderboard") {
         await handleLeaderboard(interaction, challengeEngine);
+      } else if (subcommand === "help") {
+        await interaction.reply({ embeds: [new EmbedBuilder().setTitle("Translation Challenges — Help").setDescription(HELP_DESCRIPTION).setColor(0x2ecc71)], flags: 64 });
       }
     },
 
     async executePrefix(message: Message, context: CommandContext): Promise<void> {
       const subcommand = context.args[0]?.toLowerCase();
 
-      if (!subcommand || !["results", "leaderboard"].includes(subcommand)) {
-        await message.reply("Usage: `!challenge results [id]` or `!challenge leaderboard`");
+      if (!subcommand || subcommand === "help" || !["results", "leaderboard"].includes(subcommand)) {
+        await message.reply({ embeds: [new EmbedBuilder().setTitle("Translation Challenges — Help").setDescription(HELP_DESCRIPTION).setColor(0x2ecc71)] });
         return;
       }
 

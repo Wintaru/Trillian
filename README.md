@@ -54,6 +54,11 @@ cp .env.example .env
 | `WEATHERAPI_KEY` | API key from [WeatherAPI.com](https://www.weatherapi.com/) — required for international locations |
 | `WEATHER_ALERT_INTERVAL_MS` | How often to check for weather alerts in milliseconds (default: `300000` / 5 minutes) |
 | `ANNOUNCE_CHANNEL_ID` | Channel where the bot posts a message when it comes online (optional — no announcement if unset) |
+| `MUSIC_CLUB_CHANNEL_ID` | Channel for music club posts (required to enable the feature) |
+| `MUSIC_CLUB_ROUND_DAY` | Day of week to start rounds (0=Sun..6=Sat, default: `1` / Monday) |
+| `MUSIC_CLUB_ROUND_TIME` | Time to start rounds in 24h format (default: `10:00`) |
+| `MUSIC_CLUB_SUBMISSION_DAYS` | Days submissions stay open (default: `2`) |
+| `MUSIC_CLUB_RATING_DAYS` | Days ratings stay open after submissions close (default: `2`) |
 
 ## Running
 
@@ -114,6 +119,12 @@ This registers commands to your development guild (instant). For global deployme
 | `/shadowrun info <topic>` | Look up Shadowrun game info | Everyone |
 | `/weather [location]` | Get current weather and forecast | Everyone |
 | `/define <word>` | Look up the definition of an English word | Everyone |
+| `/musicclub join` | Join the weekly music club | Everyone |
+| `/musicclub leave` | Leave the music club | Everyone |
+| `/musicclub submit <url> [reason]` | Submit a song for the current round | Music Club Members |
+| `/musicclub rate` | Start the rating wizard (walks through each song) | Music Club Members |
+| `/musicclub playlist [id]` | View the current or a specific round's playlist | Everyone |
+| `/musicclub results [id]` | View results for a completed round | Everyone |
 
 All commands support both slash (`/command`) and prefix (`!command`) invocation.
 
@@ -1044,6 +1055,81 @@ Reuses `VOCAB_DEFAULT_LANGUAGE` for the target language. Ollama must be running 
 | **Daily post timing** | Uses a 60-second polling interval, so the post may be up to 1 minute late. |
 | **Close timing** | Uses a 30-second polling interval to detect expired challenges. |
 | **Leaderboard limit** | Only the top 20 users are shown on the leaderboard. |
+
+---
+
+### `/musicclub`
+
+A weekly music club where members submit songs, listen to each other's picks, and rate them. Songs are resolved via the [Odesli/song.link](https://odesli.co/) API to provide cross-platform links (Spotify, YouTube, Apple Music, Tidal, etc.).
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/musicclub join` |
+| Slash | `/musicclub submit url:https://open.spotify.com/track/... reason:This song changed my life` |
+| Slash | `/musicclub rate` |
+| Slash | `/musicclub playlist` |
+| Slash | `/musicclub results` |
+| Prefix | `!musicclub join` |
+| Prefix | `!musicclub submit https://open.spotify.com/track/... This song changed my life` |
+| Prefix | `!musicclub rate` (redirects to slash command wizard) |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `join` | Join the music club to submit and rate songs |
+| `leave` | Leave the music club |
+| `submit` | Submit a song for the current round (one per member per round; resubmitting replaces) |
+| `rate` | Start the rating wizard — walks through each song with 1-10 buttons. Can re-rate by running again. |
+| `playlist` | View the current round's playlist with cross-platform links |
+| `results` | View results for a completed round, ranked by average rating |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `url` (submit) | string | Yes | — | A link to a song on any streaming platform |
+| `reason` (submit) | string | No | — | Why you picked this song |
+| `id` (playlist/results) | integer | No | Current/latest round | A specific round ID |
+
+#### Permission
+
+Everyone can use all subcommands. Submitting and rating require music club membership (use `/musicclub join` first).
+
+#### Configuration
+
+| Variable | Description | Default |
+|---|---|---|
+| `MUSIC_CLUB_CHANNEL_ID` | Channel for music club posts (required to enable) | — |
+| `MUSIC_CLUB_ROUND_DAY` | Day of week to start rounds (0=Sun, 1=Mon, ..., 6=Sat) | `1` (Monday) |
+| `MUSIC_CLUB_ROUND_TIME` | Time to start rounds (HH:MM, local time) | `10:00` |
+| `MUSIC_CLUB_SUBMISSION_DAYS` | Days submissions stay open | `2` |
+| `MUSIC_CLUB_RATING_DAYS` | Days ratings stay open after submissions close | `2` |
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links (for rich playlist/results embeds)
+
+#### Behavior
+
+1. **Round starts** at the configured day/time. The bot posts an announcement with a "Submit a Song" button.
+2. **Members submit songs** via the button (opens a modal) or `/musicclub submit`. Each member can submit one song per round. Resubmitting replaces the previous pick. The bot resolves cross-platform links via Odesli.
+3. **Submissions close** after `MUSIC_CLUB_SUBMISSION_DAYS`. The bot posts the full playlist with each song's title, artist, submitter, reason text, and links to Spotify, YouTube, Apple Music, Tidal, etc. Each song gets a "Rate" button.
+4. **Members rate songs** by clicking "Rate Songs" or using `/musicclub rate`. The bot walks through each song one-by-one with 1-10 buttons (skipping your own song). You can skip songs or re-run the wizard to change ratings.
+5. **Ratings close** after `MUSIC_CLUB_RATING_DAYS`. The bot posts results ranked by average rating with medal emojis for the top 3.
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **One song per member per round** | Resubmitting replaces the previous song |
+| **Cannot rate your own song** | The engine blocks self-ratings |
+| **Odesli rate limit** | 10 requests/minute without an API key; sufficient for small clubs |
+| **Odesli failure is non-fatal** | If Odesli can't resolve the link, the song is still accepted with just the original URL |
+| **Timer polling** | 60-second interval, so transitions may be up to 1 minute late |
 
 ---
 

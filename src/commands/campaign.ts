@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { CampaignEngine } from "../engines/campaign-engine.js";
@@ -7,6 +7,21 @@ import type { CampaignAccessor } from "../accessors/campaign-accessor.js";
 import { formatCampaignStatus } from "../utilities/shadowrun-format.js";
 import type { CharacterAccessor } from "../accessors/character-accessor.js";
 import * as logger from "../utilities/logger.js";
+
+const HELP_DESCRIPTION = [
+  "**Shadowrun Campaign** — Run tabletop RPG sessions in Discord!",
+  "",
+  "`/campaign start [premise]` — Start a new campaign",
+  "`/campaign stop` — Stop the active campaign",
+  "`/campaign pause` / `resume` — Pause or resume a campaign",
+  "`/campaign status` — Show campaign status",
+  "`/campaign addplayer @user` — Add a player",
+  "`/campaign removeplayer @user` — Remove a player",
+  "`/campaign players` — List campaign players",
+  "`/campaign summon @user` — Summon an absent player",
+  "`/campaign recap` — Get a story-so-far recap",
+  "`/campaign history` — View past campaigns",
+].join("\n");
 
 export function createCampaignCommand(
   campaignEngine: CampaignEngine,
@@ -53,7 +68,8 @@ export function createCampaignCommand(
           .addUserOption((opt) => opt.setName("user").setDescription("The player to summon").setRequired(true)),
       )
       .addSubcommand((sub) => sub.setName("recap").setDescription("Get a story-so-far recap"))
-      .addSubcommand((sub) => sub.setName("history").setDescription("View past campaigns")),
+      .addSubcommand((sub) => sub.setName("history").setDescription("View past campaigns"))
+      .addSubcommand((sub) => sub.setName("help").setDescription("Show available campaign commands")),
 
     async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
       const sub = interaction.options.getSubcommand();
@@ -97,6 +113,9 @@ export function createCampaignCommand(
         case "history":
           await handleHistory(interaction);
           break;
+        case "help":
+          await interaction.reply({ embeds: [new EmbedBuilder().setTitle("Shadowrun Campaign — Help").setDescription(HELP_DESCRIPTION).setColor(0x9b59b6)], flags: 64 });
+          break;
         default:
           await interaction.reply({ content: `Unknown subcommand: ${sub}`, flags: 64 });
       }
@@ -109,8 +128,8 @@ export function createCampaignCommand(
       }
 
       const sub = context.args[0]?.toLowerCase();
-      if (!sub) {
-        await message.reply("Usage: `!campaign <start|stop|pause|resume|status|addplayer|removeplayer|players|summon|recap|history>`");
+      if (!sub || sub === "help") {
+        await message.reply({ embeds: [new EmbedBuilder().setTitle("Shadowrun Campaign — Help").setDescription(HELP_DESCRIPTION).setColor(0x9b59b6)] });
         return;
       }
 

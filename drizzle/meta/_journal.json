@@ -57,6 +57,13 @@
       "when": 1773170722011,
       "tag": "0007_redundant_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1773587947211,
+      "tag": "0008_damp_magik",
+      "breakpoints": true
     }
   ]
 }

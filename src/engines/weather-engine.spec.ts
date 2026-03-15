@@ -50,10 +50,20 @@ const mockCurrent: CurrentConditions = {
   description: "Partly Cloudy",
 };
 
+// Use dates relative to today so tests don't break over time
+function futureDateStr(daysFromNow: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const forecastDay = futureDateStr(1);
+const forecastDayAfter = futureDateStr(2);
+
 const mockForecast: ForecastPeriod[] = [
   {
     name: "Today",
-    startTime: "2026-03-10T06:00:00-05:00",
+    startTime: `${forecastDay}T06:00:00-05:00`,
     temperature: 75,
     temperatureUnit: "F",
     shortForecast: "Partly Cloudy",
@@ -62,7 +72,7 @@ const mockForecast: ForecastPeriod[] = [
   },
   {
     name: "Tonight",
-    startTime: "2026-03-10T18:00:00-05:00",
+    startTime: `${forecastDay}T18:00:00-05:00`,
     temperature: 55,
     temperatureUnit: "F",
     shortForecast: "Clear",
@@ -71,7 +81,7 @@ const mockForecast: ForecastPeriod[] = [
   },
   {
     name: "Wednesday",
-    startTime: "2026-03-11T06:00:00-05:00",
+    startTime: `${forecastDayAfter}T06:00:00-05:00`,
     temperature: 70,
     temperatureUnit: "F",
     shortForecast: "Sunny",
@@ -206,12 +216,14 @@ describe("WeatherEngine", () => {
       vi.mocked(nws.getCurrentObservation).mockResolvedValue(mockCurrent);
       vi.mocked(nws.getActiveAlerts).mockResolvedValue([]);
 
-      const targetDate = new Date(2026, 2, 10); // March 10, 2026
-      const result = await engine.getWeather({ location: "Chicago, IL", targetDate });
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const result = await engine.getWeather({ location: "Chicago, IL", targetDate: tomorrow });
 
-      expect(result.targetDate).toEqual(targetDate);
-      // Should only include periods matching 2026-03-10
-      expect(result.forecast.every((p) => p.startTime.startsWith("2026-03-10"))).toBe(true);
+      expect(result.targetDate).toEqual(tomorrow);
+      // Should only include periods matching the forecast day
+      expect(result.forecast.every((p) => p.startTime.startsWith(forecastDay))).toBe(true);
       expect(result.forecast).toHaveLength(2); // Today + Tonight
     });
 

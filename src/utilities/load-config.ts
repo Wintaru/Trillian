@@ -27,6 +27,11 @@ export interface Config {
   challengeDailyTime: string;
   challengeDirection: string;
   challengeDurationMinutes: number;
+  musicClubChannelId: string | undefined;
+  musicClubRoundDay: number;
+  musicClubRoundTime: string;
+  musicClubSubmissionDays: number;
+  musicClubRatingDays: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -72,5 +77,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     challengeDailyTime: env["CHALLENGE_DAILY_TIME"] ?? "09:00",
     challengeDirection: env["CHALLENGE_DIRECTION"] ?? "to_english",
     challengeDurationMinutes: parseInt(env["CHALLENGE_DURATION_MINUTES"] ?? "480", 10),
+    musicClubChannelId: env["MUSIC_CLUB_CHANNEL_ID"] ?? undefined,
+    musicClubRoundDay: parseInt(env["MUSIC_CLUB_ROUND_DAY"] ?? "1", 10),
+    musicClubRoundTime: env["MUSIC_CLUB_ROUND_TIME"] ?? "10:00",
+    musicClubSubmissionDays: parseInt(env["MUSIC_CLUB_SUBMISSION_DAYS"] ?? "2", 10),
+    musicClubRatingDays: parseInt(env["MUSIC_CLUB_RATING_DAYS"] ?? "2", 10),
   });
 }
