@@ -70,7 +70,7 @@ export class RecipeAccessor {
         title: recipes.title,
         userId: recipes.userId,
         createdAt: recipes.createdAt,
-        ingredientCount: sql<number>`(SELECT count(*) FROM recipe_ingredients WHERE recipe_id = ${recipes.id})`,
+        ingredientCount: sql<number>`(SELECT count(*) FROM recipe_ingredients WHERE recipe_ingredients.recipe_id = recipes.id)`,
       })
       .from(recipes)
       .where(eq(recipes.guildId, guildId))
@@ -107,7 +107,7 @@ export class RecipeAccessor {
         title: recipes.title,
         userId: recipes.userId,
         createdAt: recipes.createdAt,
-        ingredientCount: sql<number>`(SELECT count(*) FROM recipe_ingredients WHERE recipe_id = ${recipes.id})`,
+        ingredientCount: sql<number>`(SELECT count(*) FROM recipe_ingredients WHERE recipe_ingredients.recipe_id = recipes.id)`,
       })
       .from(recipes)
       .innerJoin(recipeIngredients, eq(recipeIngredients.recipeId, recipes.id))
