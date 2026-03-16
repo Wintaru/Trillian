@@ -226,9 +226,15 @@ async function handleJoin(
 ): Promise<void> {
   await interaction.deferReply({ flags: 64 });
   const result = await engine.join({ userId: interaction.user.id, guildId });
-  const msg = result.reason === "already_member"
-    ? "You're already a member of the music club!"
-    : "Welcome to the music club! You'll be able to submit and rate songs each round.";
+  if (result.reason === "already_member") {
+    await interaction.editReply("You're already a member of the music club!");
+    return;
+  }
+  let msg = "Welcome to the music club! You'll be able to submit and rate songs each round.";
+  const activeRound = await engine.getActiveRound(guildId);
+  if (activeRound && activeRound.status === "open") {
+    msg += `\n\nA round is open right now! Use \`/musicclub submit <url>\` to submit a song.`;
+  }
   await interaction.editReply(msg);
 }
 
@@ -366,9 +372,15 @@ async function handleResults(
 
 async function handleJoinPrefix(message: Message, engine: MusicClubEngine, guildId: string): Promise<void> {
   const result = await engine.join({ userId: message.author.id, guildId });
-  const msg = result.reason === "already_member"
-    ? "You're already a member of the music club!"
-    : "Welcome to the music club!";
+  if (result.reason === "already_member") {
+    await message.reply("You're already a member of the music club!");
+    return;
+  }
+  let msg = "Welcome to the music club!";
+  const activeRound = await engine.getActiveRound(guildId);
+  if (activeRound && activeRound.status === "open") {
+    msg += `\n\nA round is open right now! Use \`!musicclub submit <url>\` to submit a song.`;
+  }
   await message.reply(msg);
 }
 
