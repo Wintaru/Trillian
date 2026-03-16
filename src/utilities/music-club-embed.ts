@@ -14,12 +14,39 @@ function truncate(text: string, max: number): string {
   return text.slice(0, max - 3) + "...";
 }
 
-function buildPlatformLinks(links: OdesliLinks, originalUrl: string): string {
+type PlatformKey = "spotify" | "youtube" | "appleMusic" | "tidal";
+
+const PLATFORM_ORDER: { key: PlatformKey; label: string; patterns: string[] }[] = [
+  { key: "spotify", label: "Spotify", patterns: ["spotify.com"] },
+  { key: "youtube", label: "YouTube", patterns: ["youtube.com", "youtu.be", "music.youtube.com"] },
+  { key: "appleMusic", label: "Apple Music", patterns: ["music.apple.com"] },
+  { key: "tidal", label: "Tidal", patterns: ["tidal.com", "listen.tidal.com"] },
+];
+
+function detectOriginalPlatform(originalUrl: string): PlatformKey | null {
+  const lower = originalUrl.toLowerCase();
+  for (const platform of PLATFORM_ORDER) {
+    if (platform.patterns.some((p) => lower.includes(p))) return platform.key;
+  }
+  return null;
+}
+
+export function buildPlatformLinks(links: OdesliLinks, originalUrl: string): string {
+  const originalPlatform = detectOriginalPlatform(originalUrl);
+
+  // Build ordered list: original platform first, then the rest
+  const ordered = originalPlatform
+    ? [
+        PLATFORM_ORDER.find((p) => p.key === originalPlatform)!,
+        ...PLATFORM_ORDER.filter((p) => p.key !== originalPlatform),
+      ]
+    : PLATFORM_ORDER;
+
   const parts: string[] = [];
-  if (links.spotify) parts.push(`[Spotify](${links.spotify})`);
-  if (links.youtube) parts.push(`[YouTube](${links.youtube})`);
-  if (links.appleMusic) parts.push(`[Apple Music](${links.appleMusic})`);
-  if (links.tidal) parts.push(`[Tidal](${links.tidal})`);
+  for (const platform of ordered) {
+    const url = links[platform.key];
+    if (url) parts.push(`[${platform.label}](${url})`);
+  }
   if (links.pageUrl) parts.push(`[All Platforms](${links.pageUrl})`);
   if (parts.length === 0) parts.push(`[Link](${originalUrl})`);
   return parts.join(" | ");

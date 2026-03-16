@@ -11,6 +11,7 @@ import type { MusicClubEngine } from "../engines/music-club-engine.js";
 import {
   buildPlaylistEmbed,
   buildResultsEmbed,
+  buildPlatformLinks,
 } from "../utilities/music-club-embed.js";
 
 export function createMusicClubCommand(engine: MusicClubEngine): Command {
@@ -40,7 +41,10 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
       .addSubcommand((sub) =>
         sub
           .setName("rate")
-          .setDescription("Start the rating wizard for the current round"),
+          .setDescription("Start the rating wizard for the current round")
+          .addIntegerOption((opt) =>
+            opt.setName("song").setDescription("Song number to rate/re-rate (from the playlist)").setRequired(false),
+          ),
       )
       .addSubcommand((sub) =>
         sub
@@ -135,18 +139,10 @@ function buildWizardSongEmbed(
     ? `${song.title} — ${song.artist}`
     : "Unknown Song";
 
-  const platformParts: string[] = [];
-  if (song.links.spotify) platformParts.push(`[Spotify](${song.links.spotify})`);
-  if (song.links.youtube) platformParts.push(`[YouTube](${song.links.youtube})`);
-  if (song.links.appleMusic) platformParts.push(`[Apple Music](${song.links.appleMusic})`);
-  if (song.links.tidal) platformParts.push(`[Tidal](${song.links.tidal})`);
-  if (song.links.pageUrl) platformParts.push(`[All Platforms](${song.links.pageUrl})`);
-  if (platformParts.length === 0) platformParts.push(`[Link](${song.originalUrl})`);
-
   const description = [
     `Submitted by <@${song.userId}>`,
     song.reason ? `> ${song.reason}` : "",
-    platformParts.join(" | "),
+    buildPlatformLinks(song.links, song.originalUrl),
   ].filter(Boolean).join("\n");
 
   return new EmbedBuilder()
@@ -196,7 +192,8 @@ const HELP_DESCRIPTION = [
   "`/musicclub join` — Join the music club",
   "`/musicclub leave` — Leave the music club",
   "`/musicclub submit <url> [reason]` — Submit a song for the current round",
-  "`/musicclub rate` — Rate each song with an interactive wizard (1-10)",
+  "`/musicclub rate` — Rate unrated songs with an interactive wizard (1-10)",
+  "`/musicclub rate <number>` — Rate or re-rate a specific song by its playlist number",
   "`/musicclub playlist [id]` — View the current or a past round's playlist",
   "`/musicclub results [id]` — View results for a completed round",
   "",
@@ -319,9 +316,61 @@ async function handleRate(
     return;
   }
 
-  // Show first song with rating buttons
-  const firstSong = songsToRate[0];
-  const embed = buildWizardSongEmbed(firstSong, 0, songsToRate.length);
+  const songNumber = interaction.options.getInteger("song");
+
+  if (songNumber !== null) {
+    // Single-song rating mode
+    const index = songNumber - 1;
+    if (index < 0 || index >= songsToRate.length) {
+      await interaction.editReply(
+        `Invalid song number. Choose between 1 and ${songsToRate.length}.`,
+      );
+      return;
+    }
+    const song = songsToRate[index];
+    const existingRatings = await engine.getUserRatingsForRound(activeRound.id, userId);
+    const existing = existingRatings.get(song.id);
+    const embed = buildWizardSongEmbed(song, index, songsToRate.length);
+    if (existing !== undefined) {
+      embed.setFooter({ text: `Song ${index + 1} of ${songsToRate.length} · Current rating: ${existing}/10` });
+    }
+    const components = buildWizardRatingButtons(activeRound.id, song.id);
+    await interaction.editReply({ embeds: [embed], components });
+    return;
+  }
+
+  // Wizard mode — skip already-rated songs
+  const existingRatings = await engine.getUserRatingsForRound(activeRound.id, userId);
+  const unratedSongs = songsToRate.filter((s) => !existingRatings.has(s.id));
+
+  if (unratedSongs.length === 0) {
+    const summaryLines = songsToRate.map((song, i) => {
+      const name = song.title && song.artist
+        ? `${song.title} — ${song.artist}`
+        : "Unknown";
+      const r = existingRatings.get(song.id);
+      return r !== undefined
+        ? `${i + 1}. ${name}: **${r}/10**`
+        : `${i + 1}. ${name}: Skipped`;
+    });
+    const embed = new EmbedBuilder()
+      .setTitle("All Songs Rated!")
+      .setDescription(
+        `You've already rated every song.\n\n${summaryLines.join("\n")}`,
+      )
+      .setColor(EMBED_COLOR)
+      .setFooter({ text: "Use /musicclub rate <number> to change a rating" });
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // Show the first unrated song
+  const firstSong = unratedSongs[0];
+  const indexInFull = songsToRate.indexOf(firstSong);
+  const embed = buildWizardSongEmbed(firstSong, indexInFull, songsToRate.length);
+  embed.setFooter({
+    text: `Song ${indexInFull + 1} of ${songsToRate.length} (${unratedSongs.length} unrated remaining)`,
+  });
   const components = buildWizardRatingButtons(activeRound.id, firstSong.id);
   await interaction.editReply({ embeds: [embed], components });
 }

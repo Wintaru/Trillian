@@ -11,7 +11,7 @@ import type { ButtonInteraction, ModalSubmitInteraction } from "discord.js";
 import type { ButtonHandler, ModalHandler } from "../types/button-handler.js";
 import type { MusicClubEngine } from "./music-club-engine.js";
 import type { MusicClubSongEntry } from "../types/music-club-contracts.js";
-import { buildPlaylistEmbed, buildResultsEmbed } from "../utilities/music-club-embed.js";
+import { buildPlaylistEmbed, buildResultsEmbed, buildPlatformLinks } from "../utilities/music-club-embed.js";
 import * as logger from "../utilities/logger.js";
 
 const EMBED_COLOR = 0xe91e63;
@@ -25,18 +25,10 @@ function buildSongRatingEmbed(
     ? `${song.title} — ${song.artist}`
     : "Unknown Song";
 
-  const platformParts: string[] = [];
-  if (song.links.spotify) platformParts.push(`[Spotify](${song.links.spotify})`);
-  if (song.links.youtube) platformParts.push(`[YouTube](${song.links.youtube})`);
-  if (song.links.appleMusic) platformParts.push(`[Apple Music](${song.links.appleMusic})`);
-  if (song.links.tidal) platformParts.push(`[Tidal](${song.links.tidal})`);
-  if (song.links.pageUrl) platformParts.push(`[All Platforms](${song.links.pageUrl})`);
-  if (platformParts.length === 0) platformParts.push(`[Link](${song.originalUrl})`);
-
   const description = [
     `Submitted by <@${song.userId}>`,
     song.reason ? `> ${song.reason}` : "",
-    platformParts.join(" | "),
+    buildPlatformLinks(song.links, song.originalUrl),
   ].filter(Boolean).join("\n");
 
   return new EmbedBuilder()
@@ -216,9 +208,36 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
         return;
       }
 
-      // Show the first song
-      const firstSong = songsToRate[0];
-      const embed = buildSongRatingEmbed(firstSong, 0, songsToRate.length);
+      // Skip already-rated songs
+      const existingRatings = await this.engine.getUserRatingsForRound(roundId, userId);
+      const unratedSongs = songsToRate.filter((s) => !existingRatings.has(s.id));
+
+      if (unratedSongs.length === 0) {
+        const summaryLines = songsToRate.map((song) => {
+          const name = song.title && song.artist
+            ? `${song.title} — ${song.artist}`
+            : "Unknown";
+          const r = existingRatings.get(song.id);
+          return r !== undefined ? `${name}: **${r}/10**` : `${name}: Skipped`;
+        });
+        const embed = new EmbedBuilder()
+          .setTitle("All Songs Rated!")
+          .setDescription(
+            `You've already rated every song.\n\n${summaryLines.join("\n")}`,
+          )
+          .setColor(EMBED_COLOR)
+          .setFooter({ text: "Use /musicclub rate <number> to change a rating" });
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Show the first unrated song
+      const firstSong = unratedSongs[0];
+      const indexInFull = songsToRate.indexOf(firstSong);
+      const embed = buildSongRatingEmbed(firstSong, indexInFull, songsToRate.length);
+      embed.setFooter({
+        text: `Song ${indexInFull + 1} of ${songsToRate.length} (${unratedSongs.length} unrated remaining)`,
+      });
       const components = buildRatingButtons(roundId, firstSong.id);
       await interaction.editReply({ embeds: [embed], components });
     } catch (err) {
@@ -303,7 +322,6 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
 
     const songsToRate = playlist.songs.filter((s) => s.userId !== userId);
     const currentIndex = songsToRate.findIndex((s) => s.id === currentSongId);
-    const nextIndex = currentIndex + 1;
 
     // Find the song that was just rated for the summary
     const ratedSong = songsToRate[currentIndex];
@@ -311,9 +329,20 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
       ? `${ratedSong.title || "Song"}: ${ratingGiven !== null ? `**${ratingGiven}/10**` : "Skipped"}`
       : "";
 
-    if (nextIndex >= songsToRate.length) {
+    // Find next unrated song (skip already-rated ones)
+    const userRatings = await this.engine.getUserRatingsForRound(roundId, userId);
+    let nextSong: MusicClubSongEntry | undefined;
+    let nextIndex = -1;
+    for (let i = currentIndex + 1; i < songsToRate.length; i++) {
+      if (!userRatings.has(songsToRate[i].id)) {
+        nextSong = songsToRate[i];
+        nextIndex = i;
+        break;
+      }
+    }
+
+    if (!nextSong) {
       // Wizard complete — show summary with all ratings from DB
-      const userRatings = await this.engine.getUserRatingsForRound(roundId, userId);
       const summaryLines = songsToRate.map((song) => {
         const name = song.title && song.artist
           ? `${song.title} — ${song.artist}`
@@ -322,11 +351,16 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
         return r !== undefined ? `${name}: **${r}/10**` : `${name}: Skipped`;
       });
 
+      const unratedCount = songsToRate.filter((s) => !userRatings.has(s.id)).length;
       const summaryEmbed = new EmbedBuilder()
         .setTitle("Rating Complete!")
         .setDescription(summaryLines.join("\n"))
         .setColor(EMBED_COLOR)
-        .setFooter({ text: "Run the wizard again to change any ratings" });
+        .setFooter({
+          text: unratedCount > 0
+            ? `${unratedCount} song(s) skipped — run the wizard again to rate them`
+            : "Use /musicclub rate <number> to change a rating",
+        });
 
       await interaction.editReply({
         content: null,
@@ -336,9 +370,15 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
       return;
     }
 
-    // Show next song
-    const nextSong = songsToRate[nextIndex];
+    // Show next unrated song
+    const unratedRemaining = songsToRate.filter(
+      (s, i) => i > nextIndex && !userRatings.has(s.id),
+    ).length + 1; // +1 for the current one being shown
+
     const embed = buildSongRatingEmbed(nextSong, nextIndex, songsToRate.length);
+    embed.setFooter({
+      text: `Song ${nextIndex + 1} of ${songsToRate.length} (${unratedRemaining} unrated remaining)`,
+    });
     const components = buildRatingButtons(roundId, nextSong.id);
     await interaction.editReply({
       content: ratedLabel,
