@@ -117,6 +117,14 @@ describe("CleanLinksEngine", () => {
       expect(cleaned.searchParams.has("_ga")).toBe(false);
       expect(cleaned.searchParams.has("_gl")).toBe(false);
     });
+
+    it("should strip Google Ads gad_ params", () => {
+      const url = new URL("https://example.com/page?gad_source=1&gad_campaignid=123&id=5");
+      const cleaned = engine.stripTrackingParams(url);
+      expect(cleaned.searchParams.has("gad_source")).toBe(false);
+      expect(cleaned.searchParams.has("gad_campaignid")).toBe(false);
+      expect(cleaned.searchParams.get("id")).toBe("5");
+    });
   });
 
   describe("isShortenerDomain", () => {

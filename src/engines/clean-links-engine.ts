@@ -37,7 +37,7 @@ const TRACKING_PARAMS = new Set([
 ]);
 
 /** Query parameter prefixes to strip (startsWith match). */
-const TRACKING_PREFIXES = ["utm_"];
+const TRACKING_PREFIXES = ["utm_", "gad_"];
 
 /** Domains whose URLs are shortened redirects to resolve. */
 const SHORTENER_DOMAINS = new Set([
