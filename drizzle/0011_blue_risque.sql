@@ -1,0 +1,1 @@
+ALTER TABLE `music_club_rounds` ADD `closed_at` integer DEFAULT 0 NOT NULL;

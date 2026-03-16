@@ -303,6 +303,7 @@ export const musicClubRounds = sqliteTable(
     resultsMessageId: text("results_message_id").notNull().default(""),
     submissionReminderSent: integer("submission_reminder_sent").notNull().default(0),
     ratingReminderSent: integer("rating_reminder_sent").notNull().default(0),
+    closedAt: integer("closed_at").notNull().default(0),
     createdAt: integer("created_at").notNull(),
   },
   (table) => [

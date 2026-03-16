@@ -288,6 +288,68 @@ export class MusicClubAccessor {
       );
   }
 
+  async getListeningRoundsWithAllRatings(): Promise<
+    { id: number; channelId: string; playlistMessageId: string }[]
+  > {
+    // A round is fully rated when every member (except each song's submitter)
+    // has rated every song. Expected ratings = songs × (members - 1) assuming
+    // each member submitted one song.
+    return db
+      .select({
+        id: musicClubRounds.id,
+        channelId: musicClubRounds.channelId,
+        playlistMessageId: musicClubRounds.playlistMessageId,
+      })
+      .from(musicClubRounds)
+      .where(
+        and(
+          eq(musicClubRounds.status, "listening"),
+          sql`(
+            SELECT count(*) FROM ${musicClubSongs}
+            WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}
+          ) > 0`,
+          sql`(
+            SELECT count(*) FROM ${musicClubRatings}
+            INNER JOIN ${musicClubSongs} ON ${musicClubRatings.songId} = ${musicClubSongs.id}
+            WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}
+          ) >= (
+            SELECT count(*) FROM ${musicClubSongs}
+            WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}
+          ) * (
+            (SELECT count(*) FROM ${musicClubMembers}
+             WHERE ${musicClubMembers.guildId} = ${musicClubRounds.guildId}) - 1
+          )`,
+        ),
+      );
+  }
+
+  async setClosedAt(roundId: number, closedAt: number): Promise<void> {
+    await db
+      .update(musicClubRounds)
+      .set({ closedAt })
+      .where(eq(musicClubRounds.id, roundId));
+  }
+
+  async getLatestClosedRound(guildId: string): Promise<
+    { id: number; closedAt: number } | null
+  > {
+    const rows = await db
+      .select({
+        id: musicClubRounds.id,
+        closedAt: musicClubRounds.closedAt,
+      })
+      .from(musicClubRounds)
+      .where(
+        and(
+          eq(musicClubRounds.guildId, guildId),
+          eq(musicClubRounds.status, "closed"),
+        ),
+      )
+      .orderBy(desc(musicClubRounds.closedAt))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   // --- Songs ---
 
   async upsertSong(

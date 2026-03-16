@@ -275,6 +275,16 @@ export class MusicClubEngine {
     const ready = await this.musicClubAccessor.getRoundsReadyToClose(Date.now());
     for (const round of ready) {
       await this.musicClubAccessor.setRoundStatus(round.id, "closed");
+      await this.musicClubAccessor.setClosedAt(round.id, Date.now());
+    }
+    return ready;
+  }
+
+  async closeFullyRatedRounds(): Promise<{ id: number; channelId: string; playlistMessageId: string }[]> {
+    const ready = await this.musicClubAccessor.getListeningRoundsWithAllRatings();
+    for (const round of ready) {
+      await this.musicClubAccessor.setRoundStatus(round.id, "closed");
+      await this.musicClubAccessor.setClosedAt(round.id, Date.now());
     }
     return ready;
   }

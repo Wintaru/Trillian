@@ -18,6 +18,7 @@ import {
 import * as logger from "./logger.js";
 
 const CHECK_INTERVAL_MS = 60_000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function toLocalDateString(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -25,6 +26,46 @@ function toLocalDateString(date: Date): string {
 
 function toLocalTimeString(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+async function startNewRound(
+  client: Client,
+  engine: MusicClubEngine,
+  accessor: MusicClubAccessor,
+  channelId: string,
+  guildId: string,
+  submissionDays: number,
+  ratingDays: number,
+): Promise<void> {
+  logger.info("Music club: starting new round");
+
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || channel.type === ChannelType.GroupDM || !channel.isTextBased()) return;
+
+  const result = await engine.startNewRound({
+    guildId,
+    channelId,
+    submissionDays,
+    ratingDays,
+  });
+
+  const memberCount = await engine.getMemberCount(guildId);
+  const embed = buildRoundAnnouncementEmbed(result.roundId, result.submissionsCloseAt, memberCount);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`musicclub_submit:${result.roundId}`)
+      .setLabel("Submit a Song")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`musicclub_playlist:${result.roundId}`)
+      .setLabel("View Playlist")
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  const message = await channel.send({ embeds: [embed], components: [row] });
+  await accessor.setRoundMessageId(result.roundId, message.id);
+  logger.info(`Music club round #${result.roundId} started.`);
 }
 
 export function startMusicClubRoundTimer(
@@ -39,11 +80,10 @@ export function startMusicClubRoundTimer(
   guildId: string,
 ): void {
   const startup = new Date();
-  // If we're past the round time on the round day, don't post again today
-  let lastPostDate =
-    startup.getDay() === roundDay && toLocalTimeString(startup) >= roundTime
-      ? toLocalDateString(startup)
-      : "";
+  // If we're past the round time today, don't post again today
+  let lastPostDate = toLocalTimeString(startup) >= roundTime
+    ? toLocalDateString(startup)
+    : "";
 
   setInterval(async () => {
     try {
@@ -51,50 +91,38 @@ export function startMusicClubRoundTimer(
       const todayDate = toLocalDateString(now);
       const currentTime = toLocalTimeString(now);
 
-      // Only start a new round on the configured day at the configured time
-      if (
-        now.getDay() === roundDay &&
-        currentTime >= roundTime &&
-        todayDate !== lastPostDate
-      ) {
-        lastPostDate = todayDate;
+      // Don't start a round if we already posted today or it's before the configured time
+      if (todayDate === lastPostDate || currentTime < roundTime) return;
 
-        // Check if there's already an active round
-        const active = await engine.getActiveRound(guildId);
-        if (active) {
-          logger.info(`Music club: skipping new round, round #${active.id} is still ${active.status}`);
+      // Check if there's already an active round
+      const active = await engine.getActiveRound(guildId);
+      if (active) return;
+
+      // Check if a round closed recently — start the next round the day after
+      const lastClosed = await accessor.getLatestClosedRound(guildId);
+      if (lastClosed && lastClosed.closedAt > 0) {
+        const closedDate = new Date(lastClosed.closedAt);
+        const dayAfterClose = new Date(
+          closedDate.getFullYear(),
+          closedDate.getMonth(),
+          closedDate.getDate() + 1,
+        );
+        const dayAfterStr = toLocalDateString(dayAfterClose);
+
+        if (todayDate >= dayAfterStr) {
+          // It's the day after (or later) — start a new round
+          lastPostDate = todayDate;
+          await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
           return;
         }
+        // Still the same day the round closed — wait until tomorrow
+        return;
+      }
 
-        logger.info("Music club: starting new round");
-
-        const channel = await client.channels.fetch(channelId);
-        if (!channel || channel.type === ChannelType.GroupDM || !channel.isTextBased()) return;
-
-        const result = await engine.startNewRound({
-          guildId,
-          channelId,
-          submissionDays,
-          ratingDays,
-        });
-
-        const memberCount = await engine.getMemberCount(guildId);
-        const embed = buildRoundAnnouncementEmbed(result.roundId, result.submissionsCloseAt, memberCount);
-
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`musicclub_submit:${result.roundId}`)
-            .setLabel("Submit a Song")
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`musicclub_playlist:${result.roundId}`)
-            .setLabel("View Playlist")
-            .setStyle(ButtonStyle.Secondary),
-        );
-
-        const message = await channel.send({ embeds: [embed], components: [row] });
-        await accessor.setRoundMessageId(result.roundId, message.id);
-        logger.info(`Music club round #${result.roundId} started.`);
+      // Fallback: weekly schedule (no previous round or closedAt not set)
+      if (now.getDay() === roundDay) {
+        lastPostDate = todayDate;
+        await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
       }
     } catch (err) {
       logger.error("Music club round timer error:", err);
@@ -258,40 +286,21 @@ export function startMusicClubTransitionTimer(
         }
       }
 
-      // Transition listening → closed (ratings closed, post results)
+      // Early close: all members have rated all songs
+      const earlyClose = await engine.closeFullyRatedRounds();
+      for (const round of earlyClose) {
+        try {
+          await postRoundResults(client, engine, accessor, round, "Everyone rated! Results are in early.");
+        } catch (err) {
+          logger.error(`Failed to early-close music club round #${round.id}:`, err);
+        }
+      }
+
+      // Transition listening → closed (ratings expired, post results)
       const toClose = await engine.closeExpiredRounds();
       for (const round of toClose) {
         try {
-          const channel = await client.channels.fetch(round.channelId);
-          if (!channel?.isTextBased()) continue;
-
-          const results = await engine.getResults(round.id);
-          if (!results) continue;
-
-          const embed = buildResultsEmbed(results);
-
-          if (channel.isSendable()) {
-            const msg = await channel.send({ embeds: [embed] });
-            await accessor.setResultsMessageId(round.id, msg.id);
-          }
-
-          // Remove rating buttons from playlist message
-          if (round.playlistMessageId) {
-            try {
-              const playlistMsg = await (channel as TextBasedChannel).messages.fetch(round.playlistMessageId);
-              const resultsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                new ButtonBuilder()
-                  .setCustomId(`musicclub_results:${round.id}`)
-                  .setLabel("View Results")
-                  .setStyle(ButtonStyle.Secondary),
-              );
-              await playlistMsg.edit({ components: [resultsRow] });
-            } catch {
-              // Message may have been deleted
-            }
-          }
-
-          logger.info(`Music club round #${round.id} closed, results posted.`);
+          await postRoundResults(client, engine, accessor, round);
         } catch (err) {
           logger.error(`Failed to close music club round #${round.id}:`, err);
         }
@@ -300,4 +309,47 @@ export function startMusicClubTransitionTimer(
       logger.error("Music club transition timer error:", err);
     }
   }, CHECK_INTERVAL_MS);
+}
+
+async function postRoundResults(
+  client: Client,
+  engine: MusicClubEngine,
+  accessor: MusicClubAccessor,
+  round: { id: number; channelId: string; playlistMessageId: string },
+  prefixMessage?: string,
+): Promise<void> {
+  const channel = await client.channels.fetch(round.channelId);
+  if (!channel?.isTextBased()) return;
+
+  const results = await engine.getResults(round.id);
+  if (!results) return;
+
+  const embed = buildResultsEmbed(results);
+  if (prefixMessage) {
+    const existingDesc = embed.data.description ?? "";
+    embed.setDescription(`${prefixMessage}\n\n${existingDesc}`);
+  }
+
+  if (channel.isSendable()) {
+    const msg = await channel.send({ embeds: [embed] });
+    await accessor.setResultsMessageId(round.id, msg.id);
+  }
+
+  // Remove rating buttons from playlist message
+  if (round.playlistMessageId) {
+    try {
+      const playlistMsg = await (channel as TextBasedChannel).messages.fetch(round.playlistMessageId);
+      const resultsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`musicclub_results:${round.id}`)
+          .setLabel("View Results")
+          .setStyle(ButtonStyle.Secondary),
+      );
+      await playlistMsg.edit({ components: [resultsRow] });
+    } catch {
+      // Message may have been deleted
+    }
+  }
+
+  logger.info(`Music club round #${round.id} closed, results posted.`);
 }
