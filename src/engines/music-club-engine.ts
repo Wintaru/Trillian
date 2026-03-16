@@ -252,6 +252,14 @@ export class MusicClubEngine {
     return ready;
   }
 
+  async transitionFullRoundsToListening(): Promise<{ id: number; channelId: string; messageId: string }[]> {
+    const ready = await this.musicClubAccessor.getOpenRoundsWithAllSubmissions();
+    for (const round of ready) {
+      await this.musicClubAccessor.setRoundStatus(round.id, "listening");
+    }
+    return ready;
+  }
+
   async closeExpiredRounds(): Promise<{ id: number; channelId: string; playlistMessageId: string }[]> {
     const ready = await this.musicClubAccessor.getRoundsReadyToClose(Date.now());
     for (const round of ready) {

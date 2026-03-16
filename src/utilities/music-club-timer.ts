@@ -155,6 +155,59 @@ export function startMusicClubTransitionTimer(
         }
       }
 
+      // Early transition: all members have submitted
+      const earlyTransitions = await engine.transitionFullRoundsToListening();
+      for (const round of earlyTransitions) {
+        try {
+          const channel = await client.channels.fetch(round.channelId);
+          if (!channel?.isTextBased()) continue;
+
+          const playlist = await engine.getPlaylist(round.id);
+          if (!playlist) continue;
+
+          const embed = buildPlaylistEmbed(playlist);
+          const existingDesc = embed.data.description ?? "";
+          embed.setDescription(
+            `Everyone submitted! Submissions closed early.\n\n${existingDesc}`,
+          );
+
+          const rateRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`musicclub_rate:${round.id}`)
+              .setLabel("Rate Songs")
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId(`musicclub_playlist:${round.id}`)
+              .setLabel("View Playlist")
+              .setStyle(ButtonStyle.Secondary),
+          );
+
+          if (channel.isSendable()) {
+            const msg = await channel.send({ embeds: [embed], components: [rateRow] });
+            await accessor.setPlaylistMessageId(round.id, msg.id);
+          }
+
+          if (round.messageId) {
+            try {
+              const origMessage = await (channel as TextBasedChannel).messages.fetch(round.messageId);
+              const viewRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`musicclub_playlist:${round.id}`)
+                  .setLabel("View Playlist")
+                  .setStyle(ButtonStyle.Secondary),
+              );
+              await origMessage.edit({ components: [viewRow] });
+            } catch {
+              // Message may have been deleted
+            }
+          }
+
+          logger.info(`Music club round #${round.id} closed early — all members submitted.`);
+        } catch (err) {
+          logger.error(`Failed to early-transition music club round #${round.id}:`, err);
+        }
+      }
+
       // Transition open → listening (submissions closed, post playlist)
       const toListening = await engine.transitionToListening();
       for (const round of toListening) {

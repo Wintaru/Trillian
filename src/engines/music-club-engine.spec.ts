@@ -17,6 +17,7 @@ function createMockAccessor(): MusicClubAccessor {
     setRoundStatus: vi.fn(),
     setPlaylistMessageId: vi.fn(),
     setResultsMessageId: vi.fn(),
+    getOpenRoundsWithAllSubmissions: vi.fn(),
     getRoundsReadyToTransition: vi.fn(),
     getRoundsReadyToClose: vi.fn(),
     getRoundsNeedingSubmissionReminder: vi.fn(),

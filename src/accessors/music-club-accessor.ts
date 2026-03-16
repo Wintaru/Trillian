@@ -172,6 +172,34 @@ export class MusicClubAccessor {
       .where(eq(musicClubRounds.id, roundId));
   }
 
+  async getOpenRoundsWithAllSubmissions(): Promise<
+    { id: number; channelId: string; messageId: string }[]
+  > {
+    return db
+      .select({
+        id: musicClubRounds.id,
+        channelId: musicClubRounds.channelId,
+        messageId: musicClubRounds.messageId,
+      })
+      .from(musicClubRounds)
+      .where(
+        and(
+          eq(musicClubRounds.status, "open"),
+          sql`(
+            SELECT count(*) FROM ${musicClubSongs}
+            WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}
+          ) >= (
+            SELECT count(*) FROM ${musicClubMembers}
+            WHERE ${musicClubMembers.guildId} = ${musicClubRounds.guildId}
+          )`,
+          sql`(
+            SELECT count(*) FROM ${musicClubMembers}
+            WHERE ${musicClubMembers.guildId} = ${musicClubRounds.guildId}
+          ) > 0`,
+        ),
+      );
+  }
+
   async getRoundsReadyToTransition(now: number): Promise<
     { id: number; channelId: string; messageId: string }[]
   > {
