@@ -73,6 +73,7 @@ import { startChallengePostTimer, startChallengeCloseTimer } from "./utilities/c
 // Music club
 import { MusicClubAccessor } from "./accessors/music-club-accessor.js";
 import { OdesliAccessor } from "./accessors/odesli-accessor.js";
+import { YouTubeAccessor } from "./accessors/youtube-accessor.js";
 import { MusicClubEngine } from "./engines/music-club-engine.js";
 import { MusicClubButtonHandler } from "./engines/music-club-button-handler.js";
 import { createMusicClubCommand } from "./commands/music-club.js";
@@ -159,7 +160,10 @@ const challengeButtonHandler = new ChallengeButtonHandler(challengeEngine);
 // Music club
 const musicClubAccessor = new MusicClubAccessor();
 const odesliAccessor = new OdesliAccessor();
-const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor);
+const youtubeAccessor = config.youtubeApiKey
+  ? new YouTubeAccessor(config.youtubeApiKey)
+  : null;
+const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor, youtubeAccessor);
 const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
 
 // Recipe system

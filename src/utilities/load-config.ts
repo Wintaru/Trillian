@@ -33,6 +33,7 @@ export interface Config {
   musicClubSubmissionDays: number;
   musicClubRatingDays: number;
   recipeChannelId: string | undefined;
+  youtubeApiKey: string | undefined;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -84,5 +85,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     musicClubSubmissionDays: parseInt(env["MUSIC_CLUB_SUBMISSION_DAYS"] ?? "2", 10),
     musicClubRatingDays: parseInt(env["MUSIC_CLUB_RATING_DAYS"] ?? "2", 10),
     recipeChannelId: env["RECIPE_CHANNEL_ID"] ?? undefined,
+    youtubeApiKey: env["YOUTUBE_API_KEY"] ?? undefined,
   });
 }

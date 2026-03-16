@@ -1,5 +1,6 @@
 import type { MusicClubAccessor } from "../accessors/music-club-accessor.js";
 import type { OdesliAccessor } from "../accessors/odesli-accessor.js";
+import type { YouTubeAccessor } from "../accessors/youtube-accessor.js";
 import type {
   JoinClubRequest,
   JoinClubResponse,
@@ -59,6 +60,7 @@ export class MusicClubEngine {
   constructor(
     private readonly musicClubAccessor: MusicClubAccessor,
     private readonly odesliAccessor: OdesliAccessor,
+    private readonly youtubeAccessor: YouTubeAccessor | null = null,
   ) {}
 
   async join(request: JoinClubRequest): Promise<JoinClubResponse> {
@@ -106,6 +108,15 @@ export class MusicClubEngine {
       title = odesliResult.title;
       artist = odesliResult.artist;
       odesliData = odesliResult.links;
+    }
+
+    // Fill in YouTube link via search if Odesli didn't return one
+    if (!odesliData.youtube && this.youtubeAccessor && (title || artist)) {
+      const query = [title, artist].filter(Boolean).join(" - ");
+      const youtubeUrl = await this.youtubeAccessor.searchVideo(query);
+      if (youtubeUrl) {
+        odesliData.youtube = youtubeUrl;
+      }
     }
 
     const reason = await this.musicClubAccessor.upsertSong(
