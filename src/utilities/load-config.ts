@@ -34,6 +34,7 @@ export interface Config {
   musicClubRatingDays: number;
   recipeChannelId: string | undefined;
   youtubeApiKey: string | undefined;
+  cleanLinksChannelIds: string[];
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -86,5 +87,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     musicClubRatingDays: parseInt(env["MUSIC_CLUB_RATING_DAYS"] ?? "2", 10),
     recipeChannelId: env["RECIPE_CHANNEL_ID"] ?? undefined,
     youtubeApiKey: env["YOUTUBE_API_KEY"] ?? undefined,
+    cleanLinksChannelIds: parseChannelIds(env["CLEAN_LINKS_CHANNEL_IDS"]),
   });
 }

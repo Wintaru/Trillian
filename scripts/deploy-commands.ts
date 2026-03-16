@@ -48,6 +48,9 @@ import { RecipeAccessor } from "../src/accessors/recipe-accessor.js";
 import { WebScraperAccessor } from "../src/accessors/web-scraper-accessor.js";
 import { RecipeEngine } from "../src/engines/recipe-engine.js";
 import { createRecipeCommand } from "../src/commands/recipe.js";
+import { RedirectAccessor } from "../src/accessors/redirect-accessor.js";
+import { CleanLinksEngine } from "../src/engines/clean-links-engine.js";
+import { createCleanUrlCommand } from "../src/commands/clean-url.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -117,6 +120,7 @@ const commands = [
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
   createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor(), new WebScraperAccessor())),
+  createCleanUrlCommand(new CleanLinksEngine(new RedirectAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

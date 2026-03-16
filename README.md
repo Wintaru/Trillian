@@ -1209,6 +1209,61 @@ Everyone — no special permissions required.
 
 ---
 
+### `/cleanurl`
+
+Manually clean tracking parameters from a URL. Also works automatically in configured channels — the bot watches for links with tracking junk, replies with the clean version, and suppresses the original message's embeds.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/cleanurl url:https://example.com/page?utm_source=twitter&fbclid=abc` |
+| Prefix | `!cleanurl https://example.com/page?utm_source=twitter&fbclid=abc` |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `url` | string | Yes | — | The URL to clean |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Description | Default |
+|---|---|---|
+| `CLEAN_LINKS_CHANNEL_IDS` | Comma-separated channel IDs where the bot auto-cleans links. If empty, all channels are watched. | — (all channels) |
+
+**Setup:**
+The feature is active in all channels by default. To restrict it to specific channels, set `CLEAN_LINKS_CHANNEL_IDS` in `.env` (comma-separated). The `/cleanurl` command works everywhere regardless of this setting.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Manage Messages (to suppress embeds on the original message)
+
+#### Behavior
+
+1. **Automatic mode (event handler):** When a message is posted in a configured channel, the bot extracts all URLs and checks for tracking parameters.
+2. **Tracking parameter removal:** Strips known trackers including `utm_*`, `fbclid`, `gclid`, `msclkid`, `igshid`, `si` (Spotify/YouTube), `feature` (YouTube), HubSpot/Adobe/Mailchimp params, and more.
+3. **Shortened URL resolution:** For known shortener domains (`bit.ly`, `t.co`, `amzn.to`, etc.), the bot follows redirects via HEAD requests to get the final URL, then strips tracking params from it.
+4. **Reply with clean URL:** If any URLs were cleaned, the bot replies to the original message with the clean versions.
+5. **Embed suppression:** The bot suppresses the original message's embeds so only the clean URL's preview is shown.
+6. **Manual mode (`/cleanurl`):** Accepts a single URL and returns the cleaned version. Works in any channel.
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **All channels by default** | Auto-cleaning runs everywhere unless `CLEAN_LINKS_CHANNEL_IDS` restricts it |
+| **Shortened URL timeout** | Redirect resolution has a 5-second timeout per hop (max 10 hops) — if the shortener is down, the original URL is returned as-is |
+| **Known trackers only** | Only strips parameters from a curated blocklist — novel tracking params may slip through |
+| **No original embed control without Manage Messages** | The bot needs Manage Messages permission to suppress the original message's embeds |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

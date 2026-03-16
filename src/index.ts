@@ -95,6 +95,12 @@ import { createRecipeCommand } from "./commands/recipe.js";
 import { createMessageRecipeHandler } from "./events/message-recipe.js";
 import { backfillRecipes } from "./utilities/recipe-backfill.js";
 
+// Link decrapifier
+import { RedirectAccessor } from "./accessors/redirect-accessor.js";
+import { CleanLinksEngine } from "./engines/clean-links-engine.js";
+import { createCleanUrlCommand } from "./commands/clean-url.js";
+import { createMessageCleanLinksHandler } from "./events/message-clean-links.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -171,6 +177,10 @@ const recipeAccessor = new RecipeAccessor();
 const webScraperAccessor = new WebScraperAccessor();
 const recipeEngine = new RecipeEngine(ollamaAccessor, recipeAccessor, webScraperAccessor);
 
+// Link decrapifier
+const redirectAccessor = new RedirectAccessor();
+const cleanLinksEngine = new CleanLinksEngine(redirectAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -190,6 +200,7 @@ const commands = [
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
   createRecipeCommand(recipeEngine),
+  createCleanUrlCommand(cleanLinksEngine),
 ];
 
 const events = [
@@ -205,6 +216,7 @@ const events = [
   ...(config.recipeChannelId
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),
+  createMessageCleanLinksHandler(cleanLinksEngine, config.cleanLinksChannelIds),
 ];
 
 const commandEngine = new CommandEngine(commands);
