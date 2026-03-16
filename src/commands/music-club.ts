@@ -63,6 +63,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
           ),
       )
       .addSubcommand((sub) =>
+        sub.setName("myratings").setDescription("View your ratings for the current round"),
+      )
+      .addSubcommand((sub) =>
         sub.setName("help").setDescription("Show available music club commands"),
       ),
 
@@ -89,6 +92,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         case "results":
           await handleResults(interaction, engine, guildId);
           break;
+        case "myratings":
+          await handleMyRatings(interaction, engine, guildId);
+          break;
         case "help":
           await handleHelp(interaction);
           break;
@@ -99,7 +105,7 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
       const sub = context.args[0]?.toLowerCase();
       const guildId = message.guildId ?? "";
 
-      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results"].includes(sub)) {
+      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings"].includes(sub)) {
         await handleHelpPrefix(message);
         return;
       }
@@ -122,6 +128,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
           break;
         case "results":
           await handleResultsPrefix(message, context, engine, guildId);
+          break;
+        case "myratings":
+          await handleMyRatingsPrefix(message, engine, guildId);
           break;
       }
     },
@@ -194,6 +203,7 @@ const HELP_DESCRIPTION = [
   "`/musicclub submit <url> [reason]` — Submit a song for the current round",
   "`/musicclub rate` — Rate unrated songs with an interactive wizard (1-10)",
   "`/musicclub rate <number>` — Rate or re-rate a specific song by its playlist number",
+  "`/musicclub myratings` — View your ratings for the current round (private)",
   "`/musicclub playlist [id]` — View the current or a past round's playlist",
   "`/musicclub results [id]` — View results for a completed round",
   "",
@@ -417,6 +427,49 @@ async function handleResults(
   await interaction.editReply({ embeds: [embed] });
 }
 
+async function handleMyRatings(
+  interaction: ChatInputCommandInteraction,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  await interaction.deferReply({ flags: 64 });
+
+  const activeRound = await engine.getActiveRound(guildId);
+  if (!activeRound) {
+    await interaction.editReply("No active round found.");
+    return;
+  }
+
+  const playlist = await engine.getPlaylist(activeRound.id);
+  if (!playlist) {
+    await interaction.editReply("Round not found.");
+    return;
+  }
+
+  const userId = interaction.user.id;
+  const songsToRate = playlist.songs.filter((s) => s.userId !== userId);
+  const userRatings = await engine.getUserRatingsForRound(activeRound.id, userId);
+
+  const lines = songsToRate.map((song, i) => {
+    const name = song.title && song.artist
+      ? `${song.title} — ${song.artist}`
+      : "Unknown";
+    const r = userRatings.get(song.id);
+    return r !== undefined
+      ? `${i + 1}. ${name}: **${r}/10**`
+      : `${i + 1}. ${name}: *Not rated*`;
+  });
+
+  const rated = songsToRate.filter((s) => userRatings.has(s.id)).length;
+  const embed = new EmbedBuilder()
+    .setTitle(`Your Ratings — Round #${activeRound.id}`)
+    .setDescription(lines.join("\n"))
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: `${rated}/${songsToRate.length} songs rated` });
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
 // --- Prefix handlers ---
 
 async function handleJoinPrefix(message: Message, engine: MusicClubEngine, guildId: string): Promise<void> {
@@ -540,6 +593,48 @@ async function handleResultsPrefix(
   if (message.channel.isSendable()) {
     await message.channel.send({ embeds: [embed] });
   }
+}
+
+async function handleMyRatingsPrefix(
+  message: Message,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  const activeRound = await engine.getActiveRound(guildId);
+  if (!activeRound) {
+    await message.reply("No active round found.");
+    return;
+  }
+
+  const playlist = await engine.getPlaylist(activeRound.id);
+  if (!playlist) {
+    await message.reply("Round not found.");
+    return;
+  }
+
+  const userId = message.author.id;
+  const songsToRate = playlist.songs.filter((s) => s.userId !== userId);
+  const userRatings = await engine.getUserRatingsForRound(activeRound.id, userId);
+
+  const lines = songsToRate.map((song, i) => {
+    const name = song.title && song.artist
+      ? `${song.title} — ${song.artist}`
+      : "Unknown";
+    const r = userRatings.get(song.id);
+    return r !== undefined
+      ? `${i + 1}. ${name}: **${r}/10**`
+      : `${i + 1}. ${name}: *Not rated*`;
+  });
+
+  const rated = songsToRate.filter((s) => userRatings.has(s.id)).length;
+  const embed = new EmbedBuilder()
+    .setTitle(`Your Ratings — Round #${activeRound.id}`)
+    .setDescription(lines.join("\n"))
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: `${rated}/${songsToRate.length} songs rated` });
+
+  // Send as ephemeral-like DM reply so only the user sees it
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleHelpPrefix(message: Message): Promise<void> {
