@@ -15,13 +15,14 @@ function truncate(text: string, max: number): string {
 }
 
 function buildPlatformLinks(links: OdesliLinks, originalUrl: string): string {
-  const parts: string[] = [];
-  if (links.spotify) parts.push(`[Spotify](${links.spotify})`);
-  if (links.youtube) parts.push(`[YouTube](${links.youtube})`);
-  if (links.appleMusic) parts.push(`[Apple Music](${links.appleMusic})`);
-  if (links.tidal) parts.push(`[Tidal](${links.tidal})`);
+  const fallback = links.pageUrl || originalUrl;
+  const parts: string[] = [
+    `[Spotify](${links.spotify || fallback})`,
+    `[YouTube](${links.youtube || fallback})`,
+    `[Apple Music](${links.appleMusic || fallback})`,
+    `[Tidal](${links.tidal || fallback})`,
+  ];
   if (links.pageUrl) parts.push(`[All Platforms](${links.pageUrl})`);
-  if (parts.length === 0) parts.push(`[Link](${originalUrl})`);
   return parts.join(" | ");
 }
 
