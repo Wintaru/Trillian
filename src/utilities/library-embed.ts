@@ -173,7 +173,8 @@ function entryLine(entry: LibraryEntryView): string {
   const status = entry.status === "lent" ? " [Lent]" : "";
   const availability = entry.availabilityType === "give" ? " [Free]" : "";
   const condition = ` (${formatCondition(entry.condition)})`;
-  return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}`;
+  const owner = ` — <@${entry.ownerId}>`;
+  return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}${owner}`;
 }
 
 
