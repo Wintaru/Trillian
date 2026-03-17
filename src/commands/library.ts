@@ -7,7 +7,7 @@ import {
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { LibraryEngine } from "../engines/library-engine.js";
-import type { BookCondition, AvailabilityType } from "../types/library-contracts.js";
+import type { AvailabilityType } from "../types/library-contracts.js";
 import {
   buildBookInfoEmbed,
   buildListEmbed,
@@ -22,7 +22,6 @@ import {
 
 const PAGE_SIZE = 10;
 
-const VALID_CONDITIONS = ["like_new", "good", "fair", "poor"];
 const VALID_AVAILABILITY = ["lend", "give", "reference"];
 const VALID_SUBCOMMANDS = [
   "add", "remove", "list", "search", "shelf", "info",
@@ -45,18 +44,6 @@ export function createLibraryCommand(
           .setDescription("Add a book to the library by ISBN or bookstore URL")
           .addStringOption((opt) =>
             opt.setName("isbn_or_url").setDescription("ISBN number or bookstore URL").setRequired(true),
-          )
-          .addStringOption((opt) =>
-            opt
-              .setName("condition")
-              .setDescription("Book condition")
-              .setRequired(false)
-              .addChoices(
-                { name: "Like New", value: "like_new" },
-                { name: "Good", value: "good" },
-                { name: "Fair", value: "fair" },
-                { name: "Poor", value: "poor" },
-              ),
           )
           .addStringOption((opt) =>
             opt
@@ -286,7 +273,6 @@ async function handleAdd(
   await interaction.deferReply();
 
   const isbnOrUrl = interaction.options.getString("isbn_or_url", true);
-  const condition = (interaction.options.getString("condition") ?? "good") as BookCondition;
   const availabilityType = (interaction.options.getString("availability") ?? "lend") as AvailabilityType;
   const note = interaction.options.getString("note") ?? "";
 
@@ -294,7 +280,7 @@ async function handleAdd(
     isbnOrUrl,
     guildId,
     ownerId: interaction.user.id,
-    condition,
+    condition: "good",
     availabilityType,
     note,
   });
@@ -618,21 +604,16 @@ async function handleAddPrefix(
   // !library add <isbn_or_url> [condition] [availability] [note...]
   const isbnOrUrl = context.args[1];
   if (!isbnOrUrl) {
-    await message.reply("Usage: `!library add <isbn_or_url> [condition] [availability] [note]`");
+    await message.reply("Usage: `!library add <isbn_or_url> [availability] [note]`");
     return;
   }
 
-  let condition: BookCondition = "good";
   let availabilityType: AvailabilityType = "lend";
   let noteStartIndex = 2;
 
-  if (context.args[2] && VALID_CONDITIONS.includes(context.args[2])) {
-    condition = context.args[2] as BookCondition;
+  if (context.args[2] && VALID_AVAILABILITY.includes(context.args[2])) {
+    availabilityType = context.args[2] as AvailabilityType;
     noteStartIndex = 3;
-  }
-  if (context.args[noteStartIndex] && VALID_AVAILABILITY.includes(context.args[noteStartIndex]!)) {
-    availabilityType = context.args[noteStartIndex] as AvailabilityType;
-    noteStartIndex++;
   }
 
   const note = context.args.slice(noteStartIndex).join(" ");
@@ -643,7 +624,7 @@ async function handleAddPrefix(
     isbnOrUrl,
     guildId,
     ownerId: message.author.id,
-    condition,
+    condition: "good",
     availabilityType,
     note,
   });

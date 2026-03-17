@@ -111,7 +111,6 @@ export function buildBookInfoEmbed(
 
   embed.addFields(
     { name: "Owner", value: `<@${entry.ownerId}>`, inline: true },
-    { name: "Condition", value: formatCondition(entry.condition), inline: true },
     { name: "Availability", value: formatAvailability(entry.availabilityType), inline: true },
     { name: "Status", value: formatStatus(entry.status), inline: true },
   );
@@ -169,12 +168,16 @@ export function buildBookInfoEmbed(
 
 // --- List / Search / Shelf ---
 
+function availabilityTag(entry: LibraryEntryView): string {
+  if (entry.status === "lent") return " \u2022 Lent Out";
+  if (entry.availabilityType === "give") return " \u2022 Free to Take";
+  if (entry.availabilityType === "reference") return " \u2022 Reference Only";
+  return " \u2022 Lendable";
+}
+
 function entryLine(entry: LibraryEntryView): string {
-  const status = entry.status === "lent" ? " [Lent]" : "";
-  const availability = entry.availabilityType === "give" ? " [Free]" : "";
-  const condition = ` (${formatCondition(entry.condition)})`;
   const owner = ` — <@${entry.ownerId}>`;
-  return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}${owner}`;
+  return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${availabilityTag(entry)}${owner}`;
 }
 
 
@@ -305,7 +308,7 @@ export function buildHelpEmbed(): EmbedBuilder {
     .setDescription(
       "Share and borrow books with your community! Add books by ISBN or bookstore URL.\n\n" +
       "**Subcommands:**\n" +
-      "`add <isbn_or_url> [condition] [availability] [note]` — Add a book\n" +
+      "`add <isbn_or_url> [availability] [note]` — Add a book\n" +
       "`remove <entry_id>` — Remove your book\n" +
       "`list [page]` — Browse all books\n" +
       "`search <query> [page]` — Search by title or author\n" +
@@ -315,7 +318,6 @@ export function buildHelpEmbed(): EmbedBuilder {
       "`wishlist <add|remove|list> [isbn_or_title]` — Manage your wishlist\n" +
       "`review <isbn_or_url> <rating 1-5> [text]` — Rate/review a book\n" +
       "`stats` — Library statistics\n\n" +
-      "**Conditions:** like_new, good, fair, poor\n" +
       "**Availability types:** lend (borrowable), give (free to take), reference (not lending)\n\n" +
       "**Tips:**\n" +
       "- You can paste an Amazon, Barnes & Noble, or Open Library URL instead of an ISBN\n" +
@@ -335,7 +337,6 @@ export function buildAddedBookEmbed(entry: LibraryEntryView): EmbedBuilder {
     .addFields(
       { name: "Entry ID", value: `#${entry.entryId}`, inline: true },
       { name: "ISBN", value: entry.isbn, inline: true },
-      { name: "Condition", value: formatCondition(entry.condition), inline: true },
       { name: "Availability", value: formatAvailability(entry.availabilityType), inline: true },
     );
 
