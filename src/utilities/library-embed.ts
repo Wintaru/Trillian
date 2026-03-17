@@ -1,4 +1,4 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 import type {
   LibraryEntryView,
   BookInfoResponse,
@@ -6,6 +6,14 @@ import type {
   WishlistEntry,
   BookReviewView,
 } from "../types/library-contracts.js";
+
+/** Create an AttachmentBuilder from a cover image buffer, or null if no image. */
+export function coverAttachment(image: Buffer | null): AttachmentBuilder | null {
+  if (!image) return null;
+  return new AttachmentBuilder(image, { name: "cover.jpg" });
+}
+
+const COVER_ATTACHMENT_URL = "attachment://cover.jpg";
 
 const EMBED_COLOR = 0x8b4513; // saddlebrown
 const FIELD_MAX_LENGTH = 1024;
@@ -78,7 +86,11 @@ export function buildBookInfoEmbed(
     .setColor(EMBED_COLOR)
     .setDescription(truncate(entry.description || "No description available.", FIELD_MAX_LENGTH));
 
-  if (entry.coverUrl) embed.setImage(entry.coverUrl);
+  if (entry.coverImage) {
+    embed.setImage(COVER_ATTACHMENT_URL);
+  } else if (entry.coverUrl) {
+    embed.setImage(entry.coverUrl);
+  }
 
   embed.addFields(
     { name: "Author", value: entry.author || "Unknown", inline: true },
@@ -164,9 +176,24 @@ function entryLine(entry: LibraryEntryView): string {
   return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}`;
 }
 
+/**
+ * Set the thumbnail from the first entry that has a cover image.
+ * Returns an AttachmentBuilder if using a stored image, or null if using a URL.
+ */
+export function listCoverAttachment(entries: LibraryEntryView[]): AttachmentBuilder | null {
+  const firstWithImage = entries.find((e) => e.coverImage);
+  if (firstWithImage) return coverAttachment(firstWithImage.coverImage);
+  return null;
+}
+
 function setFirstCoverThumbnail(embed: EmbedBuilder, entries: LibraryEntryView[]): void {
-  const firstWithCover = entries.find((e) => e.coverUrl);
-  if (firstWithCover) embed.setThumbnail(firstWithCover.coverUrl);
+  const firstWithImage = entries.find((e) => e.coverImage);
+  if (firstWithImage) {
+    embed.setThumbnail(COVER_ATTACHMENT_URL);
+    return;
+  }
+  const firstWithUrl = entries.find((e) => e.coverUrl);
+  if (firstWithUrl) embed.setThumbnail(firstWithUrl.coverUrl);
 }
 
 export function buildListEmbed(
@@ -332,7 +359,11 @@ export function buildAddedBookEmbed(entry: LibraryEntryView): EmbedBuilder {
       { name: "Availability", value: formatAvailability(entry.availabilityType), inline: true },
     );
 
-  if (entry.coverUrl) embed.setImage(entry.coverUrl);
+  if (entry.coverImage) {
+    embed.setImage(COVER_ATTACHMENT_URL);
+  } else if (entry.coverUrl) {
+    embed.setImage(entry.coverUrl);
+  }
   if (entry.note) embed.addFields({ name: "Note", value: truncate(entry.note, FIELD_MAX_LENGTH), inline: false });
 
   return embed;

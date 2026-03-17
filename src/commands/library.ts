@@ -17,6 +17,8 @@ import {
   buildStatsEmbed,
   buildHelpEmbed,
   buildAddedBookEmbed,
+  coverAttachment,
+  listCoverAttachment,
 } from "../utilities/library-embed.js";
 
 const PAGE_SIZE = 10;
@@ -309,7 +311,11 @@ async function handleAdd(
   }
 
   const embed = buildAddedBookEmbed(result.entry!);
-  await interaction.editReply({ embeds: [embed] });
+  const attachment = coverAttachment(result.entry!.coverImage);
+  await interaction.editReply({
+    embeds: [embed],
+    files: attachment ? [attachment] : [],
+  });
 
   // Notify wishlist matches via DM
   if (result.wishlistUserIds && result.wishlistUserIds.length > 0) {
@@ -351,7 +357,8 @@ async function handleList(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.listBooks({ guildId, page, pageSize: PAGE_SIZE });
   const embed = buildListEmbed(result.entries, result.page, result.totalPages, result.total);
-  await interaction.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleSearch(
@@ -363,7 +370,8 @@ async function handleSearch(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.searchBooks({ guildId, query, page, pageSize: PAGE_SIZE });
   const embed = buildSearchEmbed(result.entries, result.query, result.page, result.totalPages, result.total);
-  await interaction.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleShelf(
@@ -375,7 +383,8 @@ async function handleShelf(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.getShelf({ guildId, ownerId: targetUser.id, page, pageSize: PAGE_SIZE });
   const embed = buildShelfEmbed(result.entries, targetUser.id, result.page, result.totalPages, result.total);
-  await interaction.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleInfo(
@@ -440,7 +449,8 @@ async function handleInfo(
     components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons));
   }
 
-  await interaction.reply({ embeds: [embed], components });
+  const attachment = coverAttachment(entry.coverImage);
+  await interaction.reply({ embeds: [embed], components, files: attachment ? [attachment] : [] });
 }
 
 async function handleBorrow(
@@ -652,7 +662,8 @@ async function handleAddPrefix(
     return;
   }
 
-  await reply.edit({ content: "", embeds: [buildAddedBookEmbed(result.entry!)] });
+  const attachment = coverAttachment(result.entry!.coverImage);
+  await reply.edit({ content: "", embeds: [buildAddedBookEmbed(result.entry!)], files: attachment ? [attachment] : [] });
 
   if (result.wishlistUserIds && result.wishlistUserIds.length > 0) {
     for (const userId of result.wishlistUserIds) {
@@ -699,7 +710,8 @@ async function handleListPrefix(
   const page = parsePageArg(context.args, 1);
   const result = await engine.listBooks({ guildId, page, pageSize: PAGE_SIZE });
   const embed = buildListEmbed(result.entries, result.page, result.totalPages, result.total);
-  await message.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleSearchPrefix(
@@ -723,7 +735,8 @@ async function handleSearchPrefix(
 
   const result = await engine.searchBooks({ guildId, query, page, pageSize: PAGE_SIZE });
   const embed = buildSearchEmbed(result.entries, result.query, result.page, result.totalPages, result.total);
-  await message.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleShelfPrefix(
@@ -739,7 +752,8 @@ async function handleShelfPrefix(
 
   const result = await engine.getShelf({ guildId, ownerId, page, pageSize: PAGE_SIZE });
   const embed = buildShelfEmbed(result.entries, ownerId, result.page, result.totalPages, result.total);
-  await message.reply({ embeds: [embed] });
+  const attachment = listCoverAttachment(result.entries);
+  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleInfoPrefix(
@@ -764,7 +778,8 @@ async function handleInfoPrefix(
     ? await engine.getReviews(result.entry.bookId, guildId)
     : [];
   const embed = buildBookInfoEmbed(result, reviews);
-  await message.reply({ embeds: [embed] });
+  const attachment = result.entry ? coverAttachment(result.entry.coverImage) : null;
+  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
 }
 
 async function handleBorrowPrefix(

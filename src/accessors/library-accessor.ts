@@ -16,6 +16,7 @@ export interface BookRow {
   title: string;
   author: string;
   coverUrl: string;
+  coverImage: Buffer | null;
   description: string;
   pageCount: number;
   publishYear: number;
@@ -31,6 +32,7 @@ export interface EntryWithBookRow {
   title: string;
   author: string;
   coverUrl: string;
+  coverImage: Buffer | null;
   description: string;
   pageCount: number;
   publishYear: number;
@@ -97,6 +99,7 @@ const entryWithBookSelect = {
   bookId: libraryBooks.id,
   guildId: libraryEntries.guildId,
   isbn: libraryBooks.isbn,
+  coverImage: libraryBooks.coverImage,
   title: libraryBooks.title,
   author: libraryBooks.author,
   coverUrl: libraryBooks.coverUrl,
@@ -145,6 +148,7 @@ export class LibraryAccessor {
     title: string;
     author: string;
     coverUrl: string;
+    coverImage: Buffer | null;
     description: string;
     pageCount: number;
     publishYear: number;
@@ -166,7 +170,7 @@ export class LibraryAccessor {
 
   async updateBook(
     bookId: number,
-    data: Partial<{ coverUrl: string }>,
+    data: Partial<{ coverUrl: string; coverImage: Buffer | null }>,
   ): Promise<void> {
     await db.update(libraryBooks).set(data).where(eq(libraryBooks.id, bookId));
   }

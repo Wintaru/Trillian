@@ -206,6 +206,95 @@ export class OpenLibraryAccessor {
     return thumbnail.replace("zoom=1", "zoom=0").replace("http://", "https://");
   }
 
+  /** Fetch image bytes from a URL. Returns null if it fails or looks like a placeholder (< 5KB). */
+  private async fetchImageBytes(url: string): Promise<Buffer | null> {
+    if (!url) return null;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT },
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.startsWith("image/")) return null;
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      // Reject tiny images — likely placeholders
+      if (buffer.length < 5000) return null;
+      return buffer;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /** Try to scrape a cover image URL from Goodreads for the given ISBN. */
+  private async fetchGoodreadsCoverUrl(isbn: string): Promise<string> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      try {
+        const response = await fetch(`https://www.goodreads.com/book/isbn/${isbn}`, {
+          headers: { "User-Agent": USER_AGENT },
+          signal: controller.signal,
+          redirect: "follow",
+        });
+        if (!response.ok) return "";
+
+        const html = await response.text();
+        // Look for og:image meta tag
+        const ogMatch = html.match(/<meta\s[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+        if (ogMatch?.[1]) return ogMatch[1];
+
+        // Look for the responsive cover image
+        const imgMatch = html.match(/https:\/\/[^"'\s]+compressed\.photo\.goodreads\.com\/books[^"'\s]+/);
+        if (imgMatch?.[0]) return imgMatch[0];
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      // Non-fatal
+    }
+    return "";
+  }
+
+  /**
+   * Try multiple sources to get a real cover image for the given ISBN.
+   * Returns the image bytes or null.
+   */
+  async fetchCoverImage(isbn: string, coverUrl: string): Promise<Buffer | null> {
+    // 1. Try the provided cover URL (Open Library or Google Books)
+    const fromUrl = await this.fetchImageBytes(coverUrl);
+    if (fromUrl) return fromUrl;
+
+    // 2. Try Open Library ISBN-based cover
+    const olCover = await this.fetchImageBytes(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`);
+    if (olCover) return olCover;
+
+    // 3. Try Goodreads
+    const goodreadsUrl = await this.fetchGoodreadsCoverUrl(isbn);
+    if (goodreadsUrl) {
+      const fromGoodreads = await this.fetchImageBytes(goodreadsUrl);
+      if (fromGoodreads) return fromGoodreads;
+    }
+
+    // 4. Try Google Books
+    const gVolume = await this.fetchGoogleBooksVolume(isbn);
+    if (gVolume) {
+      const gUrl = this.googleCoverUrl(gVolume);
+      const fromGoogle = await this.fetchImageBytes(gUrl);
+      if (fromGoogle) return fromGoogle;
+    }
+
+    return null;
+  }
+
   async lookupByIsbn(isbn: string): Promise<BookMetadata | null> {
     const data = await this.fetchJson<RawOpenLibraryBook>(`${API_BASE}/isbn/${isbn}.json`);
 
@@ -260,11 +349,15 @@ export class OpenLibraryAccessor {
     // Genres/subjects (take first 5)
     const genres = (data.subjects ?? []).slice(0, 5);
 
+    // Fetch actual cover image bytes
+    const coverImage = await this.fetchCoverImage(isbn, coverUrl);
+
     return {
       isbn,
       title: data.title ?? "Unknown Title",
       author,
       coverUrl,
+      coverImage,
       description,
       pageCount: data.number_of_pages ?? 0,
       publishYear,
@@ -284,11 +377,15 @@ export class OpenLibraryAccessor {
       if (yearMatch) publishYear = parseInt(yearMatch[0], 10);
     }
 
+    const coverUrl = this.googleCoverUrl(volume);
+    const coverImage = await this.fetchCoverImage(isbn, coverUrl);
+
     return {
       isbn,
       title: volume.title,
       author: volume.authors?.join(", ") ?? "Unknown Author",
-      coverUrl: this.googleCoverUrl(volume),
+      coverUrl,
+      coverImage,
       description: volume.description ?? "",
       pageCount: volume.pageCount ?? 0,
       publishYear,

@@ -47,6 +47,7 @@ function toEntryView(row: EntryWithBookRow): LibraryEntryView {
     title: row.title,
     author: row.author,
     coverUrl: row.coverUrl,
+    coverImage: row.coverImage ?? null,
     description: row.description,
     pageCount: row.pageCount,
     publishYear: row.publishYear,
@@ -128,6 +129,7 @@ export class LibraryEngine {
         title: metadata.title,
         author: metadata.author,
         coverUrl: metadata.coverUrl,
+        coverImage: metadata.coverImage,
         description: metadata.description,
         pageCount: metadata.pageCount,
         publishYear: metadata.publishYear,
@@ -136,12 +138,12 @@ export class LibraryEngine {
       });
       existingBook = (await this.libraryAccessor.findBookByIsbn(isbn))!;
       logger.info(`Library: added new book "${metadata.title}" (ISBN: ${isbn}, bookId: ${id})`);
-    } else if (!existingBook.coverUrl) {
-      // Existing book has no cover — try to fetch one now
+    } else if (!existingBook.coverImage) {
+      // Existing book has no cover image — try to fetch one now
       try {
-        const metadata = await this.openLibraryAccessor.lookupByIsbn(isbn);
-        if (metadata?.coverUrl) {
-          await this.libraryAccessor.updateBook(existingBook.id, { coverUrl: metadata.coverUrl });
+        const coverImage = await this.openLibraryAccessor.fetchCoverImage(isbn, existingBook.coverUrl);
+        if (coverImage) {
+          await this.libraryAccessor.updateBook(existingBook.id, { coverImage });
           existingBook = (await this.libraryAccessor.findBookByIsbn(isbn))!;
         }
       } catch {

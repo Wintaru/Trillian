@@ -48,11 +48,13 @@ function createMockOpenLibrary(): OpenLibraryAccessor {
       title: "Sapiens",
       author: "Yuval Noah Harari",
       coverUrl: "https://covers.openlibrary.org/b/id/12345-L.jpg",
+      coverImage: Buffer.from("fake-image"),
       description: "A brief history of humankind.",
       pageCount: 443,
       publishYear: 2015,
       genres: ["History", "Science"],
     }),
+    fetchCoverImage: vi.fn().mockResolvedValue(Buffer.from("fake-image")),
   } as unknown as OpenLibraryAccessor;
 }
 
@@ -99,11 +101,11 @@ describe("LibraryEngine", () => {
     it("should look up book from Open Library when not cached", async () => {
       vi.mocked(accessor.findBookByIsbn).mockResolvedValueOnce(null).mockResolvedValueOnce({
         id: 1, isbn: "9780143127550", title: "Sapiens", author: "Yuval Noah Harari",
-        coverUrl: "", description: "", pageCount: 443, publishYear: 2015, genres: "[]", createdAt: 0,
+        coverUrl: "", coverImage: null, description: "", pageCount: 443, publishYear: 2015, genres: "[]", createdAt: 0,
       });
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "guild1", isbn: "9780143127550", title: "Sapiens",
-        author: "Yuval Noah Harari", coverUrl: "", description: "", pageCount: 443,
+        author: "Yuval Noah Harari", coverUrl: "", coverImage: null, description: "", pageCount: 443,
         publishYear: 2015, genres: "[]", ownerId: "user1", condition: "good",
         availabilityType: "lend", status: "available", note: "", addedAt: 0,
       });
@@ -142,11 +144,11 @@ describe("LibraryEngine", () => {
     it("should return wishlist user IDs when matches exist", async () => {
       vi.mocked(accessor.findBookByIsbn).mockResolvedValue({
         id: 1, isbn: "9780143127550", title: "Sapiens", author: "Yuval Noah Harari",
-        coverUrl: "", description: "", pageCount: 443, publishYear: 2015, genres: "[]", createdAt: 0,
+        coverUrl: "", coverImage: null, description: "", pageCount: 443, publishYear: 2015, genres: "[]", createdAt: 0,
       });
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "guild1", isbn: "9780143127550", title: "Sapiens",
-        author: "Yuval Noah Harari", coverUrl: "", description: "", pageCount: 443,
+        author: "Yuval Noah Harari", coverUrl: "", coverImage: null, description: "", pageCount: 443,
         publishYear: 2015, genres: "[]", ownerId: "user1", condition: "good",
         availabilityType: "lend", status: "available", note: "", addedAt: 0,
       });
@@ -180,7 +182,7 @@ describe("LibraryEngine", () => {
     it("should return not_owner if caller is not the owner", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "other_user", condition: "good", availabilityType: "lend",
         status: "available", note: "", addedAt: 0,
       });
@@ -193,7 +195,7 @@ describe("LibraryEngine", () => {
     it("should return currently_lent if book has active borrow", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "user1", condition: "good", availabilityType: "lend",
         status: "lent", note: "", addedAt: 0,
       });
@@ -210,7 +212,7 @@ describe("LibraryEngine", () => {
     it("should remove entry and deny pending borrows", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "user1", condition: "good", availabilityType: "lend",
         status: "available", note: "", addedAt: 0,
       });
@@ -230,7 +232,7 @@ describe("LibraryEngine", () => {
     it("should reject borrowing own book", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "user1", condition: "good", availabilityType: "lend",
         status: "available", note: "", addedAt: 0,
       });
@@ -243,7 +245,7 @@ describe("LibraryEngine", () => {
     it("should reject reference-only books", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "user1", condition: "good", availabilityType: "reference",
         status: "available", note: "", addedAt: 0,
       });
@@ -256,7 +258,7 @@ describe("LibraryEngine", () => {
     it("should create a pending borrow request", async () => {
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "Book Title", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "owner1", condition: "good", availabilityType: "lend",
         status: "available", note: "", addedAt: 0,
       });
@@ -337,7 +339,7 @@ describe("LibraryEngine", () => {
       });
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "owner1", condition: "good", availabilityType: "lend",
         status: "lent", note: "", addedAt: 0,
       });
@@ -356,7 +358,7 @@ describe("LibraryEngine", () => {
       });
       vi.mocked(accessor.getEntryWithBook).mockResolvedValue({
         entryId: 1, bookId: 1, guildId: "g", isbn: "x", title: "T", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]",
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]",
         ownerId: "owner1", condition: "good", availabilityType: "give",
         status: "lent", note: "", addedAt: 0,
       });
@@ -396,7 +398,7 @@ describe("LibraryEngine", () => {
     it("should upsert review and return average", async () => {
       vi.mocked(accessor.findBookByIsbn).mockResolvedValue({
         id: 1, isbn: "9780143127550", title: "Sapiens", author: "A",
-        coverUrl: "", description: "", pageCount: 0, publishYear: 0, genres: "[]", createdAt: 0,
+        coverUrl: "", coverImage: null, description: "", pageCount: 0, publishYear: 0, genres: "[]", createdAt: 0,
       });
       vi.mocked(accessor.getAverageRating).mockResolvedValue({ avg: 4.5, count: 2 });
 

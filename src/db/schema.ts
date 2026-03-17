@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, blob, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const userXp = sqliteTable(
   "user_xp",
@@ -378,6 +378,7 @@ export const libraryBooks = sqliteTable(
     title: text("title").notNull(),
     author: text("author").notNull(),
     coverUrl: text("cover_url").notNull().default(""),
+    coverImage: blob("cover_image", { mode: "buffer" }),
     description: text("description").notNull().default(""),
     pageCount: integer("page_count").notNull().default(0),
     publishYear: integer("publish_year").notNull().default(0),

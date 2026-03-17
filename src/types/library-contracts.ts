@@ -12,6 +12,7 @@ export interface BookMetadata {
   title: string;
   author: string;
   coverUrl: string;
+  coverImage: Buffer | null;
   description: string;
   pageCount: number;
   publishYear: number;
@@ -27,6 +28,7 @@ export interface LibraryEntryView {
   title: string;
   author: string;
   coverUrl: string;
+  coverImage: Buffer | null;
   description: string;
   pageCount: number;
   publishYear: number;

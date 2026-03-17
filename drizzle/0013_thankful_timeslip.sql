@@ -1,0 +1,1 @@
+ALTER TABLE `library_books` ADD `cover_image` blob;
