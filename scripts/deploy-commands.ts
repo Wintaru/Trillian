@@ -126,7 +126,7 @@ const commands = [
   createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor(), new WebScraperAccessor())),
   createCleanUrlCommand(new CleanLinksEngine(new RedirectAccessor())),
   createLibraryCommand(
-    new LibraryEngine(new LibraryAccessor(), new OpenLibraryAccessor(), config.libraryDefaultLoanDays),
+    new LibraryEngine(new LibraryAccessor(), new OpenLibraryAccessor(config.googleApiKey), config.libraryDefaultLoanDays),
     config.libraryChannelId,
   ),
 ];

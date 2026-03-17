@@ -174,8 +174,8 @@ const challengeButtonHandler = new ChallengeButtonHandler(challengeEngine);
 // Music club
 const musicClubAccessor = new MusicClubAccessor();
 const odesliAccessor = new OdesliAccessor();
-const youtubeAccessor = config.youtubeApiKey
-  ? new YouTubeAccessor(config.youtubeApiKey)
+const youtubeAccessor = config.googleApiKey
+  ? new YouTubeAccessor(config.googleApiKey)
   : null;
 const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor, youtubeAccessor);
 const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
@@ -191,7 +191,7 @@ const cleanLinksEngine = new CleanLinksEngine(redirectAccessor);
 
 // Community library
 const libraryAccessor = new LibraryAccessor();
-const openLibraryAccessor = new OpenLibraryAccessor();
+const openLibraryAccessor = new OpenLibraryAccessor(config.googleApiKey);
 const libraryEngine = new LibraryEngine(libraryAccessor, openLibraryAccessor, config.libraryDefaultLoanDays);
 const libraryButtonHandler = new LibraryButtonHandler(libraryEngine);
 

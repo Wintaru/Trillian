@@ -13,14 +13,14 @@ import { YouTubeAccessor } from "../src/accessors/youtube-accessor.js";
 import type { OdesliLinks } from "../src/types/music-club-contracts.js";
 import { eq } from "drizzle-orm";
 
-const youtubeApiKey = process.env["YOUTUBE_API_KEY"];
-if (!youtubeApiKey) {
-  console.error("YOUTUBE_API_KEY is required in .env");
+const googleApiKey = process.env["GOOGLE_API_KEY"];
+if (!googleApiKey) {
+  console.error("GOOGLE_API_KEY is required in .env");
   process.exit(1);
 }
 
 const odesli = new OdesliAccessor();
-const youtube = new YouTubeAccessor(youtubeApiKey);
+const youtube = new YouTubeAccessor(googleApiKey);
 
 const songs = await db.select().from(musicClubSongs);
 console.log(`Found ${songs.length} songs to process.\n`);

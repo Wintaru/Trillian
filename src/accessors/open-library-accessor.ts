@@ -157,6 +157,12 @@ interface GoogleBooksResponse {
 }
 
 export class OpenLibraryAccessor {
+  private googleBooksApiKey: string | undefined;
+
+  constructor(googleBooksApiKey?: string) {
+    this.googleBooksApiKey = googleBooksApiKey;
+  }
+
   private async fetchJson<T>(url: string): Promise<T | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -171,7 +177,7 @@ export class OpenLibraryAccessor {
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
-        throw new Error(`Open Library API returned HTTP ${response.status}: ${body}`);
+        throw new Error(`HTTP ${response.status}: ${body}`);
       }
 
       return (await response.json()) as T;
@@ -182,9 +188,11 @@ export class OpenLibraryAccessor {
 
   private async fetchGoogleBooksVolume(isbn: string): Promise<GoogleBooksVolumeInfo | null> {
     try {
-      const data = await this.fetchJson<GoogleBooksResponse>(
-        `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`,
-      );
+      let url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`;
+      if (this.googleBooksApiKey) {
+        url += `&key=${this.googleBooksApiKey}`;
+      }
+      const data = await this.fetchJson<GoogleBooksResponse>(url);
       return data?.items?.[0]?.volumeInfo ?? null;
     } catch (err) {
       logger.warn(`Google Books lookup failed for ${isbn}:`, err);

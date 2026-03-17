@@ -33,7 +33,7 @@ export interface Config {
   musicClubSubmissionDays: number;
   musicClubRatingDays: number;
   recipeChannelId: string | undefined;
-  youtubeApiKey: string | undefined;
+  googleApiKey: string | undefined;
   cleanLinksChannelIds: string[];
   libraryChannelId: string | undefined;
   libraryDefaultLoanDays: number;
@@ -88,7 +88,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     musicClubSubmissionDays: parseInt(env["MUSIC_CLUB_SUBMISSION_DAYS"] ?? "2", 10),
     musicClubRatingDays: parseInt(env["MUSIC_CLUB_RATING_DAYS"] ?? "2", 10),
     recipeChannelId: env["RECIPE_CHANNEL_ID"] ?? undefined,
-    youtubeApiKey: env["YOUTUBE_API_KEY"] ?? undefined,
+    googleApiKey: env["GOOGLE_API_KEY"] ?? undefined,
     cleanLinksChannelIds: parseChannelIds(env["CLEAN_LINKS_CHANNEL_IDS"]),
     libraryChannelId: env["LIBRARY_CHANNEL_ID"] ?? undefined,
     libraryDefaultLoanDays: parseInt(env["LIBRARY_DEFAULT_LOAN_DAYS"] ?? "14", 10),
