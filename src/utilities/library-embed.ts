@@ -164,6 +164,11 @@ function entryLine(entry: LibraryEntryView): string {
   return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}`;
 }
 
+function setFirstCoverThumbnail(embed: EmbedBuilder, entries: LibraryEntryView[]): void {
+  const firstWithCover = entries.find((e) => e.coverUrl);
+  if (firstWithCover) embed.setThumbnail(firstWithCover.coverUrl);
+}
+
 export function buildListEmbed(
   entries: LibraryEntryView[],
   page: number,
@@ -179,6 +184,7 @@ export function buildListEmbed(
     embed.setDescription("The library is empty. Use `/library add` to share a book!");
   } else {
     embed.setDescription(entries.map(entryLine).join("\n"));
+    setFirstCoverThumbnail(embed, entries);
   }
 
   return embed;
@@ -202,6 +208,7 @@ export function buildSearchEmbed(
     embed.setDescription(`No books found matching "${query}".`);
   } else {
     embed.setDescription(entries.map(entryLine).join("\n"));
+    setFirstCoverThumbnail(embed, entries);
   }
 
   return embed;
@@ -221,6 +228,8 @@ export function buildShelfEmbed(
     .setFooter({
       text: footerText(page, totalPages, total, "book", `/library shelf <@${ownerId}> page:`),
     });
+
+  if (entries.length > 0) setFirstCoverThumbnail(embed, entries);
 
   return embed;
 }
