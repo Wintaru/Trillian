@@ -136,15 +136,23 @@ interface RawOpenLibraryAuthor {
   name?: string;
 }
 
+interface GoogleBooksVolumeInfo {
+  title?: string;
+  authors?: string[];
+  description?: string;
+  pageCount?: number;
+  publishedDate?: string;
+  categories?: string[];
+  imageLinks?: {
+    thumbnail?: string;
+    smallThumbnail?: string;
+  };
+}
+
 interface GoogleBooksResponse {
   totalItems: number;
   items?: {
-    volumeInfo?: {
-      imageLinks?: {
-        thumbnail?: string;
-        smallThumbnail?: string;
-      };
-    };
+    volumeInfo?: GoogleBooksVolumeInfo;
   }[];
 }
 
@@ -172,24 +180,31 @@ export class OpenLibraryAccessor {
     }
   }
 
-  private async fetchGoogleBooksCover(isbn: string): Promise<string> {
+  private async fetchGoogleBooksVolume(isbn: string): Promise<GoogleBooksVolumeInfo | null> {
     try {
       const data = await this.fetchJson<GoogleBooksResponse>(
         `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`,
       );
-      const thumbnail = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-      if (!thumbnail) return "";
-      // Upgrade to larger image and use HTTPS
-      return thumbnail.replace("zoom=1", "zoom=0").replace("http://", "https://");
+      return data?.items?.[0]?.volumeInfo ?? null;
     } catch (err) {
-      logger.warn(`Google Books cover lookup failed for ${isbn}:`, err);
-      return "";
+      logger.warn(`Google Books lookup failed for ${isbn}:`, err);
+      return null;
     }
+  }
+
+  private googleCoverUrl(volume: GoogleBooksVolumeInfo): string {
+    const thumbnail = volume.imageLinks?.thumbnail;
+    if (!thumbnail) return "";
+    return thumbnail.replace("zoom=1", "zoom=0").replace("http://", "https://");
   }
 
   async lookupByIsbn(isbn: string): Promise<BookMetadata | null> {
     const data = await this.fetchJson<RawOpenLibraryBook>(`${API_BASE}/isbn/${isbn}.json`);
-    if (!data) return null;
+
+    // If Open Library doesn't have this book, fall back to Google Books entirely
+    if (!data) {
+      return this.lookupByIsbnGoogleBooks(isbn);
+    }
 
     // Resolve author names
     let author = "Unknown Author";
@@ -212,7 +227,8 @@ export class OpenLibraryAccessor {
       coverUrl = `${COVERS_BASE}/${data.covers[0]}-L.jpg`;
     }
     if (!coverUrl) {
-      coverUrl = await this.fetchGoogleBooksCover(isbn);
+      const gVolume = await this.fetchGoogleBooksVolume(isbn);
+      if (gVolume) coverUrl = this.googleCoverUrl(gVolume);
     }
     if (!coverUrl) {
       coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
@@ -245,6 +261,30 @@ export class OpenLibraryAccessor {
       pageCount: data.number_of_pages ?? 0,
       publishYear,
       genres,
+    };
+  }
+
+  private async lookupByIsbnGoogleBooks(isbn: string): Promise<BookMetadata | null> {
+    const volume = await this.fetchGoogleBooksVolume(isbn);
+    if (!volume?.title) return null;
+
+    logger.info(`Library: Open Library miss for ISBN ${isbn}, using Google Books fallback`);
+
+    let publishYear = 0;
+    if (volume.publishedDate) {
+      const yearMatch = volume.publishedDate.match(/\d{4}/);
+      if (yearMatch) publishYear = parseInt(yearMatch[0], 10);
+    }
+
+    return {
+      isbn,
+      title: volume.title,
+      author: volume.authors?.join(", ") ?? "Unknown Author",
+      coverUrl: this.googleCoverUrl(volume),
+      description: volume.description ?? "",
+      pageCount: volume.pageCount ?? 0,
+      publishYear,
+      genres: (volume.categories ?? []).slice(0, 5),
     };
   }
 }
