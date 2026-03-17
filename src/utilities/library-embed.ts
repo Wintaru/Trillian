@@ -169,15 +169,17 @@ export function buildBookInfoEmbed(
 // --- List / Search / Shelf ---
 
 function availabilityTag(entry: LibraryEntryView): string {
-  if (entry.status === "lent") return " \u2022 Lent Out";
-  if (entry.availabilityType === "give") return " \u2022 Free to Take";
-  if (entry.availabilityType === "reference") return " \u2022 Reference Only";
-  return " \u2022 Lendable";
+  if (entry.status === "lent") return "Lent Out";
+  if (entry.availabilityType === "give") return "Free to Take";
+  if (entry.availabilityType === "reference") return "Reference Only";
+  return "Lendable";
 }
 
-function entryLine(entry: LibraryEntryView): string {
-  const owner = ` — <@${entry.ownerId}>`;
-  return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${availabilityTag(entry)}${owner}`;
+function entryBlock(entry: LibraryEntryView): string {
+  return (
+    `\u{1F4D6} **${entry.title}** by ${entry.author}\n` +
+    `\u2003#${entry.entryId} \u2022 ${availabilityTag(entry)} \u2022 <@${entry.ownerId}>`
+  );
 }
 
 
@@ -195,7 +197,7 @@ export function buildListEmbed(
   if (entries.length === 0) {
     embed.setDescription("The library is empty. Use `/library add` to share a book!");
   } else {
-    embed.setDescription(entries.map(entryLine).join("\n"));
+    embed.setDescription(entries.map(entryBlock).join("\n\n"));
 
   }
 
@@ -219,7 +221,7 @@ export function buildSearchEmbed(
   if (entries.length === 0) {
     embed.setDescription(`No books found matching "${query}".`);
   } else {
-    embed.setDescription(entries.map(entryLine).join("\n"));
+    embed.setDescription(entries.map(entryBlock).join("\n\n"));
 
   }
 
@@ -235,7 +237,7 @@ export function buildShelfEmbed(
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle("Bookshelf")
-    .setDescription(entries.length > 0 ? entries.map(entryLine).join("\n") : "No books on this shelf.")
+    .setDescription(entries.length > 0 ? entries.map(entryBlock).join("\n\n") : "No books on this shelf.")
     .setColor(EMBED_COLOR)
     .setFooter({
       text: footerText(page, totalPages, total, "book", `/library shelf <@${ownerId}> page:`),
