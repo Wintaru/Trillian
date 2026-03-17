@@ -136,6 +136,17 @@ export class LibraryEngine {
       });
       existingBook = (await this.libraryAccessor.findBookByIsbn(isbn))!;
       logger.info(`Library: added new book "${metadata.title}" (ISBN: ${isbn}, bookId: ${id})`);
+    } else if (!existingBook.coverUrl) {
+      // Existing book has no cover — try to fetch one now
+      try {
+        const metadata = await this.openLibraryAccessor.lookupByIsbn(isbn);
+        if (metadata?.coverUrl) {
+          await this.libraryAccessor.updateBook(existingBook.id, { coverUrl: metadata.coverUrl });
+          existingBook = (await this.libraryAccessor.findBookByIsbn(isbn))!;
+        }
+      } catch {
+        // Non-fatal — just use the entry without a cover
+      }
     }
 
     const now = Date.now();

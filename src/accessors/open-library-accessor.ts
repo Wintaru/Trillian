@@ -136,6 +136,18 @@ interface RawOpenLibraryAuthor {
   name?: string;
 }
 
+interface GoogleBooksResponse {
+  totalItems: number;
+  items?: {
+    volumeInfo?: {
+      imageLinks?: {
+        thumbnail?: string;
+        smallThumbnail?: string;
+      };
+    };
+  }[];
+}
+
 export class OpenLibraryAccessor {
   private async fetchJson<T>(url: string): Promise<T | null> {
     const controller = new AbortController();
@@ -160,6 +172,21 @@ export class OpenLibraryAccessor {
     }
   }
 
+  private async fetchGoogleBooksCover(isbn: string): Promise<string> {
+    try {
+      const data = await this.fetchJson<GoogleBooksResponse>(
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`,
+      );
+      const thumbnail = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (!thumbnail) return "";
+      // Upgrade to larger image and use HTTPS
+      return thumbnail.replace("zoom=1", "zoom=0").replace("http://", "https://");
+    } catch (err) {
+      logger.warn(`Google Books cover lookup failed for ${isbn}:`, err);
+      return "";
+    }
+  }
+
   async lookupByIsbn(isbn: string): Promise<BookMetadata | null> {
     const data = await this.fetchJson<RawOpenLibraryBook>(`${API_BASE}/isbn/${isbn}.json`);
     if (!data) return null;
@@ -179,10 +206,16 @@ export class OpenLibraryAccessor {
       if (authorNames.length > 0) author = authorNames.join(", ");
     }
 
-    // Cover URL — prefer cover ID, fall back to ISBN-based URL
-    let coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+    // Cover URL — prefer Open Library cover ID, then Google Books, then ISBN-based fallback
+    let coverUrl = "";
     if (data.covers && data.covers.length > 0) {
       coverUrl = `${COVERS_BASE}/${data.covers[0]}-L.jpg`;
+    }
+    if (!coverUrl) {
+      coverUrl = await this.fetchGoogleBooksCover(isbn);
+    }
+    if (!coverUrl) {
+      coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
     }
 
     // Description

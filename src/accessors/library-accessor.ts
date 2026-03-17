@@ -164,6 +164,13 @@ export class LibraryAccessor {
     return result[0]!;
   }
 
+  async updateBook(
+    bookId: number,
+    data: Partial<{ coverUrl: string }>,
+  ): Promise<void> {
+    await db.update(libraryBooks).set(data).where(eq(libraryBooks.id, bookId));
+  }
+
   // --- Library Entries ---
 
   async insertEntry(data: {
