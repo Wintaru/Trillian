@@ -109,6 +109,12 @@ import { LibraryButtonHandler } from "./engines/library-button-handler.js";
 import { createLibraryCommand } from "./commands/library.js";
 import { startLibraryTimer } from "./utilities/library-timer.js";
 
+// Channel stats
+import { ChannelAccessor } from "./accessors/channel-accessor.js";
+import { ChannelStatsAccessor } from "./accessors/channel-stats-accessor.js";
+import { ChannelStatsEngine } from "./engines/channel-stats-engine.js";
+import { createChannelStatsCommand } from "./commands/channel-stats.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -195,6 +201,11 @@ const openLibraryAccessor = new OpenLibraryAccessor(config.googleApiKey);
 const libraryEngine = new LibraryEngine(libraryAccessor, openLibraryAccessor, config.libraryDefaultLoanDays);
 const libraryButtonHandler = new LibraryButtonHandler(libraryEngine);
 
+// Channel stats
+const channelAccessor = new ChannelAccessor();
+const channelStatsAccessor = new ChannelStatsAccessor();
+const channelStatsEngine = new ChannelStatsEngine(channelAccessor, channelStatsAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -216,6 +227,7 @@ const commands = [
   createRecipeCommand(recipeEngine),
   createCleanUrlCommand(cleanLinksEngine),
   createLibraryCommand(libraryEngine, config.libraryChannelId),
+  createChannelStatsCommand(channelStatsEngine, config.prefix),
 ];
 
 const events = [

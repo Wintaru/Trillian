@@ -55,6 +55,10 @@ import { LibraryAccessor } from "../src/accessors/library-accessor.js";
 import { OpenLibraryAccessor } from "../src/accessors/open-library-accessor.js";
 import { LibraryEngine } from "../src/engines/library-engine.js";
 import { createLibraryCommand } from "../src/commands/library.js";
+import { ChannelAccessor } from "../src/accessors/channel-accessor.js";
+import { ChannelStatsAccessor } from "../src/accessors/channel-stats-accessor.js";
+import { ChannelStatsEngine } from "../src/engines/channel-stats-engine.js";
+import { createChannelStatsCommand } from "../src/commands/channel-stats.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -128,6 +132,10 @@ const commands = [
   createLibraryCommand(
     new LibraryEngine(new LibraryAccessor(), new OpenLibraryAccessor(config.googleApiKey), config.libraryDefaultLoanDays),
     config.libraryChannelId,
+  ),
+  createChannelStatsCommand(
+    new ChannelStatsEngine(new ChannelAccessor(), new ChannelStatsAccessor()),
+    config.prefix,
   ),
 ];
 

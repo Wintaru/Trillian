@@ -1353,6 +1353,63 @@ Everyone — no special permissions required.
 
 ---
 
+### `/stats`
+
+Daily channel activity summary — shows message counts, top posters, media/link breakdowns, recipe and library additions, and per-channel stats for the current day.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/stats today` |
+| Slash | `/stats help` |
+| Prefix | `!stats` |
+| Prefix | `!stats help` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `today` | Show today's activity summary (default for prefix) |
+| `help` | Show help for the stats command |
+
+#### Parameters
+
+None — the command summarizes all channels from midnight to now.
+
+#### Permission
+
+Everyone — requires Send Messages permission.
+
+#### Configuration
+
+No additional environment variables required.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+- Read Message History (in all channels you want stats for)
+
+#### Behavior
+
+1. The bot fetches all messages from midnight (server local time) to now across every text channel it can access
+2. Bot messages are excluded from all counts
+3. A **server summary embed** shows total messages, unique posters, media/link counts, recipes added, library additions, busiest hour, and top 10 posters
+4. A **channel breakdown** follows, showing per-channel stats (messages, posters, media, links, top 3 posters) sorted by activity
+5. Recipe and library addition counts come from the database, not message parsing
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Current day only** | Stats cover midnight-to-now; no historical lookups |
+| **Bot visibility** | Only channels the bot has Read Message History access to are included |
+| **API pagination** | Very active channels require multiple Discord API calls (100 messages per call), which may take a moment |
+| **Embed limit** | Discord allows max 10 embeds per message — servers with 50+ active channels may see truncated channel breakdowns |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.
