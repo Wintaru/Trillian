@@ -18,7 +18,6 @@ import {
   buildHelpEmbed,
   buildAddedBookEmbed,
   coverAttachment,
-  listCoverAttachment,
 } from "../utilities/library-embed.js";
 
 const PAGE_SIZE = 10;
@@ -357,8 +356,7 @@ async function handleList(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.listBooks({ guildId, page, pageSize: PAGE_SIZE });
   const embed = buildListEmbed(result.entries, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await interaction.reply({ embeds: [embed] });
 }
 
 async function handleSearch(
@@ -370,8 +368,7 @@ async function handleSearch(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.searchBooks({ guildId, query, page, pageSize: PAGE_SIZE });
   const embed = buildSearchEmbed(result.entries, result.query, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await interaction.reply({ embeds: [embed] });
 }
 
 async function handleShelf(
@@ -383,8 +380,7 @@ async function handleShelf(
   const page = Math.max(1, interaction.options.getInteger("page") ?? 1);
   const result = await engine.getShelf({ guildId, ownerId: targetUser.id, page, pageSize: PAGE_SIZE });
   const embed = buildShelfEmbed(result.entries, targetUser.id, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await interaction.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await interaction.reply({ embeds: [embed] });
 }
 
 async function handleInfo(
@@ -710,8 +706,7 @@ async function handleListPrefix(
   const page = parsePageArg(context.args, 1);
   const result = await engine.listBooks({ guildId, page, pageSize: PAGE_SIZE });
   const embed = buildListEmbed(result.entries, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleSearchPrefix(
@@ -735,8 +730,7 @@ async function handleSearchPrefix(
 
   const result = await engine.searchBooks({ guildId, query, page, pageSize: PAGE_SIZE });
   const embed = buildSearchEmbed(result.entries, result.query, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleShelfPrefix(
@@ -752,8 +746,7 @@ async function handleShelfPrefix(
 
   const result = await engine.getShelf({ guildId, ownerId, page, pageSize: PAGE_SIZE });
   const embed = buildShelfEmbed(result.entries, ownerId, result.page, result.totalPages, result.total);
-  const attachment = listCoverAttachment(result.entries);
-  await message.reply({ embeds: [embed], files: attachment ? [attachment] : [] });
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleInfoPrefix(

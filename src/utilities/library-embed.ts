@@ -176,25 +176,6 @@ function entryLine(entry: LibraryEntryView): string {
   return `**#${entry.entryId}** — *${entry.title}* by ${entry.author}${condition}${availability}${status}`;
 }
 
-/**
- * Set the thumbnail from the first entry that has a cover image.
- * Returns an AttachmentBuilder if using a stored image, or null if using a URL.
- */
-export function listCoverAttachment(entries: LibraryEntryView[]): AttachmentBuilder | null {
-  const firstWithImage = entries.find((e) => e.coverImage);
-  if (firstWithImage) return coverAttachment(firstWithImage.coverImage);
-  return null;
-}
-
-function setFirstCoverThumbnail(embed: EmbedBuilder, entries: LibraryEntryView[]): void {
-  const firstWithImage = entries.find((e) => e.coverImage);
-  if (firstWithImage) {
-    embed.setThumbnail(COVER_ATTACHMENT_URL);
-    return;
-  }
-  const firstWithUrl = entries.find((e) => e.coverUrl);
-  if (firstWithUrl) embed.setThumbnail(firstWithUrl.coverUrl);
-}
 
 export function buildListEmbed(
   entries: LibraryEntryView[],
@@ -211,7 +192,7 @@ export function buildListEmbed(
     embed.setDescription("The library is empty. Use `/library add` to share a book!");
   } else {
     embed.setDescription(entries.map(entryLine).join("\n"));
-    setFirstCoverThumbnail(embed, entries);
+
   }
 
   return embed;
@@ -235,7 +216,7 @@ export function buildSearchEmbed(
     embed.setDescription(`No books found matching "${query}".`);
   } else {
     embed.setDescription(entries.map(entryLine).join("\n"));
-    setFirstCoverThumbnail(embed, entries);
+
   }
 
   return embed;
@@ -255,8 +236,6 @@ export function buildShelfEmbed(
     .setFooter({
       text: footerText(page, totalPages, total, "book", `/library shelf <@${ownerId}> page:`),
     });
-
-  if (entries.length > 0) setFirstCoverThumbnail(embed, entries);
 
   return embed;
 }
