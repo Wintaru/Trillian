@@ -51,6 +51,10 @@ import { createRecipeCommand } from "../src/commands/recipe.js";
 import { RedirectAccessor } from "../src/accessors/redirect-accessor.js";
 import { CleanLinksEngine } from "../src/engines/clean-links-engine.js";
 import { createCleanUrlCommand } from "../src/commands/clean-url.js";
+import { LibraryAccessor } from "../src/accessors/library-accessor.js";
+import { OpenLibraryAccessor } from "../src/accessors/open-library-accessor.js";
+import { LibraryEngine } from "../src/engines/library-engine.js";
+import { createLibraryCommand } from "../src/commands/library.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -121,6 +125,10 @@ const commands = [
   createMusicClubCommand(musicClubEngine),
   createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor(), new WebScraperAccessor())),
   createCleanUrlCommand(new CleanLinksEngine(new RedirectAccessor())),
+  createLibraryCommand(
+    new LibraryEngine(new LibraryAccessor(), new OpenLibraryAccessor(), config.libraryDefaultLoanDays),
+    config.libraryChannelId,
+  ),
 ];
 
 const commandEngine = new CommandEngine(commands);

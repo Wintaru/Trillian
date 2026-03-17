@@ -1262,6 +1262,95 @@ The feature is active in all channels by default. To restrict it to specific cha
 | **Known trackers only** | Only strips parameters from a curated blocklist — novel tracking params may slip through |
 | **No original embed control without Manage Messages** | The bot needs Manage Messages permission to suppress the original message's embeds |
 
+### `/library`
+
+Community library — share, borrow, and discover books with your server. Add books by ISBN or bookstore URL (Amazon, Barnes & Noble, Open Library, Google Books). The bot fetches metadata and cover art from Open Library.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/library add isbn_or_url:9780143127550 condition:Good availability:Lend note:Hardcover edition` |
+| Slash | `/library add isbn_or_url:https://www.amazon.com/dp/0143127551` |
+| Slash | `/library search query:sapiens` |
+| Slash | `/library borrow entry_id:42` |
+| Prefix | `!library add 9780143127550 good lend Hardcover edition` |
+| Prefix | `!library search sapiens` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `add <isbn_or_url> [condition] [availability] [note]` | Add a book to the library |
+| `remove <entry_id>` | Remove your book from the library |
+| `list [page]` | Browse all available books |
+| `search <query> [page]` | Search by title or author |
+| `shelf [@user] [page]` | View a member's shared books (defaults to you) |
+| `info <entry_id>` | Detailed book view with action buttons |
+| `borrow <entry_id>` | Request to borrow a book |
+| `wishlist <add\|remove\|list> [query]` | Manage your book wishlist |
+| `review <isbn_or_url> <rating 1-5> [text]` | Rate and review a book |
+| `stats` | View library statistics |
+| `help` | Show help |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Range | Description |
+|---|---|---|---|---|---|
+| `isbn_or_url` | string | Yes | — | — | ISBN-10, ISBN-13, or bookstore URL |
+| `entry_id` | integer | Yes (for remove/info/borrow) | — | — | Book entry ID (shown in listings) |
+| `condition` | string choice | No | good | like_new, good, fair, poor | Physical condition of the book |
+| `availability` | string choice | No | lend | lend, give, reference | How you want to share |
+| `note` | string | No | — | max 1000 chars | Note about the book (condition details, pickup instructions) |
+| `query` | string | Yes (for search) | — | — | Search text for title/author |
+| `rating` | integer | Yes (for review) | — | 1–5 | Star rating |
+| `text` | string | No | — | — | Review text |
+| `action` | string choice | Yes (for wishlist) | — | add, remove, list | Wishlist action |
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Description | Default |
+|---|---|---|
+| `LIBRARY_CHANNEL_ID` | Channel where the library lives. The command only works in this channel. | — (disabled) |
+| `LIBRARY_DEFAULT_LOAN_DAYS` | Default loan period in days for approved borrows | 14 |
+
+**Setup:**
+1. Set `LIBRARY_CHANNEL_ID` in `.env` to the channel where you want the library
+2. Run `pnpm deploy-commands` to register the slash command
+3. Users can start adding books with `/library add`
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links (for book cards with cover art)
+
+#### Behavior
+
+1. **Adding a book:** User provides ISBN or bookstore URL. The bot extracts the ISBN, looks up metadata from Open Library (title, author, cover, description, page count, genres), and creates a library entry. If someone has the book on their wishlist, they get a DM notification.
+2. **URL parsing:** Supports Amazon (`/dp/` and `/gp/product/` paths), Open Library, Google Books (`isbn=` param), Barnes & Noble (`ean=` param), and generic URLs containing ISBN patterns. If no ISBN can be extracted, the user is alerted.
+3. **Borrowing:** The borrower uses `borrow` → the owner gets a DM with Approve/Deny buttons → on approval, the book is marked as checked out with a due date → when returned, it becomes available again.
+4. **Give-away:** Books marked as "give" follow the same borrow flow, but when "returned" (i.e., the handoff is complete), the entry is automatically removed from the library.
+5. **Info view:** Shows full book details with context-sensitive buttons — owner sees "Edit Note", borrower sees "Return", others see "Borrow" (when available).
+6. **Overdue reminders:** A timer checks hourly for overdue borrows and DMs both the borrower and owner (once per 24 hours per borrow).
+7. **Wishlist:** Users can add books to a wishlist. When someone adds a matching book to the library, wishlist holders get a DM.
+8. **Reviews:** One review per user per book per guild. Displayed on the info view with star ratings.
+9. **Stats:** Shows total books, total borrows, most borrowed books, top lenders, and genre breakdown.
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Open Library only** | Metadata comes from Open Library — books not in their database won't be found |
+| **ISBN required** | Books must have a valid ISBN-10 or ISBN-13 to be added |
+| **Amazon ASINs** | Amazon ASINs are only valid ISBNs for physical books — Kindle editions and bundles may not work |
+| **One copy per owner** | A user can only add the same ISBN once (but different users can each add their own copy) |
+| **Channel-locked** | The command only works in the configured `LIBRARY_CHANNEL_ID` channel |
+| **DM-dependent** | Borrow approvals and notifications are sent via DM — users with DMs disabled will miss them |
+
 ---
 
 ## Shadowrun Campaign System

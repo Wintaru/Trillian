@@ -101,6 +101,14 @@ import { CleanLinksEngine } from "./engines/clean-links-engine.js";
 import { createCleanUrlCommand } from "./commands/clean-url.js";
 import { createMessageCleanLinksHandler } from "./events/message-clean-links.js";
 
+// Community library
+import { LibraryAccessor } from "./accessors/library-accessor.js";
+import { OpenLibraryAccessor } from "./accessors/open-library-accessor.js";
+import { LibraryEngine } from "./engines/library-engine.js";
+import { LibraryButtonHandler } from "./engines/library-button-handler.js";
+import { createLibraryCommand } from "./commands/library.js";
+import { startLibraryTimer } from "./utilities/library-timer.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -181,6 +189,12 @@ const recipeEngine = new RecipeEngine(ollamaAccessor, recipeAccessor, webScraper
 const redirectAccessor = new RedirectAccessor();
 const cleanLinksEngine = new CleanLinksEngine(redirectAccessor);
 
+// Community library
+const libraryAccessor = new LibraryAccessor();
+const openLibraryAccessor = new OpenLibraryAccessor();
+const libraryEngine = new LibraryEngine(libraryAccessor, openLibraryAccessor, config.libraryDefaultLoanDays);
+const libraryButtonHandler = new LibraryButtonHandler(libraryEngine);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -201,6 +215,7 @@ const commands = [
   createMusicClubCommand(musicClubEngine),
   createRecipeCommand(recipeEngine),
   createCleanUrlCommand(cleanLinksEngine),
+  createLibraryCommand(libraryEngine, config.libraryChannelId),
 ];
 
 const events = [
@@ -224,8 +239,8 @@ const discordClient = new DiscordClient(
   commandEngine,
   events,
   config.prefix,
-  [pollButtonHandler, embedButtonHandler, vocabButtonHandler, challengeButtonHandler, musicClubButtonHandler],
-  [embedButtonHandler, challengeButtonHandler, musicClubButtonHandler],
+  [pollButtonHandler, embedButtonHandler, vocabButtonHandler, challengeButtonHandler, musicClubButtonHandler, libraryButtonHandler],
+  [embedButtonHandler, challengeButtonHandler, musicClubButtonHandler, libraryButtonHandler],
 );
 
 await discordClient.start(config.token);
@@ -302,4 +317,9 @@ if (config.recipeChannelId) {
     logger.error("Recipe backfill failed:", err),
   );
   logger.info(`Recipe system active in channel ${config.recipeChannelId}`);
+}
+
+if (config.libraryChannelId) {
+  startLibraryTimer(discordClient.getClient(), libraryEngine);
+  logger.info(`Library system active in channel ${config.libraryChannelId}`);
 }

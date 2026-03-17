@@ -367,3 +367,101 @@ export const recipeIngredients = sqliteTable(
     index("recipe_ingredients_name_idx").on(table.name),
   ],
 );
+
+// --- Community Library ---
+
+export const libraryBooks = sqliteTable(
+  "library_books",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    isbn: text("isbn").notNull(),
+    title: text("title").notNull(),
+    author: text("author").notNull(),
+    coverUrl: text("cover_url").notNull().default(""),
+    description: text("description").notNull().default(""),
+    pageCount: integer("page_count").notNull().default(0),
+    publishYear: integer("publish_year").notNull().default(0),
+    genres: text("genres").notNull().default("[]"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [uniqueIndex("library_books_isbn_unique").on(table.isbn)],
+);
+
+export const libraryEntries = sqliteTable(
+  "library_entries",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bookId: integer("book_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    ownerId: text("owner_id").notNull(),
+    condition: text("condition").notNull().default("good"),
+    availabilityType: text("availability_type").notNull().default("lend"),
+    status: text("status").notNull().default("available"),
+    note: text("note").notNull().default(""),
+    addedAt: integer("added_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("library_entries_guild_status_idx").on(table.guildId, table.status),
+    index("library_entries_owner_guild_idx").on(table.ownerId, table.guildId),
+  ],
+);
+
+export const libraryBorrows = sqliteTable(
+  "library_borrows",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    libraryEntryId: integer("library_entry_id").notNull(),
+    borrowerId: text("borrower_id").notNull(),
+    status: text("status").notNull().default("pending"),
+    borrowedAt: integer("borrowed_at").notNull(),
+    approvedAt: integer("approved_at"),
+    dueDate: integer("due_date"),
+    returnedAt: integer("returned_at"),
+    lastReminderAt: integer("last_reminder_at"),
+  },
+  (table) => [
+    index("library_borrows_entry_status_idx").on(table.libraryEntryId, table.status),
+    index("library_borrows_borrower_status_idx").on(table.borrowerId, table.status),
+  ],
+);
+
+export const libraryReviews = sqliteTable(
+  "library_reviews",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bookId: integer("book_id").notNull(),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    rating: integer("rating").notNull(),
+    review: text("review").notNull().default(""),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("library_reviews_book_guild_user_unique").on(
+      table.bookId,
+      table.guildId,
+      table.userId,
+    ),
+  ],
+);
+
+export const libraryWishlist = sqliteTable(
+  "library_wishlist",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    isbn: text("isbn"),
+    title: text("title").notNull().default(""),
+    author: text("author").notNull().default(""),
+    addedAt: integer("added_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("library_wishlist_guild_user_isbn_unique").on(
+      table.guildId,
+      table.userId,
+      table.isbn,
+    ),
+  ],
+);
