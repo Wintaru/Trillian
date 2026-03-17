@@ -179,8 +179,8 @@ export class OpenLibraryAccessor {
       if (authorNames.length > 0) author = authorNames.join(", ");
     }
 
-    // Cover URL
-    let coverUrl = "";
+    // Cover URL — prefer cover ID, fall back to ISBN-based URL
+    let coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
     if (data.covers && data.covers.length > 0) {
       coverUrl = `${COVERS_BASE}/${data.covers[0]}-L.jpg`;
     }

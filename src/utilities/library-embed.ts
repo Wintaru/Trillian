@@ -78,7 +78,7 @@ export function buildBookInfoEmbed(
     .setColor(EMBED_COLOR)
     .setDescription(truncate(entry.description || "No description available.", FIELD_MAX_LENGTH));
 
-  if (entry.coverUrl) embed.setThumbnail(entry.coverUrl);
+  if (entry.coverUrl) embed.setImage(entry.coverUrl);
 
   embed.addFields(
     { name: "Author", value: entry.author || "Unknown", inline: true },
@@ -318,11 +318,12 @@ export function buildAddedBookEmbed(entry: LibraryEntryView): EmbedBuilder {
     .setDescription(`**${entry.title}** by ${entry.author}`)
     .addFields(
       { name: "Entry ID", value: `#${entry.entryId}`, inline: true },
+      { name: "ISBN", value: entry.isbn, inline: true },
       { name: "Condition", value: formatCondition(entry.condition), inline: true },
       { name: "Availability", value: formatAvailability(entry.availabilityType), inline: true },
     );
 
-  if (entry.coverUrl) embed.setThumbnail(entry.coverUrl);
+  if (entry.coverUrl) embed.setImage(entry.coverUrl);
   if (entry.note) embed.addFields({ name: "Note", value: truncate(entry.note, FIELD_MAX_LENGTH), inline: false });
 
   return embed;
