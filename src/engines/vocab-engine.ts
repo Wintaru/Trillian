@@ -26,7 +26,9 @@ function buildVocabSystemPrompt(language: string): string {
   const name = languageName(language);
   return [
     `You are a vocabulary teacher specializing in ${name}.`,
-    `Generate a single vocabulary word appropriate for a beginner learner.`,
+    `Generate a single vocabulary word that a casual learner would find useful and interesting.`,
+    `Avoid basic greetings, numbers, colors, days, months, and common textbook words.`,
+    `Prefer words with cultural significance, interesting etymology, useful everyday applications, or surprising nuances.`,
     ``,
     `Respond EXACTLY in this format (keep the labels on their own lines):`,
     `WORD: <the word in ${name}>`,
