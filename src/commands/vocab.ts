@@ -2,11 +2,13 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, SlashComman
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { VocabEngine } from "../engines/vocab-engine.js";
-import { buildVocabQuizEmbed, buildVocabListEmbed, buildFlashcardFrontEmbed } from "../utilities/vocab-embed.js";
+import type { VocabAccessor } from "../accessors/vocab-accessor.js";
+import { buildVocabEmbed, buildVocabQuizEmbed, buildVocabListEmbed, buildFlashcardFrontEmbed } from "../utilities/vocab-embed.js";
 
 const HELP_DESCRIPTION = [
   "**Vocabulary** — Review and practice saved words!",
   "",
+  "`/vocab new` — Generate a new word on demand",
   "`/vocab review` — Take a quiz on a random saved word",
   "`/vocab list` — View your saved vocabulary words",
   "`/vocab stats` — View your review stats (accuracy, total reviews)",
@@ -15,13 +17,20 @@ const HELP_DESCRIPTION = [
   "Save words from the daily Word of the Day posts, then practice them here.",
 ].join("\n");
 
-export function createVocabCommand(vocabEngine: VocabEngine): Command {
+export function createVocabCommand(
+  vocabEngine: VocabEngine,
+  vocabAccessor: VocabAccessor,
+  defaultLanguage: string,
+): Command {
   return {
     name: "vocab",
     description: "Review, list, and quiz your saved vocabulary",
     slashData: new SlashCommandBuilder()
       .setName("vocab")
       .setDescription("Review, list, and quiz your saved vocabulary")
+      .addSubcommand((sub) =>
+        sub.setName("new").setDescription("Generate a new vocabulary word on demand"),
+      )
       .addSubcommand((sub) =>
         sub.setName("review").setDescription("Take a quiz on a random saved word"),
       )
@@ -42,7 +51,9 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       const subcommand = interaction.options.getSubcommand();
       const userId = interaction.user.id;
 
-      if (subcommand === "review") {
+      if (subcommand === "new") {
+        await handleNew(interaction, vocabEngine, vocabAccessor, defaultLanguage);
+      } else if (subcommand === "review") {
         await handleReview(interaction, vocabEngine, userId);
       } else if (subcommand === "list") {
         await handleList(interaction, vocabEngine, userId);
@@ -59,12 +70,14 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       const subcommand = context.args[0]?.toLowerCase();
       const userId = message.author.id;
 
-      if (!subcommand || subcommand === "help" || !["review", "list", "stats", "flashcard"].includes(subcommand)) {
+      if (!subcommand || subcommand === "help" || !["new", "review", "list", "stats", "flashcard"].includes(subcommand)) {
         await message.reply({ embeds: [new EmbedBuilder().setTitle("Vocabulary — Help").setDescription(HELP_DESCRIPTION).setColor(0x3498db)] });
         return;
       }
 
-      if (subcommand === "review") {
+      if (subcommand === "new") {
+        await handleNewPrefix(message, vocabEngine, vocabAccessor, defaultLanguage);
+      } else if (subcommand === "review") {
         await handleReviewPrefix(message, vocabEngine, userId);
       } else if (subcommand === "list") {
         await handleListPrefix(message, vocabEngine, userId);
@@ -75,6 +88,59 @@ export function createVocabCommand(vocabEngine: VocabEngine): Command {
       }
     },
   };
+}
+
+async function handleNew(
+  interaction: ChatInputCommandInteraction,
+  vocabEngine: VocabEngine,
+  vocabAccessor: VocabAccessor,
+  language: string,
+): Promise<void> {
+  await interaction.deferReply();
+
+  try {
+    const word = await vocabEngine.generateWord({ language });
+    const { id } = await vocabAccessor.insertDailyWord(word, Date.now());
+
+    const embed = buildVocabEmbed(word);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`vocab_save:${id}`)
+        .setLabel("Save to Vocab")
+        .setStyle(ButtonStyle.Primary),
+    );
+
+    await interaction.editReply({ embeds: [embed], components: [row] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "An unknown error occurred.";
+    await interaction.editReply(`Failed to generate word: ${msg}`);
+  }
+}
+
+async function handleNewPrefix(
+  message: Message,
+  vocabEngine: VocabEngine,
+  vocabAccessor: VocabAccessor,
+  language: string,
+): Promise<void> {
+  try {
+    const thinking = await message.reply("Generating a new word...");
+    const word = await vocabEngine.generateWord({ language });
+    const { id } = await vocabAccessor.insertDailyWord(word, Date.now());
+
+    const embed = buildVocabEmbed(word);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`vocab_save:${id}`)
+        .setLabel("Save to Vocab")
+        .setStyle(ButtonStyle.Primary),
+    );
+
+    await thinking.edit({ content: "", embeds: [embed], components: [row] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "An unknown error occurred.";
+    await message.reply(`Failed to generate word: ${msg}`);
+  }
 }
 
 async function handleReview(

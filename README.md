@@ -871,10 +871,12 @@ Review, list, and quiz your saved vocabulary words. Words are posted daily in a 
 
 | Invocation | Example |
 |---|---|
+| Slash command (new) | `/vocab new` |
 | Slash command (review) | `/vocab review` |
 | Slash command (list) | `/vocab list` |
 | Slash command (stats) | `/vocab stats` |
 | Slash command (flashcard) | `/vocab flashcard` |
+| Prefix command (new) | `!vocab new` |
 | Prefix command (review) | `!vocab review` |
 | Prefix command (list) | `!vocab list` |
 | Prefix command (stats) | `!vocab stats` |
@@ -884,6 +886,7 @@ Review, list, and quiz your saved vocabulary words. Words are posted daily in a 
 
 | Subcommand | Description |
 |---|---|
+| `new` | Generate a new vocabulary word on demand |
 | `review` | Take a multiple-choice quiz on a due word (spaced repetition) |
 | `list` | View your saved vocabulary words with due dates and review accuracy |
 | `stats` | View aggregate vocabulary review statistics |
@@ -911,11 +914,12 @@ Ollama must be running (same setup as AI Chat). No additional Ollama configurati
 #### Behavior
 
 1. **Word of the Day** — Every day at the configured time, the bot generates a vocabulary word via Ollama and posts it as a rich embed with translation, pronunciation, example sentence, and linguistic notes. A "Save to Vocab" button is attached.
-2. **Save** — Users click "Save to Vocab" to add the word to their personal vocabulary. Duplicate saves are detected and handled gracefully.
-3. **Review (`/vocab review`)** — Picks a due word from the user's saved vocabulary (using SM-2 spaced repetition scheduling) and presents a 4-option multiple-choice quiz. Three distractors are pulled from other words in the same language. Correct answers schedule the word further out; incorrect answers reset it. Falls back to a random word if none are due.
-4. **List (`/vocab list`)** — Shows the user's saved words with language, translation, due status (due now, hours, or days until next review), review count, and accuracy percentage. Limited to 20 entries.
-5. **Stats (`/vocab stats`)** — Shows aggregate stats: total words saved, total reviews, correct answers, and overall accuracy percentage.
-6. **Flashcard (`/vocab flashcard`)** — Presents due words one at a time in a flip-card format. The front shows the word; click "Flip Card" to reveal the translation, pronunciation, and example sentence. Rate your recall with Again/Hard/Good/Easy buttons (SM-2 quality ratings). The next review date is calculated based on your rating. Click "Next Card" to continue studying. If no words are due, shows when the next review is scheduled.
+2. **New (`/vocab new`)** — Anyone can generate a new word on demand. Uses the same generation pipeline as the daily word — the word is saved to the database and posted with a "Save to Vocab" button.
+3. **Save** — Users click "Save to Vocab" to add the word to their personal vocabulary. Duplicate saves are detected and handled gracefully.
+4. **Review (`/vocab review`)** — Picks a due word from the user's saved vocabulary (using SM-2 spaced repetition scheduling) and presents a 4-option multiple-choice quiz. Three distractors are pulled from other words in the same language. Correct answers schedule the word further out; incorrect answers reset it. Falls back to a random word if none are due.
+5. **List (`/vocab list`)** — Shows the user's saved words with language, translation, due status (due now, hours, or days until next review), review count, and accuracy percentage. Limited to 20 entries.
+6. **Stats (`/vocab stats`)** — Shows aggregate stats: total words saved, total reviews, correct answers, and overall accuracy percentage.
+7. **Flashcard (`/vocab flashcard`)** — Presents due words one at a time in a flip-card format. The front shows the word; click "Flip Card" to reveal the translation, pronunciation, and example sentence. Rate your recall with Again/Hard/Good/Easy buttons (SM-2 quality ratings). The next review date is calculated based on your rating. Click "Next Card" to continue studying. If no words are due, shows when the next review is scheduled.
 
 #### Limitations
 

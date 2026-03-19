@@ -123,7 +123,7 @@ const commands = [
   createWeatherCommand(weatherEngine, config.weatherLocation),
   createDefineCommand(dictionaryEngine),
   createTranslateCommand(translateEngine),
-  createVocabCommand(vocabEngine),
+  createVocabCommand(vocabEngine, vocabAccessor, config.vocabDefaultLanguage),
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
