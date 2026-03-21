@@ -3,6 +3,8 @@ import * as logger from "../utilities/logger.js";
 
 const BASE_URL = "https://api.song.link/v1-alpha.1/links";
 const TIMEOUT_MS = 10_000;
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5_000;
 
 interface OdesliEntity {
   title?: string;
@@ -22,25 +24,50 @@ export interface OdesliResult {
   artist: string;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class OdesliAccessor {
   async getLinks(url: string): Promise<OdesliResult | null> {
-    try {
-      const encoded = encodeURIComponent(url);
-      const response = await fetch(`${BASE_URL}?url=${encoded}&userCountry=US`, {
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+    const encoded = encodeURIComponent(url);
+    const requestUrl = `${BASE_URL}?url=${encoded}&userCountry=US`;
 
-      if (!response.ok) {
-        logger.warn(`Odesli API returned ${response.status} for URL: ${url}`);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(requestUrl, {
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+
+        if (response.status === 429) {
+          if (attempt < MAX_RETRIES) {
+            logger.warn(`Odesli API rate limited (429), retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES}) for URL: ${url}`);
+            await sleep(RETRY_DELAY_MS);
+            continue;
+          }
+          logger.error(`Odesli API rate limited (429) after ${MAX_RETRIES} retries, giving up for URL: ${url}`);
+          return null;
+        }
+
+        if (!response.ok) {
+          logger.warn(`Odesli API returned ${response.status} for URL: ${url}`);
+          return null;
+        }
+
+        const data = (await response.json()) as OdesliApiResponse;
+        return this.parseResponse(data);
+      } catch (err) {
+        if (attempt < MAX_RETRIES) {
+          logger.warn(`Odesli API request failed (attempt ${attempt}/${MAX_RETRIES}), retrying:`, err);
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+        logger.error(`Odesli API request failed after ${MAX_RETRIES} retries for URL: ${url}`, err);
         return null;
       }
-
-      const data = (await response.json()) as OdesliApiResponse;
-      return this.parseResponse(data);
-    } catch (err) {
-      logger.warn("Odesli API request failed:", err);
-      return null;
     }
+
+    return null;
   }
 
   private parseResponse(data: OdesliApiResponse): OdesliResult {
