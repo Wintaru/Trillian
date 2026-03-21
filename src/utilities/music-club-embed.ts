@@ -117,18 +117,12 @@ export function buildResultsEmbed(results: RoundResultsResponse): EmbedBuilder {
     return embed;
   }
 
-  const medals = ["", "\u{1F947}", "\u{1F948}", "\u{1F949}"];
-  const lines = results.songs.map((song, i) => {
-    const rank = i + 1;
-    const medal = medals[rank] ?? `#${rank}`;
+  const lines = results.songs.map((song) => {
     const name = song.title && song.artist
       ? `${song.title} — ${song.artist}`
       : "Unknown";
-    const ratingText = song.ratingCount > 0
-      ? `**${song.averageRating}/10** (${song.ratingCount} rating${song.ratingCount !== 1 ? "s" : ""})`
-      : "No ratings";
     const links = buildPlatformLinks(song.links, "");
-    return `${medal} ${name} by <@${song.userId}> — ${ratingText}\n${links}`;
+    return `${name} by <@${song.userId}>\n${links}`;
   });
 
   const songSection = truncate(lines.join("\n\n"), 3500);
