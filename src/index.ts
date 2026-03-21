@@ -303,7 +303,15 @@ if (config.musicClubChannelId) {
     config.musicClubRatingDays,
     config.guildId,
   );
-  startMusicClubTransitionTimer(discordClient.getClient(), musicClubEngine, musicClubAccessor);
+  startMusicClubTransitionTimer(
+    discordClient.getClient(),
+    musicClubEngine,
+    musicClubAccessor,
+    config.musicClubChannelId,
+    config.guildId,
+    config.musicClubSubmissionDays,
+    config.musicClubRatingDays,
+  );
   logger.info(`Music club timer started in channel ${config.musicClubChannelId}`);
 }
 

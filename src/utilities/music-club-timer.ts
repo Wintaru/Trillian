@@ -80,7 +80,6 @@ export function startMusicClubRoundTimer(
   guildId: string,
 ): void {
   const startup = new Date();
-  // If we're past the round time today, don't post again today
   let lastPostDate = toLocalTimeString(startup) >= roundTime
     ? toLocalDateString(startup)
     : "";
@@ -91,35 +90,14 @@ export function startMusicClubRoundTimer(
       const todayDate = toLocalDateString(now);
       const currentTime = toLocalTimeString(now);
 
-      // Don't start a round if we already posted today or it's before the configured time
       if (todayDate === lastPostDate || currentTime < roundTime) return;
 
       // Check if there's already an active round
       const active = await engine.getActiveRound(guildId);
       if (active) return;
 
-      // Check if a round closed recently — start the next round the day after
-      const lastClosed = await accessor.getLatestClosedRound(guildId);
-      if (lastClosed && lastClosed.closedAt > 0) {
-        const closedDate = new Date(lastClosed.closedAt);
-        const dayAfterClose = new Date(
-          closedDate.getFullYear(),
-          closedDate.getMonth(),
-          closedDate.getDate() + 1,
-        );
-        const dayAfterStr = toLocalDateString(dayAfterClose);
-
-        if (todayDate >= dayAfterStr) {
-          // It's the day after (or later) — start a new round
-          lastPostDate = todayDate;
-          await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
-          return;
-        }
-        // Still the same day the round closed — wait until tomorrow
-        return;
-      }
-
-      // Fallback: weekly schedule (no previous round or closedAt not set)
+      // Fallback: weekly schedule starts the first round (subsequent rounds
+      // are started automatically by the transition timer after results post)
       if (now.getDay() === roundDay) {
         lastPostDate = todayDate;
         await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
@@ -134,6 +112,10 @@ export function startMusicClubTransitionTimer(
   client: Client,
   engine: MusicClubEngine,
   accessor: MusicClubAccessor,
+  channelId: string,
+  guildId: string,
+  submissionDays: number,
+  ratingDays: number,
 ): void {
   setInterval(async () => {
     try {
@@ -291,6 +273,7 @@ export function startMusicClubTransitionTimer(
       for (const round of earlyClose) {
         try {
           await postRoundResults(client, engine, accessor, round, "Everyone rated! Results are in early.");
+          await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
         } catch (err) {
           logger.error(`Failed to early-close music club round #${round.id}:`, err);
         }
@@ -301,6 +284,7 @@ export function startMusicClubTransitionTimer(
       for (const round of toClose) {
         try {
           await postRoundResults(client, engine, accessor, round);
+          await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
         } catch (err) {
           logger.error(`Failed to close music club round #${round.id}:`, err);
         }
