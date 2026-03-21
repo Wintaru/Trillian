@@ -79,10 +79,7 @@ export function startMusicClubRoundTimer(
   ratingDays: number,
   guildId: string,
 ): void {
-  const startup = new Date();
-  let lastPostDate = toLocalTimeString(startup) >= roundTime
-    ? toLocalDateString(startup)
-    : "";
+  let lastPostDate = "";
 
   setInterval(async () => {
     try {
@@ -94,7 +91,11 @@ export function startMusicClubRoundTimer(
 
       // Check if there's already an active round
       const active = await engine.getActiveRound(guildId);
-      if (active) return;
+      if (active) {
+        // Mark today so we don't keep querying
+        lastPostDate = todayDate;
+        return;
+      }
 
       // If a previous round exists and is closed, start the next round now
       // (covers bot restarts where the transition timer didn't get to start one)
