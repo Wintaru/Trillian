@@ -46,6 +46,14 @@ export class MusicClubAccessor {
     return rows.length > 0;
   }
 
+  async getMemberUserIds(guildId: string): Promise<string[]> {
+    const rows = await db
+      .select({ userId: musicClubMembers.userId })
+      .from(musicClubMembers)
+      .where(eq(musicClubMembers.guildId, guildId));
+    return rows.map((r) => r.userId);
+  }
+
   async getMemberCount(guildId: string): Promise<number> {
     const rows = await db
       .select({ count: sql<number>`count(*)` })

@@ -63,7 +63,14 @@ async function startNewRound(
       .setStyle(ButtonStyle.Secondary),
   );
 
-  const message = await channel.send({ embeds: [embed], components: [row] });
+  const memberIds = await accessor.getMemberUserIds(guildId);
+  const mentions = memberIds.map((id) => `<@${id}>`).join(" ");
+
+  const message = await channel.send({
+    content: mentions,
+    embeds: [embed],
+    components: [row],
+  });
   await accessor.setRoundMessageId(result.roundId, message.id);
   logger.info(`Music club round #${result.roundId} started.`);
 }

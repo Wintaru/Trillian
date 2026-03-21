@@ -15,6 +15,7 @@ function createMockAccessor(): MusicClubAccessor {
     addMember: vi.fn(),
     removeMember: vi.fn(),
     isMember: vi.fn(),
+    getMemberUserIds: vi.fn(),
     getMemberCount: vi.fn(),
     createRound: vi.fn(),
     getRound: vi.fn(),
