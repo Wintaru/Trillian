@@ -96,8 +96,16 @@ export function startMusicClubRoundTimer(
       const active = await engine.getActiveRound(guildId);
       if (active) return;
 
-      // Fallback: weekly schedule starts the first round (subsequent rounds
-      // are started automatically by the transition timer after results post)
+      // If a previous round exists and is closed, start the next round now
+      // (covers bot restarts where the transition timer didn't get to start one)
+      const lastClosed = await accessor.getLatestClosedRound(guildId);
+      if (lastClosed) {
+        lastPostDate = todayDate;
+        await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
+        return;
+      }
+
+      // Fallback: weekly schedule starts the very first round
       if (now.getDay() === roundDay) {
         lastPostDate = todayDate;
         await startNewRound(client, engine, accessor, channelId, guildId, submissionDays, ratingDays);
