@@ -114,6 +114,20 @@ describe("RecipeEngine", () => {
       expect(vi.mocked(ollama.chat)).not.toHaveBeenCalled();
     });
 
+    it("should skip messages with only ignored-domain URLs", async () => {
+      const discordLinkRequest = {
+        ...baseRequest,
+        messageContent: "Join our server! https://discord.gg/abc123 and check https://www.youtube.com/watch?v=123",
+        messageId: "msg-discord",
+      };
+
+      const result = await engine.parseAndStore(discordLinkRequest);
+
+      expect(result.saved).toBe(false);
+      expect(result.reason).toBe("not_a_recipe");
+      expect(vi.mocked(ollama.chat)).not.toHaveBeenCalled();
+    });
+
     it("should return duplicate when message already processed", async () => {
       vi.mocked(accessor.hasMessageRecipe).mockResolvedValue(true);
 

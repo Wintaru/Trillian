@@ -125,6 +125,21 @@ export class RecipeAccessor {
     return { recipes: rows, total };
   }
 
+  async deleteRecipesWithNoIngredients(): Promise<number[]> {
+    const rows = await db
+      .select({ id: recipes.id })
+      .from(recipes)
+      .where(
+        sql`(SELECT count(*) FROM recipe_ingredients WHERE recipe_ingredients.recipe_id = recipes.id) = 0`,
+      );
+
+    const ids = rows.map((r) => r.id);
+    for (const id of ids) {
+      await db.delete(recipes).where(eq(recipes.id, id));
+    }
+    return ids;
+  }
+
   async getRecipeDetail(
     recipeId: number,
     guildId: string,

@@ -16,6 +16,38 @@ import * as logger from "../utilities/logger.js";
 
 const URL_REGEX = /https?:\/\/[^\s<>]+/gi;
 
+/** Domains that will never contain a recipe — skip fetching + Ollama entirely */
+const IGNORED_DOMAINS = new Set([
+  "discord.gg",
+  "discord.com",
+  "discordapp.com",
+  "tenor.com",
+  "giphy.com",
+  "imgur.com",
+  "youtube.com",
+  "youtu.be",
+  "twitch.tv",
+  "twitter.com",
+  "x.com",
+  "reddit.com",
+  "facebook.com",
+  "instagram.com",
+  "tiktok.com",
+  "spotify.com",
+  "open.spotify.com",
+  "music.apple.com",
+  "soundcloud.com",
+]);
+
+function isRecipeUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return !IGNORED_DOMAINS.has(hostname);
+  } catch {
+    return false;
+  }
+}
+
 const PARSE_PROMPT = `You are a recipe parser. Analyze the following message and determine if it contains a recipe.
 
 If it IS a recipe, extract the structured data and respond with ONLY valid JSON (no markdown fences):
@@ -53,10 +85,11 @@ export class RecipeEngine {
       return { saved: false, recipeId: null, title: null, reason: "duplicate" };
     }
 
-    // Only process messages that contain a URL — plain text chat is not a recipe submission
-    const urls = request.messageContent.match(URL_REGEX);
-    if (!urls || urls.length === 0) {
-      logger.debug(`Recipe skip (no URL): message ${request.messageId}`);
+    // Only process messages that contain a recipe-relevant URL
+    const allUrls = request.messageContent.match(URL_REGEX);
+    const recipeUrls = allUrls?.filter(isRecipeUrl) ?? [];
+    if (recipeUrls.length === 0) {
+      logger.debug(`Recipe skip (no recipe URL): message ${request.messageId}`);
       return { saved: false, recipeId: null, title: null, reason: "not_a_recipe" };
     }
 
@@ -167,10 +200,11 @@ export class RecipeEngine {
    * otherwise falls back to extracted page text.
    */
   private async resolveContent(messageContent: string): Promise<string> {
-    const urls = messageContent.match(URL_REGEX);
-    if (!urls || urls.length === 0) return messageContent;
+    const allUrls = messageContent.match(URL_REGEX);
+    const urls = allUrls?.filter(isRecipeUrl) ?? [];
+    if (urls.length === 0) return messageContent;
 
-    logger.debug(`Recipe: message contains ${urls.length} URL(s), fetching page content...`);
+    logger.debug(`Recipe: message contains ${urls.length} recipe URL(s), fetching page content...`);
     const parts: string[] = [];
 
     // Include the original message text (minus URLs) for context
