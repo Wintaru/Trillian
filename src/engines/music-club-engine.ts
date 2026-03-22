@@ -19,6 +19,28 @@ import type {
   SongRatingResult,
 } from "../types/music-club-contracts.js";
 
+import * as logger from "../utilities/logger.js";
+
+function extractSpotifyTrackId(url: string): string | null {
+  const match = url.match(/open\.spotify\.com\/track\/([a-zA-Z0-9]+)/);
+  return match?.[1] ?? null;
+}
+
+async function fetchSpotifyOembed(trackId: string): Promise<string | null> {
+  try {
+    const resp = await fetch(
+      `https://open.spotify.com/oembed?url=${encodeURIComponent(`https://open.spotify.com/track/${trackId}`)}`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { title?: string };
+    return data.title || null;
+  } catch (err) {
+    logger.warn("Spotify oEmbed fallback failed:", err);
+    return null;
+  }
+}
+
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -108,6 +130,19 @@ export class MusicClubEngine {
       title = odesliResult.title;
       artist = odesliResult.artist;
       odesliData = odesliResult.links;
+    }
+
+    // Fallback: if Odesli failed and URL is Spotify, use Spotify oEmbed for title
+    if (!title) {
+      const spotifyTrackId = extractSpotifyTrackId(request.url);
+      if (spotifyTrackId) {
+        const oembed = await fetchSpotifyOembed(spotifyTrackId);
+        if (oembed) {
+          title = oembed;
+          odesliData.spotify = `https://open.spotify.com/track/${spotifyTrackId}`;
+          odesliData.pageUrl = odesliData.pageUrl || `https://song.link/s/${spotifyTrackId}`;
+        }
+      }
     }
 
     // Fill in YouTube link via search if Odesli didn't return one
