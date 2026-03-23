@@ -1,14 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MusicClubEngine } from "./music-club-engine.js";
 import type { MusicClubAccessor } from "../accessors/music-club-accessor.js";
-import type { OdesliAccessor } from "../accessors/odesli-accessor.js";
-import type { YouTubeAccessor } from "../accessors/youtube-accessor.js";
-
-function createMockYouTube(): YouTubeAccessor {
-  return {
-    searchVideo: vi.fn(),
-  } as unknown as YouTubeAccessor;
-}
+import type { SongMetadataAccessor } from "../accessors/song-metadata-accessor.js";
 
 function createMockAccessor(): MusicClubAccessor {
   return {
@@ -44,10 +37,10 @@ function createMockAccessor(): MusicClubAccessor {
   } as unknown as MusicClubAccessor;
 }
 
-function createMockOdesli(): OdesliAccessor {
+function createMockSongMetadata(): SongMetadataAccessor {
   return {
-    getLinks: vi.fn(),
-  } as unknown as OdesliAccessor;
+    getMetadata: vi.fn(),
+  } as unknown as SongMetadataAccessor;
 }
 
 const ROUND_ROW = {
@@ -66,15 +59,13 @@ const ROUND_ROW = {
 
 describe("MusicClubEngine", () => {
   let accessor: MusicClubAccessor;
-  let odesli: OdesliAccessor;
-  let youtube: YouTubeAccessor;
+  let songMetadata: SongMetadataAccessor;
   let engine: MusicClubEngine;
 
   beforeEach(() => {
     accessor = createMockAccessor();
-    odesli = createMockOdesli();
-    youtube = createMockYouTube();
-    engine = new MusicClubEngine(accessor, odesli, youtube);
+    songMetadata = createMockSongMetadata();
+    engine = new MusicClubEngine(accessor, songMetadata);
   });
 
   describe("join", () => {
@@ -142,13 +133,12 @@ describe("MusicClubEngine", () => {
       expect(result.reason).toBe("round_not_open");
     });
 
-    it("should submit a song with Odesli data", async () => {
+    it("should submit a song with scraped metadata", async () => {
       vi.mocked(accessor.isMember).mockResolvedValue(true);
       vi.mocked(accessor.getRound).mockResolvedValue(ROUND_ROW);
-      vi.mocked(odesli.getLinks).mockResolvedValue({
+      vi.mocked(songMetadata.getMetadata).mockResolvedValue({
         title: "Test Song",
         artist: "Test Artist",
-        links: { pageUrl: "https://song.link/123", spotify: "https://open.spotify.com/track/123" },
       });
       vi.mocked(accessor.upsertSong).mockResolvedValue("submitted");
 
@@ -160,55 +150,14 @@ describe("MusicClubEngine", () => {
       expect(result.success).toBe(true);
       expect(result.reason).toBe("submitted");
       expect(result.song?.title).toBe("Test Song");
+      expect(result.song?.artist).toBe("Test Artist");
       expect(accessor.upsertSong).toHaveBeenCalledOnce();
     });
 
-    it("should search YouTube when Odesli returns no YouTube link", async () => {
+    it("should still submit when metadata scraping fails", async () => {
       vi.mocked(accessor.isMember).mockResolvedValue(true);
       vi.mocked(accessor.getRound).mockResolvedValue(ROUND_ROW);
-      vi.mocked(odesli.getLinks).mockResolvedValue({
-        title: "Test Song",
-        artist: "Test Artist",
-        links: { pageUrl: "https://song.link/123", spotify: "https://open.spotify.com/track/123" },
-      });
-      vi.mocked(youtube.searchVideo).mockResolvedValue("https://www.youtube.com/watch?v=abc");
-      vi.mocked(accessor.upsertSong).mockResolvedValue("submitted");
-
-      const result = await engine.submitSong({
-        roundId: 1, userId: "u1", guildId: "g1",
-        url: "https://open.spotify.com/track/123",
-      });
-
-      expect(youtube.searchVideo).toHaveBeenCalledWith("Test Song - Test Artist");
-      expect(result.song?.links.youtube).toBe("https://www.youtube.com/watch?v=abc");
-    });
-
-    it("should skip YouTube search when Odesli already has YouTube link", async () => {
-      vi.mocked(accessor.isMember).mockResolvedValue(true);
-      vi.mocked(accessor.getRound).mockResolvedValue(ROUND_ROW);
-      vi.mocked(odesli.getLinks).mockResolvedValue({
-        title: "Test Song",
-        artist: "Test Artist",
-        links: {
-          pageUrl: "https://song.link/123",
-          youtube: "https://www.youtube.com/watch?v=existing",
-        },
-      });
-      vi.mocked(accessor.upsertSong).mockResolvedValue("submitted");
-
-      const result = await engine.submitSong({
-        roundId: 1, userId: "u1", guildId: "g1",
-        url: "https://www.youtube.com/watch?v=existing",
-      });
-
-      expect(youtube.searchVideo).not.toHaveBeenCalled();
-      expect(result.song?.links.youtube).toBe("https://www.youtube.com/watch?v=existing");
-    });
-
-    it("should still submit when Odesli fails", async () => {
-      vi.mocked(accessor.isMember).mockResolvedValue(true);
-      vi.mocked(accessor.getRound).mockResolvedValue(ROUND_ROW);
-      vi.mocked(odesli.getLinks).mockResolvedValue(null);
+      vi.mocked(songMetadata.getMetadata).mockResolvedValue(null);
       vi.mocked(accessor.upsertSong).mockResolvedValue("submitted");
 
       const result = await engine.submitSong({

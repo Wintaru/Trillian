@@ -86,10 +86,17 @@ export function buildPlaylistEmbed(playlist: RoundPlaylistResponse): EmbedBuilde
     return embed;
   }
 
-  embed.setDescription(
-    `${playlist.songs.length} song(s) submitted. ` +
-    `Ratings close <t:${Math.floor(playlist.ratingsCloseAt / 1000)}:R>`,
-  );
+  if (playlist.status === "open") {
+    embed.setDescription(
+      `${playlist.songs.length} song(s) submitted. ` +
+      `Submissions close <t:${Math.floor(playlist.submissionsCloseAt / 1000)}:R>`,
+    );
+  } else {
+    embed.setDescription(
+      `${playlist.songs.length} song(s) submitted. ` +
+      `Ratings close <t:${Math.floor(playlist.ratingsCloseAt / 1000)}:R>`,
+    );
+  }
 
   for (const song of playlist.songs.slice(0, 25)) {
     const name = songDisplayName(song);
@@ -102,7 +109,11 @@ export function buildPlaylistEmbed(playlist: RoundPlaylistResponse): EmbedBuilde
     embed.addFields({ name, value });
   }
 
-  embed.setFooter({ text: "Rate each song using the buttons below or /musicclub rate" });
+  if (playlist.status === "open") {
+    embed.setFooter({ text: "Rating opens after submissions close — use /musicclub rate once listening begins" });
+  } else {
+    embed.setFooter({ text: "Rate each song using the buttons below or /musicclub rate" });
+  }
   return embed;
 }
 
@@ -120,7 +131,7 @@ export function buildResultsEmbed(results: RoundResultsResponse): EmbedBuilder {
   const lines = results.songs.map((song) => {
     const name = song.title && song.artist
       ? `${song.title} — ${song.artist}`
-      : "Unknown";
+      : song.title || "Unknown";
     const links = buildPlatformLinks(song.links, "");
     return `${name} by <@${song.userId}>\n${links}`;
   });

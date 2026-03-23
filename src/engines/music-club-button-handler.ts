@@ -23,7 +23,7 @@ function buildSongRatingEmbed(
 ): EmbedBuilder {
   const title = song.title && song.artist
     ? `${song.title} — ${song.artist}`
-    : "Unknown Song";
+    : song.title || "Unknown Song";
 
   const description = [
     `Submitted by <@${song.userId}>`,
@@ -196,6 +196,10 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
         return;
       }
 
+      if (playlist.status === "open") {
+        await interaction.editReply("Submissions are still open! Rating begins once the submission period ends.");
+        return;
+      }
       if (playlist.status !== "listening") {
         await interaction.editReply("This round is not currently accepting ratings.");
         return;
@@ -216,7 +220,7 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
         const summaryLines = songsToRate.map((song) => {
           const name = song.title && song.artist
             ? `${song.title} — ${song.artist}`
-            : "Unknown";
+            : song.title || "Unknown";
           const r = existingRatings.get(song.id);
           return r !== undefined ? `${name}: **${r}/10**` : `${name}: Skipped`;
         });
@@ -346,7 +350,7 @@ export class MusicClubButtonHandler implements ButtonHandler, ModalHandler {
       const summaryLines = songsToRate.map((song) => {
         const name = song.title && song.artist
           ? `${song.title} — ${song.artist}`
-          : "Unknown";
+          : song.title || "Unknown";
         const r = userRatings.get(song.id);
         return r !== undefined ? `${name}: **${r}/10**` : `${name}: Skipped`;
       });

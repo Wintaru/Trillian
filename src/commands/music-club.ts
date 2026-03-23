@@ -146,7 +146,7 @@ function buildWizardSongEmbed(
 ): EmbedBuilder {
   const title = song.title && song.artist
     ? `${song.title} — ${song.artist}`
-    : "Unknown Song";
+    : song.title || "Unknown Song";
 
   const description = [
     `Submitted by <@${song.userId}>`,
@@ -308,7 +308,15 @@ async function handleRate(
   await interaction.deferReply({ flags: 64 });
 
   const activeRound = await engine.getActiveRound(guildId);
-  if (!activeRound || activeRound.status !== "listening") {
+  if (!activeRound) {
+    await interaction.editReply("There's no active round right now.");
+    return;
+  }
+  if (activeRound.status === "open") {
+    await interaction.editReply("Submissions are still open! Rating begins once the submission period ends.");
+    return;
+  }
+  if (activeRound.status !== "listening") {
     await interaction.editReply("There's no round currently accepting ratings.");
     return;
   }
@@ -357,7 +365,7 @@ async function handleRate(
     const summaryLines = songsToRate.map((song, i) => {
       const name = song.title && song.artist
         ? `${song.title} — ${song.artist}`
-        : "Unknown";
+        : song.title || "Unknown";
       const r = existingRatings.get(song.id);
       return r !== undefined
         ? `${i + 1}. ${name}: **${r}/10**`
@@ -543,8 +551,16 @@ async function handleRatePrefix(
   guildId: string,
 ): Promise<void> {
   const activeRound = await engine.getActiveRound(guildId);
-  if (!activeRound || activeRound.status !== "listening") {
-    await message.reply("There's no round currently accepting ratings. Use the slash command `/musicclub rate` for the interactive wizard.");
+  if (!activeRound) {
+    await message.reply("There's no active round right now.");
+    return;
+  }
+  if (activeRound.status === "open") {
+    await message.reply("Submissions are still open! Rating begins once the submission period ends.");
+    return;
+  }
+  if (activeRound.status !== "listening") {
+    await message.reply("There's no round currently accepting ratings.");
     return;
   }
 

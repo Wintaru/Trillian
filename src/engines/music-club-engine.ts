@@ -1,6 +1,5 @@
 import type { MusicClubAccessor } from "../accessors/music-club-accessor.js";
-import type { OdesliAccessor } from "../accessors/odesli-accessor.js";
-import type { YouTubeAccessor } from "../accessors/youtube-accessor.js";
+import type { SongMetadataAccessor } from "../accessors/song-metadata-accessor.js";
 import type {
   JoinClubRequest,
   JoinClubResponse,
@@ -19,27 +18,6 @@ import type {
   SongRatingResult,
 } from "../types/music-club-contracts.js";
 
-import * as logger from "../utilities/logger.js";
-
-function extractSpotifyTrackId(url: string): string | null {
-  const match = url.match(/open\.spotify\.com\/track\/([a-zA-Z0-9]+)/);
-  return match?.[1] ?? null;
-}
-
-async function fetchSpotifyOembed(trackId: string): Promise<string | null> {
-  try {
-    const resp = await fetch(
-      `https://open.spotify.com/oembed?url=${encodeURIComponent(`https://open.spotify.com/track/${trackId}`)}`,
-      { signal: AbortSignal.timeout(5_000) },
-    );
-    if (!resp.ok) return null;
-    const data = (await resp.json()) as { title?: string };
-    return data.title || null;
-  } catch (err) {
-    logger.warn("Spotify oEmbed fallback failed:", err);
-    return null;
-  }
-}
 
 function isValidUrl(value: string): boolean {
   try {
@@ -81,8 +59,7 @@ function toSongEntry(row: {
 export class MusicClubEngine {
   constructor(
     private readonly musicClubAccessor: MusicClubAccessor,
-    private readonly odesliAccessor: OdesliAccessor,
-    private readonly youtubeAccessor: YouTubeAccessor | null = null,
+    private readonly songMetadataAccessor: SongMetadataAccessor,
   ) {}
 
   async join(request: JoinClubRequest): Promise<JoinClubResponse> {
@@ -120,38 +97,15 @@ export class MusicClubEngine {
       return { success: false, reason: "round_not_open" };
     }
 
-    // Resolve cross-platform links via Odesli (non-fatal if it fails)
+    // Scrape title and artist from the submitted URL (non-fatal if it fails)
     let title = "";
     let artist = "";
-    let odesliData: OdesliLinks = { pageUrl: "" };
+    const odesliData: OdesliLinks = { pageUrl: "" };
 
-    const odesliResult = await this.odesliAccessor.getLinks(request.url);
-    if (odesliResult) {
-      title = odesliResult.title;
-      artist = odesliResult.artist;
-      odesliData = odesliResult.links;
-    }
-
-    // Fallback: if Odesli failed and URL is Spotify, use Spotify oEmbed for title
-    if (!title) {
-      const spotifyTrackId = extractSpotifyTrackId(request.url);
-      if (spotifyTrackId) {
-        const oembed = await fetchSpotifyOembed(spotifyTrackId);
-        if (oembed) {
-          title = oembed;
-          odesliData.spotify = `https://open.spotify.com/track/${spotifyTrackId}`;
-          odesliData.pageUrl = odesliData.pageUrl || `https://song.link/s/${spotifyTrackId}`;
-        }
-      }
-    }
-
-    // Fill in YouTube link via search if Odesli didn't return one
-    if (!odesliData.youtube && this.youtubeAccessor && (title || artist)) {
-      const query = [title, artist].filter(Boolean).join(" - ");
-      const youtubeUrl = await this.youtubeAccessor.searchVideo(query);
-      if (youtubeUrl) {
-        odesliData.youtube = youtubeUrl;
-      }
+    const metadata = await this.songMetadataAccessor.getMetadata(request.url);
+    if (metadata) {
+      title = metadata.title;
+      artist = metadata.artist;
     }
 
     const reason = await this.musicClubAccessor.upsertSong(
