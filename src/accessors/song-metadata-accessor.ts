@@ -69,6 +69,13 @@ export function parseMetadata(html: string, url: string): SongMetadata {
       if (!title) title = m[1].trim();
       artist = m[2].trim();
     }
+  } else if (hostname.includes("pandora.com") && pageTitle) {
+    // "Song Name by Artist Name | Pandora Music"
+    const m = pageTitle.match(/^(.+?)\s+by\s+(.+?)(?:\s*[|·]|$)/i);
+    if (m) {
+      if (!title) title = m[1].trim();
+      artist = m[2].trim();
+    }
   }
 
   return {
@@ -98,8 +105,12 @@ export class SongMetadataAccessor {
       const metadata = parseMetadata(html, url);
 
       if (!metadata.title) {
-        logger.warn(`No title found for ${url}`);
+        logger.warn(`Song metadata: no title found for ${url}`);
         return null;
+      }
+
+      if (!metadata.artist) {
+        logger.warn(`Song metadata: no artist extracted for ${new URL(url).hostname} — consider adding platform support`);
       }
 
       return metadata;
