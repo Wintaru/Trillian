@@ -37,7 +37,7 @@ import { ChallengeAccessor } from "../src/accessors/challenge-accessor.js";
 import { ChallengeEngine } from "../src/engines/challenge-engine.js";
 import { createChallengeCommand } from "../src/commands/challenge.js";
 import { MusicClubAccessor } from "../src/accessors/music-club-accessor.js";
-import { OdesliAccessor } from "../src/accessors/odesli-accessor.js";
+import { SongMetadataAccessor } from "../src/accessors/song-metadata-accessor.js";
 import { MusicClubEngine } from "../src/engines/music-club-engine.js";
 import { createMusicClubCommand } from "../src/commands/music-club.js";
 import { NwsAccessor } from "../src/accessors/nws-accessor.js";
@@ -106,8 +106,8 @@ const challengeAccessor = new ChallengeAccessor();
 const challengeEngine = new ChallengeEngine(ollamaAccessor, challengeAccessor);
 
 const musicClubAccessor = new MusicClubAccessor();
-const odesliAccessor = new OdesliAccessor();
-const musicClubEngine = new MusicClubEngine(musicClubAccessor, odesliAccessor);
+const songMetadataAccessor = new SongMetadataAccessor();
+const musicClubEngine = new MusicClubEngine(musicClubAccessor, songMetadataAccessor);
 
 const commands = [
   ...staticCommands,
