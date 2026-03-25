@@ -59,6 +59,9 @@ import { ChannelAccessor } from "../src/accessors/channel-accessor.js";
 import { ChannelStatsAccessor } from "../src/accessors/channel-stats-accessor.js";
 import { ChannelStatsEngine } from "../src/engines/channel-stats-engine.js";
 import { createChannelStatsCommand } from "../src/commands/channel-stats.js";
+import { BirthdayAccessor } from "../src/accessors/birthday-accessor.js";
+import { BirthdayEngine } from "../src/engines/birthday-engine.js";
+import { createBirthdayCommand } from "../src/commands/birthday.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -137,6 +140,7 @@ const commands = [
     new ChannelStatsEngine(new ChannelAccessor(), new ChannelStatsAccessor()),
     config.prefix,
   ),
+  createBirthdayCommand(new BirthdayEngine(ollamaAccessor, new BirthdayAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

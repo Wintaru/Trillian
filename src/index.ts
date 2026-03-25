@@ -114,6 +114,13 @@ import { ChannelStatsAccessor } from "./accessors/channel-stats-accessor.js";
 import { ChannelStatsEngine } from "./engines/channel-stats-engine.js";
 import { createChannelStatsCommand } from "./commands/channel-stats.js";
 
+// Birthday system
+import { BirthdayAccessor } from "./accessors/birthday-accessor.js";
+import { BirthdayEngine } from "./engines/birthday-engine.js";
+import { createBirthdayCommand } from "./commands/birthday.js";
+import { createMessageBirthdayHandler } from "./events/message-birthday.js";
+import { startBirthdayTimer } from "./utilities/birthday-timer.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -202,6 +209,10 @@ const channelAccessor = new ChannelAccessor();
 const channelStatsAccessor = new ChannelStatsAccessor();
 const channelStatsEngine = new ChannelStatsEngine(channelAccessor, channelStatsAccessor);
 
+// Birthday system
+const birthdayAccessor = new BirthdayAccessor();
+const birthdayEngine = new BirthdayEngine(ollamaAccessor, birthdayAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -224,6 +235,7 @@ const commands = [
   createCleanUrlCommand(cleanLinksEngine),
   createLibraryCommand(libraryEngine, config.libraryChannelId),
   createChannelStatsCommand(channelStatsEngine, config.prefix),
+  createBirthdayCommand(birthdayEngine),
 ];
 
 const events = [
@@ -240,6 +252,7 @@ const events = [
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),
   createMessageCleanLinksHandler(cleanLinksEngine, config.cleanLinksChannelIds),
+  createMessageBirthdayHandler(birthdayEngine),
 ];
 
 const commandEngine = new CommandEngine(commands);
@@ -338,4 +351,15 @@ if (config.recipeChannelId) {
 if (config.libraryChannelId) {
   startLibraryTimer(discordClient.getClient(), libraryEngine);
   logger.info(`Library system active in channel ${config.libraryChannelId}`);
+}
+
+if (config.birthdayChannelId) {
+  startBirthdayTimer(
+    discordClient.getClient(),
+    birthdayEngine,
+    config.birthdayChannelId,
+    config.guildId,
+    config.birthdayCheckTime,
+  );
+  logger.info(`Birthday timer started, announcing at ${config.birthdayCheckTime} in channel ${config.birthdayChannelId}`);
 }

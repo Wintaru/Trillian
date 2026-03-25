@@ -466,3 +466,25 @@ export const libraryWishlist = sqliteTable(
     ),
   ],
 );
+
+export const birthdays = sqliteTable(
+  "birthdays",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    personName: text("person_name"),
+    month: integer("month").notNull(),
+    day: integer("day").notNull(),
+    source: text("source").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("birthdays_guild_user_person_unique").on(
+      table.guildId,
+      table.userId,
+      table.personName,
+    ),
+    index("birthdays_month_day_idx").on(table.month, table.day),
+  ],
+);

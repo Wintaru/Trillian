@@ -1414,6 +1414,86 @@ No additional environment variables required.
 
 ---
 
+### `/birthday`
+
+Track and celebrate birthdays. The bot passively detects birthday mentions in chat using AI, stores them, and posts daily announcements. Users can also manually add or remove birthdays.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/birthday add month:3 day:15` |
+| Slash | `/birthday add month:6 day:1 person:wife` |
+| Slash | `/birthday remove` |
+| Slash | `/birthday remove user:@someone` |
+| Slash | `/birthday scan` |
+| Slash | `/birthday help` |
+| Prefix | `!birthday add 3 15` |
+| Prefix | `!birthday add 6 1 wife` |
+| Prefix | `!birthday remove` |
+| Prefix | `!birthday remove @someone` |
+| Prefix | `!birthday scan` |
+| Prefix | `!birthday help` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `add <month> <day> [person]` | Add a birthday. Leave person blank for yourself. |
+| `remove [person] [@user]` | Remove a birthday. No args = your own. @user requires Manage Messages. |
+| `scan` | Scan all channels for past birthday mentions (mod only). |
+| `help` | Show help for the birthday command. |
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `month` | Integer | Yes (add) | Month number (1-12) |
+| `day` | Integer | Yes (add) | Day number (1-31) |
+| `person` | String | No | Relationship or name (e.g. "wife", "son Jake"). Omit for yourself. |
+| `user` | User mention | No (remove) | Target another user's data. Requires Manage Messages. |
+
+#### Permission
+
+- `add` / `remove` (self): Everyone
+- `remove @user`: Requires **Manage Messages** permission
+- `scan`: Requires **Manage Messages** permission
+
+#### Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `BIRTHDAY_CHANNEL_ID` | *(none)* | Channel where daily birthday announcements are posted. Required for announcements. |
+| `BIRTHDAY_CHECK_TIME` | `08:00` | Time (HH:MM, 24h local) to check and post daily birthday announcements. |
+
+#### Bot Permissions Required
+
+- Send Messages
+- Read Message History (for backfill scan)
+- Embed Links (for help embed)
+
+#### Behavior
+
+1. **Passive detection**: The bot listens in all text channels for messages containing birthday keywords ("birthday", "bday", "b-day", "born on")
+2. When a keyword is found, the message is sent to the local Ollama AI for analysis
+3. The AI determines if the message contains an actual birthday with a specific date, and extracts the person and date
+4. Detected birthdays are stored silently — no reaction or reply is sent
+5. At the configured daily time, the bot checks for birthdays matching today's date and posts announcements in the configured channel
+6. Announcements mention the Discord user: "Happy Birthday, @User!" for self, or "Happy Birthday to @User's wife!" for family members
+7. The `/birthday scan` command performs a one-time historical scan of all text channels
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **AI accuracy** | Detection depends on Ollama — ambiguous messages may be missed or misinterpreted |
+| **Date required** | Only messages with a specific month and day are stored; "my birthday is tomorrow" is skipped |
+| **Backfill speed** | Scanning all channels can take a while on large servers due to Discord API rate limits |
+| **No year tracking** | Only month and day are stored — no age tracking |
+| **One per person** | Each user can have one entry per person name (self, wife, son, etc.) — re-mentioning updates the date |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

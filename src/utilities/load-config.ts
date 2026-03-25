@@ -37,6 +37,8 @@ export interface Config {
   cleanLinksChannelIds: string[];
   libraryChannelId: string | undefined;
   libraryDefaultLoanDays: number;
+  birthdayChannelId: string | undefined;
+  birthdayCheckTime: string;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -92,5 +94,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     cleanLinksChannelIds: parseChannelIds(env["CLEAN_LINKS_CHANNEL_IDS"]),
     libraryChannelId: env["LIBRARY_CHANNEL_ID"] ?? undefined,
     libraryDefaultLoanDays: parseInt(env["LIBRARY_DEFAULT_LOAN_DAYS"] ?? "14", 10),
+    birthdayChannelId: env["BIRTHDAY_CHANNEL_ID"] ?? undefined,
+    birthdayCheckTime: env["BIRTHDAY_CHECK_TIME"] ?? "08:00",
   });
 }
