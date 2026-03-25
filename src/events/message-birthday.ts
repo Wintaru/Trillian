@@ -28,7 +28,6 @@ export function createMessageBirthdayHandler(
           userId: message.author.id,
           guildId: message.guild.id,
           messageDate: message.createdAt,
-          mentionedUserIds: [...message.mentions.users.filter((u) => !u.bot).keys()],
         });
 
         if (result.reason === "stored") {
