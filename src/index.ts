@@ -118,7 +118,6 @@ import { createChannelStatsCommand } from "./commands/channel-stats.js";
 import { BirthdayAccessor } from "./accessors/birthday-accessor.js";
 import { BirthdayEngine } from "./engines/birthday-engine.js";
 import { createBirthdayCommand } from "./commands/birthday.js";
-import { createMessageBirthdayHandler } from "./events/message-birthday.js";
 import { startBirthdayTimer } from "./utilities/birthday-timer.js";
 
 const xpAccessor = new XpAccessor();
@@ -211,7 +210,7 @@ const channelStatsEngine = new ChannelStatsEngine(channelAccessor, channelStatsA
 
 // Birthday system
 const birthdayAccessor = new BirthdayAccessor();
-const birthdayEngine = new BirthdayEngine(ollamaAccessor, birthdayAccessor);
+const birthdayEngine = new BirthdayEngine(birthdayAccessor);
 
 const commands = [
   ...staticCommands,
@@ -252,7 +251,6 @@ const events = [
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),
   createMessageCleanLinksHandler(cleanLinksEngine, config.cleanLinksChannelIds),
-  createMessageBirthdayHandler(birthdayEngine),
 ];
 
 const commandEngine = new CommandEngine(commands);

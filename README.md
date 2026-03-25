@@ -1416,32 +1416,34 @@ No additional environment variables required.
 
 ### `/birthday`
 
-Track and celebrate birthdays. The bot passively detects birthday mentions in chat using AI, stores them, and posts daily announcements. Users can also manually add or remove birthdays.
+Track and celebrate birthdays. Mods manually add birthdays for server members (and their family). The bot posts daily announcements in a configured channel.
 
 #### Usage
 
 | Type | Example |
 |---|---|
-| Slash | `/birthday add month:3 day:15` |
-| Slash | `/birthday add month:6 day:1 person:wife` |
-| Slash | `/birthday remove` |
+| Slash | `/birthday add month:3 day:15 user:@someone` |
+| Slash | `/birthday add month:6 day:1 user:@someone person:wife` |
 | Slash | `/birthday remove user:@someone` |
-| Slash | `/birthday scan` |
+| Slash | `/birthday remove user:@someone person:wife` |
+| Slash | `/birthday list` |
+| Slash | `/birthday list user:@someone` |
 | Slash | `/birthday help` |
-| Prefix | `!birthday add 3 15` |
-| Prefix | `!birthday add 6 1 wife` |
-| Prefix | `!birthday remove` |
+| Prefix | `!birthday add 3 15 @someone` |
+| Prefix | `!birthday add 6 1 @someone wife` |
 | Prefix | `!birthday remove @someone` |
-| Prefix | `!birthday scan` |
+| Prefix | `!birthday remove @someone wife` |
+| Prefix | `!birthday list` |
+| Prefix | `!birthday list @someone` |
 | Prefix | `!birthday help` |
 
 #### Subcommands
 
 | Subcommand | Description |
 |---|---|
-| `add <month> <day> [person]` | Add a birthday. Leave person blank for yourself. |
-| `remove [person] [@user]` | Remove a birthday. No args = your own. @user requires Manage Messages. |
-| `scan` | Scan all channels for past birthday mentions (mod only). |
+| `add <month> <day> <@user> [person]` | Add a birthday for a user. Leave person blank for the user themselves. |
+| `remove <@user> [person]` | Remove a birthday. No person = remove all entries for that user. |
+| `list [@user]` | List stored birthdays. No user = show all. |
 | `help` | Show help for the birthday command. |
 
 #### Parameters
@@ -1450,14 +1452,12 @@ Track and celebrate birthdays. The bot passively detects birthday mentions in ch
 |---|---|---|---|
 | `month` | Integer | Yes (add) | Month number (1-12) |
 | `day` | Integer | Yes (add) | Day number (1-31) |
-| `person` | String | No | Relationship or name (e.g. "wife", "son Jake"). Omit for yourself. |
-| `user` | User mention | No (remove) | Target another user's data. Requires Manage Messages. |
+| `user` | User mention | Yes (add/remove) | Whose birthday to add or remove |
+| `person` | String | No | Relationship or name (e.g. "wife", "son Jake"). Omit for the user themselves. |
 
 #### Permission
 
-- `add` / `remove` (self): Everyone
-- `remove @user`: Requires **Manage Messages** permission
-- `scan`: Requires **Manage Messages** permission
+All subcommands require **Manage Messages** permission. The command is hidden from non-mods via `setDefaultMemberPermissions`.
 
 #### Configuration
 
@@ -1469,28 +1469,23 @@ Track and celebrate birthdays. The bot passively detects birthday mentions in ch
 #### Bot Permissions Required
 
 - Send Messages
-- Read Message History (for backfill scan)
-- Embed Links (for help embed)
+- Embed Links (for help and list embeds)
 
 #### Behavior
 
-1. **Passive detection**: The bot listens in all text channels for messages containing birthday keywords ("birthday", "bday", "b-day", "born on")
-2. When a keyword is found, the message is sent to the local Ollama AI for analysis
-3. The AI determines if the message contains an actual birthday with a specific date, and extracts the person and date
-4. Detected birthdays are stored silently — no reaction or reply is sent
-5. At the configured daily time, the bot checks for birthdays matching today's date and posts announcements in the configured channel
-6. Announcements mention the Discord user: "Happy Birthday, @User!" for self, or "Happy Birthday to @User's wife!" for family members
-7. The `/birthday scan` command performs a one-time historical scan of all text channels
+1. Mods add birthdays manually with `/birthday add`
+2. At the configured daily time, the bot checks for birthdays matching today's date
+3. If any are found, it posts announcements in the configured channel
+4. Announcements mention the Discord user: "Happy Birthday, @User!" for self, or "Happy Birthday to @User's wife!" for family members
+5. `/birthday list` shows all stored birthdays as an embed
 
 #### Limitations
 
 | Constraint | Detail |
 |---|---|
-| **AI accuracy** | Detection depends on Ollama — ambiguous messages may be missed or misinterpreted |
-| **Date required** | Only messages with a specific month and day are stored; "my birthday is tomorrow" is skipped |
-| **Backfill speed** | Scanning all channels can take a while on large servers due to Discord API rate limits |
 | **No year tracking** | Only month and day are stored — no age tracking |
-| **One per person** | Each user can have one entry per person name (self, wife, son, etc.) — re-mentioning updates the date |
+| **One per person** | Each user can have one entry per person name (self, wife, son, etc.) — adding again updates the date |
+| **Mod-only** | Only users with Manage Messages can add, remove, or list birthdays |
 
 ---
 

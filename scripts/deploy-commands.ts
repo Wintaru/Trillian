@@ -140,7 +140,7 @@ const commands = [
     new ChannelStatsEngine(new ChannelAccessor(), new ChannelStatsAccessor()),
     config.prefix,
   ),
-  createBirthdayCommand(new BirthdayEngine(ollamaAccessor, new BirthdayAccessor())),
+  createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

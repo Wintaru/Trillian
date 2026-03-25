@@ -65,6 +65,20 @@ export class BirthdayAccessor {
       .where(and(eq(birthdays.guildId, guildId), eq(birthdays.userId, userId)));
   }
 
+  async findAllForGuild(guildId: string): Promise<BirthdayEntry[]> {
+    return db
+      .select({
+        id: birthdays.id,
+        userId: birthdays.userId,
+        personName: birthdays.personName,
+        month: birthdays.month,
+        day: birthdays.day,
+        source: birthdays.source,
+      })
+      .from(birthdays)
+      .where(eq(birthdays.guildId, guildId));
+  }
+
   async findByDate(
     guildId: string,
     month: number,

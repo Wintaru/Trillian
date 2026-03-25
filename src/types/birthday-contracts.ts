@@ -1,23 +1,3 @@
-export interface AnalyzeBirthdayRequest {
-  messageContent: string;
-  messageId: string;
-  userId: string;
-  guildId: string;
-  messageDate: Date;
-}
-
-export interface AnalyzeBirthdayResponse {
-  stored: boolean;
-  reason: "stored" | "not_birthday" | "duplicate" | "parse_error";
-}
-
-export interface OllamaBirthdayResult {
-  isBirthday: boolean;
-  personName: string | null;
-  month: number;
-  day: number;
-}
-
 export interface AddBirthdayRequest {
   guildId: string;
   userId: string;
@@ -48,11 +28,4 @@ export interface BirthdayEntry {
   month: number;
   day: number;
   source: string;
-}
-
-export interface BackfillProgressReport {
-  channelsScanned: number;
-  totalChannels: number;
-  messagesProcessed: number;
-  birthdaysFound: number;
 }
