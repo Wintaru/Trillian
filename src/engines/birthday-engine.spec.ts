@@ -46,6 +46,14 @@ describe("BirthdayEngine", () => {
       expect(engine.containsBirthdayKeyword("Happy Birthday!")).toBe(true);
     });
 
+    it("should match 'turns' with age", () => {
+      expect(engine.containsBirthdayKeyword("my son turns 5 next Friday")).toBe(true);
+    });
+
+    it("should match 'turning' with age", () => {
+      expect(engine.containsBirthdayKeyword("I'm turning 30 in April")).toBe(true);
+    });
+
     it("should return false for unrelated text", () => {
       expect(engine.containsBirthdayKeyword("nice weather today")).toBe(false);
     });
@@ -57,6 +65,8 @@ describe("BirthdayEngine", () => {
       messageId: "msg-1",
       userId: "user-1",
       guildId: "guild-1",
+      messageDate: new Date("2026-03-10T12:00:00Z"),
+      mentionedUserIds: [] as string[],
     };
 
     it("should store a valid birthday detection", async () => {
@@ -131,6 +141,34 @@ describe("BirthdayEngine", () => {
       const result = await engine.analyzeAndStore(baseRequest);
 
       expect(result).toEqual({ stored: true, reason: "stored" });
+    });
+
+    it("should attribute happy birthday wish to the mentioned user", async () => {
+      vi.mocked(ollama.chat).mockResolvedValue(
+        JSON.stringify({ isBirthday: true, personName: "@mentioned", month: 3, day: 10 }),
+      );
+      vi.mocked(accessor.upsert).mockResolvedValue("added");
+
+      const result = await engine.analyzeAndStore({
+        ...baseRequest,
+        messageContent: "happy birthday <@target-user>!",
+        mentionedUserIds: ["target-user"],
+      });
+
+      expect(result).toEqual({ stored: true, reason: "stored" });
+      expect(accessor.upsert).toHaveBeenCalledWith("guild-1", "target-user", null, 3, 10, "detected");
+    });
+
+    it("should fall back to author when @mentioned but no mentions in message", async () => {
+      vi.mocked(ollama.chat).mockResolvedValue(
+        JSON.stringify({ isBirthday: true, personName: "@mentioned", month: 3, day: 10 }),
+      );
+      vi.mocked(accessor.upsert).mockResolvedValue("added");
+
+      const result = await engine.analyzeAndStore(baseRequest);
+
+      expect(result).toEqual({ stored: true, reason: "stored" });
+      expect(accessor.upsert).toHaveBeenCalledWith("guild-1", "user-1", null, 3, 10, "detected");
     });
   });
 

@@ -60,6 +60,8 @@ export async function backfillBirthdays(
             messageId: message.id,
             userId: message.author.id,
             guildId,
+            messageDate: message.createdAt,
+            mentionedUserIds: [...message.mentions.users.filter((u) => !u.bot).keys()],
           });
           if (result.reason === "stored") birthdaysFound++;
         } catch (error) {

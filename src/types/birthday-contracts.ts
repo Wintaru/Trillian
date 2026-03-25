@@ -3,6 +3,8 @@ export interface AnalyzeBirthdayRequest {
   messageId: string;
   userId: string;
   guildId: string;
+  messageDate: Date;
+  mentionedUserIds: string[];
 }
 
 export interface AnalyzeBirthdayResponse {
