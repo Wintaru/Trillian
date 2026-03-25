@@ -5,9 +5,16 @@ import * as logger from "./logger.js";
 
 const BATCH_SIZE = 100;
 const MIN_MESSAGE_LENGTH = 30;
+const LOOKBACK_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/** Convert a timestamp to a Discord snowflake (for use as "after" parameter). */
+function timestampToSnowflake(timestamp: number): string {
+  const DISCORD_EPOCH = 1420070400000n;
+  return String((BigInt(timestamp) - DISCORD_EPOCH) << 22n);
+}
 
 /**
- * Scans all historical messages in the recipe channel and processes any
+ * Scans recent messages (last 2 hours) in the recipe channel and processes any
  * that haven't been stored yet. Uses messageId for deduplication, so
  * it's safe to run repeatedly — already-processed messages are skipped.
  */
@@ -25,21 +32,20 @@ export async function backfillRecipes(
   const textChannel = channel as TextChannel;
   const guildId = textChannel.guildId;
 
-  logger.info(`Recipe backfill: scanning #${textChannel.name} for historical recipes...`);
+  const afterSnowflake = timestampToSnowflake(Date.now() - LOOKBACK_MS);
+  logger.info(`Recipe backfill: scanning #${textChannel.name} for recipes in the last 2 hours...`);
 
   let processed = 0;
   let saved = 0;
   let lastMessageId: string | undefined;
 
-  // Fetch messages in batches, oldest first
-  // Discord API fetches newest first with "before", so we start from the latest
-  // and work backwards
+  // Fetch messages after the lookback cutoff, in batches
   let hasMore = true;
   while (hasMore) {
-    const options: { limit: number; before?: string } = { limit: BATCH_SIZE };
-    if (lastMessageId) {
-      options.before = lastMessageId;
-    }
+    const options: { limit: number; after: string } = {
+      limit: BATCH_SIZE,
+      after: lastMessageId ?? afterSnowflake,
+    };
 
     const messages = await textChannel.messages.fetch(options);
     if (messages.size === 0) {
@@ -47,7 +53,7 @@ export async function backfillRecipes(
       break;
     }
 
-    // Process from oldest to newest within batch
+    // "after" returns newest first — sort oldest to newest
     const sorted = [...messages.values()].sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
     for (const message of sorted) {
@@ -73,8 +79,8 @@ export async function backfillRecipes(
       }
     }
 
-    // Get the oldest message ID from this batch to continue backwards
-    lastMessageId = sorted[0].id;
+    // Continue forward from the newest message in this batch
+    lastMessageId = sorted[sorted.length - 1].id;
 
     if (messages.size < BATCH_SIZE) {
       hasMore = false;
