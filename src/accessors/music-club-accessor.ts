@@ -299,9 +299,9 @@ export class MusicClubAccessor {
   async getListeningRoundsWithAllRatings(): Promise<
     { id: number; channelId: string; playlistMessageId: string }[]
   > {
-    // A round is fully rated when every member (except each song's submitter)
-    // has rated every song. Expected ratings = songs × (members - 1) assuming
-    // each member submitted one song.
+    // A round is fully rated when every submitter (except each song's own
+    // submitter) has rated every song. Expected ratings = songs × (submitters - 1).
+    // Only submitters are expected to rate, not all club members.
     return db
       .select({
         id: musicClubRounds.id,
@@ -324,8 +324,8 @@ export class MusicClubAccessor {
             SELECT count(*) FROM ${musicClubSongs}
             WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}
           ) * (
-            (SELECT count(*) FROM ${musicClubMembers}
-             WHERE ${musicClubMembers.guildId} = ${musicClubRounds.guildId}) - 1
+            (SELECT count(DISTINCT ${musicClubSongs.userId}) FROM ${musicClubSongs}
+             WHERE ${musicClubSongs.roundId} = ${musicClubRounds.id}) - 1
           )`,
         ),
       );
@@ -356,6 +356,14 @@ export class MusicClubAccessor {
       .orderBy(desc(musicClubRounds.closedAt))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  async getSubmitterUserIds(roundId: number): Promise<string[]> {
+    const rows = await db
+      .select({ userId: musicClubSongs.userId })
+      .from(musicClubSongs)
+      .where(eq(musicClubSongs.roundId, roundId));
+    return rows.map((r) => r.userId);
   }
 
   // --- Songs ---

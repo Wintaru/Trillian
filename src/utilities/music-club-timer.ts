@@ -209,7 +209,13 @@ export function startMusicClubTransitionTimer(
           );
 
           if (channel.isSendable()) {
-            const msg = await channel.send({ embeds: [embed], components: [rateRow] });
+            const submitterIds = await accessor.getSubmitterUserIds(round.id);
+            const mentions = submitterIds.map((id) => `<@${id}>`).join(" ");
+            const msg = await channel.send({
+              content: mentions || undefined,
+              embeds: [embed],
+              components: [rateRow],
+            });
             await accessor.setPlaylistMessageId(round.id, msg.id);
           }
 
@@ -258,7 +264,13 @@ export function startMusicClubTransitionTimer(
           );
 
           if (channel.isSendable()) {
-            const msg = await channel.send({ embeds: [embed], components: [rateRow] });
+            const submitterIds = await accessor.getSubmitterUserIds(round.id);
+            const mentions = submitterIds.map((id) => `<@${id}>`).join(" ");
+            const msg = await channel.send({
+              content: mentions || undefined,
+              embeds: [embed],
+              components: [rateRow],
+            });
             await accessor.setPlaylistMessageId(round.id, msg.id);
           }
 

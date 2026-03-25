@@ -28,12 +28,14 @@ function createMockAccessor(): MusicClubAccessor {
     setClosedAt: vi.fn(),
     getLatestClosedRound: vi.fn(),
     getListeningRoundsWithAllRatings: vi.fn(),
+    getSubmitterUserIds: vi.fn(),
     upsertSong: vi.fn(),
     getSong: vi.fn(),
     getSongsForRound: vi.fn(),
     upsertRating: vi.fn(),
     getAverageRatings: vi.fn(),
     getRaterTallies: vi.fn(),
+    getUserRatingsForRound: vi.fn(),
   } as unknown as MusicClubAccessor;
 }
 
