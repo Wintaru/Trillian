@@ -108,17 +108,6 @@ export interface RoundPlaylistResponse {
   ratingsCloseAt: number;
 }
 
-export interface SongRatingResult {
-  songId: number;
-  userId: string;
-  title: string;
-  artist: string;
-  reason: string;
-  averageRating: number;
-  ratingCount: number;
-  links: OdesliLinks;
-}
-
 export interface RaterTally {
   userId: string;
   totalPointsGiven: number;
@@ -127,7 +116,6 @@ export interface RaterTally {
 
 export interface RoundResultsResponse {
   roundId: number;
-  songs: SongRatingResult[];
   raterTallies: RaterTally[];
 }
 

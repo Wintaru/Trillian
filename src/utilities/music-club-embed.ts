@@ -123,29 +123,15 @@ export function buildResultsEmbed(results: RoundResultsResponse): EmbedBuilder {
     .setColor(EMBED_COLOR)
     .setTimestamp();
 
-  if (results.songs.length === 0) {
-    embed.setDescription("No songs were submitted this round.");
+  if (results.raterTallies.length === 0) {
+    embed.setDescription("No ratings were submitted this round.");
     return embed;
   }
 
-  const lines = results.songs.map((song) => {
-    const name = song.title && song.artist
-      ? `${song.title} — ${song.artist}`
-      : song.title || "Unknown";
-    const links = buildPlatformLinks(song.links, "");
-    return `${name} by <@${song.userId}>\n${links}`;
-  });
-
-  const songSection = truncate(lines.join("\n\n"), 3500);
-
-  if (results.raterTallies.length > 0) {
-    const tallyLines = results.raterTallies.map((t) =>
-      `<@${t.userId}>: **${t.totalPointsGiven}** pts (${t.songsRated} song${t.songsRated !== 1 ? "s" : ""} rated)`,
-    );
-    embed.setDescription(`${songSection}\n\n**Rater Scores**\n${tallyLines.join("\n")}`);
-  } else {
-    embed.setDescription(songSection);
-  }
+  const tallyLines = results.raterTallies.map((t) =>
+    `<@${t.userId}>: **${t.totalPointsGiven}** pts (${t.songsRated} song${t.songsRated !== 1 ? "s" : ""} rated)`,
+  );
+  embed.setDescription(`**Rating Totals**\n${tallyLines.join("\n")}`);
 
   return embed;
 }

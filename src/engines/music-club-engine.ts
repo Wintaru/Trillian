@@ -15,7 +15,6 @@ import type {
   RoundResultsResponse,
   OdesliLinks,
   MusicClubSongEntry,
-  SongRatingResult,
 } from "../types/music-club-contracts.js";
 
 
@@ -208,26 +207,6 @@ export class MusicClubEngine {
     const round = await this.musicClubAccessor.getRound(roundId);
     if (!round) return null;
 
-    const songs = await this.musicClubAccessor.getSongsForRound(roundId);
-    const ratings = await this.musicClubAccessor.getAverageRatings(roundId);
-    const ratingMap = new Map(ratings.map((r) => [r.songId, r]));
-
-    const results: SongRatingResult[] = songs.map((song) => {
-      const rating = ratingMap.get(song.id);
-      return {
-        songId: song.id,
-        userId: song.userId,
-        title: song.title,
-        artist: song.artist,
-        reason: song.reason,
-        averageRating: rating ? Math.round(rating.averageRating * 10) / 10 : 0,
-        ratingCount: rating ? Number(rating.ratingCount) : 0,
-        links: parseOdesliData(song.odesliData),
-      };
-    });
-
-    results.sort((a, b) => b.averageRating - a.averageRating);
-
     const tallies = await this.musicClubAccessor.getRaterTallies(roundId);
     const raterTallies = tallies.map((t) => ({
       userId: t.userId,
@@ -235,7 +214,7 @@ export class MusicClubEngine {
       songsRated: Number(t.songsRated),
     }));
 
-    return { roundId: round.id, songs: results, raterTallies };
+    return { roundId: round.id, raterTallies };
   }
 
   async getLatestResults(guildId: string): Promise<RoundResultsResponse | null> {

@@ -256,26 +256,16 @@ describe("MusicClubEngine", () => {
       expect(result).toBeNull();
     });
 
-    it("should return songs sorted by average rating", async () => {
+    it("should return rater tallies", async () => {
       vi.mocked(accessor.getRound).mockResolvedValue(ROUND_ROW);
-      vi.mocked(accessor.getSongsForRound).mockResolvedValue([
-        { id: 1, roundId: 1, userId: "u1", originalUrl: "", title: "Song A", artist: "A", odesliData: "{}", reason: "", submittedAt: 1000 },
-        { id: 2, roundId: 1, userId: "u2", originalUrl: "", title: "Song B", artist: "B", odesliData: "{}", reason: "", submittedAt: 1001 },
-      ]);
-      vi.mocked(accessor.getAverageRatings).mockResolvedValue([
-        { songId: 1, averageRating: 6.5, ratingCount: 2 },
-        { songId: 2, averageRating: 8.0, ratingCount: 3 },
-      ]);
       vi.mocked(accessor.getRaterTallies).mockResolvedValue([
         { userId: "u3", totalPointsGiven: 30, songsRated: 2 },
       ]);
 
       const result = await engine.getResults(1);
-      expect(result?.songs).toHaveLength(2);
-      expect(result?.songs[0].title).toBe("Song B");
-      expect(result?.songs[0].averageRating).toBe(8);
-      expect(result?.songs[1].title).toBe("Song A");
-      expect(result?.songs[1].averageRating).toBe(6.5);
+      expect(result?.raterTallies).toHaveLength(1);
+      expect(result?.raterTallies[0].userId).toBe("u3");
+      expect(result?.raterTallies[0].totalPointsGiven).toBe(30);
     });
   });
 
