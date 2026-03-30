@@ -257,10 +257,20 @@ export class MusicClubEngine {
     return ready;
   }
 
-  async getActiveRound(guildId: string): Promise<{ id: number; status: string } | null> {
+  async getActiveRound(guildId: string): Promise<{
+    id: number;
+    status: string;
+    submissionsCloseAt: number;
+    ratingsCloseAt: number;
+  } | null> {
     const round = await this.musicClubAccessor.getActiveRound(guildId);
     if (!round) return null;
-    return { id: round.id, status: round.status };
+    return {
+      id: round.id,
+      status: round.status,
+      submissionsCloseAt: round.submissionsCloseAt,
+      ratingsCloseAt: round.ratingsCloseAt,
+    };
   }
 
   async getUserRatingsForRound(

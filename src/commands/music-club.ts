@@ -66,6 +66,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         sub.setName("myratings").setDescription("View your ratings for the current round"),
       )
       .addSubcommand((sub) =>
+        sub.setName("status").setDescription("Show how much time is left in the current period"),
+      )
+      .addSubcommand((sub) =>
         sub.setName("help").setDescription("Show available music club commands"),
       ),
 
@@ -95,6 +98,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         case "myratings":
           await handleMyRatings(interaction, engine, guildId);
           break;
+        case "status":
+          await handleStatus(interaction, engine, guildId);
+          break;
         case "help":
           await handleHelp(interaction);
           break;
@@ -105,7 +111,7 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
       const sub = context.args[0]?.toLowerCase();
       const guildId = message.guildId ?? "";
 
-      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings"].includes(sub)) {
+      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings", "status"].includes(sub)) {
         await handleHelpPrefix(message);
         return;
       }
@@ -131,6 +137,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
           break;
         case "myratings":
           await handleMyRatingsPrefix(message, engine, guildId);
+          break;
+        case "status":
+          await handleStatusPrefix(message, engine, guildId);
           break;
       }
     },
@@ -204,6 +213,7 @@ const HELP_DESCRIPTION = [
   "`/musicclub rate` — Rate unrated songs with an interactive wizard (1-10)",
   "`/musicclub rate <number>` — Rate or re-rate a specific song by its playlist number",
   "`/musicclub myratings` — View your ratings for the current round (private)",
+  "`/musicclub status` — Show how much time is left in the current period",
   "`/musicclub playlist [id]` — View the current or a past round's playlist",
   "`/musicclub results [id]` — View results for a completed round",
   "",
@@ -478,6 +488,38 @@ async function handleMyRatings(
   await interaction.editReply({ embeds: [embed] });
 }
 
+async function handleStatus(
+  interaction: ChatInputCommandInteraction,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  const activeRound = await engine.getActiveRound(guildId);
+  if (!activeRound) {
+    await interaction.reply("No active round right now.");
+    return;
+  }
+
+  const msg = buildStatusMessage(activeRound);
+  await interaction.reply(msg);
+}
+
+function buildStatusMessage(round: {
+  id: number;
+  status: string;
+  submissionsCloseAt: number;
+  ratingsCloseAt: number;
+}): string {
+  if (round.status === "open") {
+    const ts = Math.floor(round.submissionsCloseAt / 1000);
+    return `**Round #${round.id}** — Submissions are open!\nCloses <t:${ts}:R> (<t:${ts}:f>)`;
+  }
+  if (round.status === "listening") {
+    const ts = Math.floor(round.ratingsCloseAt / 1000);
+    return `**Round #${round.id}** — Rating is open!\nCloses <t:${ts}:R> (<t:${ts}:f>)`;
+  }
+  return `**Round #${round.id}** — Status: ${round.status}`;
+}
+
 // --- Prefix handlers ---
 
 async function handleJoinPrefix(message: Message, engine: MusicClubEngine, guildId: string): Promise<void> {
@@ -651,6 +693,23 @@ async function handleMyRatingsPrefix(
 
   // Send as ephemeral-like DM reply so only the user sees it
   await message.reply({ embeds: [embed] });
+}
+
+async function handleStatusPrefix(
+  message: Message,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  const activeRound = await engine.getActiveRound(guildId);
+  if (!activeRound) {
+    await message.reply("No active round right now.");
+    return;
+  }
+
+  const msg = buildStatusMessage(activeRound);
+  if (message.channel.isSendable()) {
+    await message.channel.send(msg);
+  }
 }
 
 async function handleHelpPrefix(message: Message): Promise<void> {
