@@ -40,6 +40,9 @@ import { MusicClubAccessor } from "../src/accessors/music-club-accessor.js";
 import { SongMetadataAccessor } from "../src/accessors/song-metadata-accessor.js";
 import { MusicClubEngine } from "../src/engines/music-club-engine.js";
 import { createMusicClubCommand } from "../src/commands/music-club.js";
+import { PlaylistAccessor } from "../src/accessors/playlist-accessor.js";
+import { PlaylistEngine } from "../src/engines/playlist-engine.js";
+import { createPlaylistCommand } from "../src/commands/playlist.js";
 import { NwsAccessor } from "../src/accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "../src/accessors/weatherapi-accessor.js";
 import { WeatherEngine } from "../src/engines/weather-engine.js";
@@ -116,6 +119,9 @@ const musicClubAccessor = new MusicClubAccessor();
 const songMetadataAccessor = new SongMetadataAccessor();
 const musicClubEngine = new MusicClubEngine(musicClubAccessor, songMetadataAccessor);
 
+const playlistAccessor = new PlaylistAccessor();
+const playlistEngine = new PlaylistEngine(playlistAccessor, songMetadataAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -134,6 +140,7 @@ const commands = [
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
+  createPlaylistCommand(playlistEngine),
   createRecipeCommand(new RecipeEngine(ollamaAccessor, new RecipeAccessor(), new WebScraperAccessor())),
   createCleanUrlCommand(new CleanLinksEngine(new RedirectAccessor())),
   createLibraryCommand(

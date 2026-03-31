@@ -78,6 +78,11 @@ import { MusicClubButtonHandler } from "./engines/music-club-button-handler.js";
 import { createMusicClubCommand } from "./commands/music-club.js";
 import { startMusicClubRoundTimer, startMusicClubTransitionTimer } from "./utilities/music-club-timer.js";
 
+// Open playlists
+import { PlaylistAccessor } from "./accessors/playlist-accessor.js";
+import { PlaylistEngine } from "./engines/playlist-engine.js";
+import { createPlaylistCommand } from "./commands/playlist.js";
+
 // Weather system
 import { NwsAccessor } from "./accessors/nws-accessor.js";
 import { WeatherApiAccessor } from "./accessors/weatherapi-accessor.js";
@@ -202,6 +207,10 @@ const songMetadataAccessor = new SongMetadataAccessor();
 const musicClubEngine = new MusicClubEngine(musicClubAccessor, songMetadataAccessor);
 const musicClubButtonHandler = new MusicClubButtonHandler(musicClubEngine);
 
+// Open playlists
+const playlistAccessor = new PlaylistAccessor();
+const playlistEngine = new PlaylistEngine(playlistAccessor, songMetadataAccessor);
+
 // Recipe system
 const recipeAccessor = new RecipeAccessor();
 const webScraperAccessor = new WebScraperAccessor();
@@ -252,6 +261,7 @@ const commands = [
   createLessonCommand(lessonEngine, config.vocabDefaultLanguage),
   createChallengeCommand(challengeEngine),
   createMusicClubCommand(musicClubEngine),
+  createPlaylistCommand(playlistEngine),
   createRecipeCommand(recipeEngine),
   createCleanUrlCommand(cleanLinksEngine),
   createLibraryCommand(libraryEngine, config.libraryChannelId),

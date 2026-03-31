@@ -50,7 +50,10 @@ function buildIntroEmbed(prefix: string): EmbedBuilder {
       },
       {
         name: "🎵 Music Club",
-        value: `\`/musicclub\` — Submit songs, rate, and discover new music`,
+        value: [
+          `\`/musicclub\` — Submit songs, rate, and discover new music`,
+          `\`/playlist\` — Create and manage collaborative playlists`,
+        ].join("\n"),
       },
       {
         name: "🍳 Recipes",

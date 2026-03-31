@@ -340,6 +340,53 @@ export const musicClubRatings = sqliteTable(
   (table) => [primaryKey({ columns: [table.songId, table.userId] })],
 );
 
+// --- Open Playlists ---
+
+export const openPlaylists = sqliteTable(
+  "open_playlists",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    creatorUserId: text("creator_user_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status").notNull().default("open"),
+    createdAt: integer("created_at").notNull(),
+    closedAt: integer("closed_at").notNull().default(0),
+  },
+  (table) => [
+    index("open_playlists_guild_status_idx").on(table.guildId, table.status),
+  ],
+);
+
+export const openPlaylistSongs = sqliteTable("open_playlist_songs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  playlistId: integer("playlist_id").notNull(),
+  userId: text("user_id").notNull(),
+  songUrl: text("song_url").notNull(),
+  title: text("title").notNull().default(""),
+  artist: text("artist").notNull().default(""),
+  note: text("note").notNull().default(""),
+  submittedAt: integer("submitted_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const openPlaylistLinks = sqliteTable(
+  "open_playlist_links",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    playlistId: integer("playlist_id").notNull(),
+    userId: text("user_id").notNull(),
+    platform: text("platform").notNull(),
+    url: text("url").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("open_playlist_links_playlist_platform_unique").on(table.playlistId, table.platform),
+  ],
+);
+
 // --- Recipes ---
 
 export const recipes = sqliteTable("recipes", {

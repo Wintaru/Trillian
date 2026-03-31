@@ -120,6 +120,13 @@
       "when": 1774980922669,
       "tag": "0016_fine_viper",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1774991957503,
+      "tag": "0017_green_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

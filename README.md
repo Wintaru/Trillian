@@ -1139,6 +1139,86 @@ Everyone can use all subcommands. Submitting and rating require music club membe
 
 ---
 
+### `/playlist`
+
+Create and manage open-ended collaborative playlists. Anyone can create a playlist with a theme, and anyone can submit songs to it. Playlists stay open until the creator closes them. Users can also submit platform-specific playlist links (Spotify, Apple Music, YouTube, etc.) so others can listen on their preferred service.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/playlist create title:Road Trip Vibes description:Songs for long drives` |
+| Slash | `/playlist add playlist:1 url:https://open.spotify.com/track/... note:Perfect driving song` |
+| Slash | `/playlist view id:1` |
+| Slash | `/playlist link playlist:1 platform:Spotify url:https://open.spotify.com/playlist/...` |
+| Prefix | `!playlist create Road Trip Vibes \| Songs for long drives` |
+| Prefix | `!playlist add 1 https://open.spotify.com/track/... Perfect driving song` |
+| Prefix | `!playlist view 1` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `create` | Create a new playlist with a title and optional description |
+| `edit` | Edit your playlist's title or description |
+| `close` | Close your playlist to new submissions |
+| `reopen` | Reopen a closed playlist |
+| `delete` | Delete your playlist and all its songs |
+| `list` | List playlists (filter by open/closed/all) |
+| `view` | View all songs in a playlist |
+| `add` | Add a song to an open playlist |
+| `remove` | Remove a song (your own, or any if you're the creator) |
+| `editsong` | Edit a song's note text |
+| `link` | Add or update a platform playlist link |
+| `removelink` | Remove a platform playlist link |
+| `help` | Show available playlist commands |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `title` (create/edit) | string | Yes (create) / No (edit) | — | Playlist title/theme (max 100 chars) |
+| `description` (create/edit) | string | No | — | Longer description of the playlist |
+| `id` (edit/close/reopen/delete/view) | integer | Yes | — | Playlist ID |
+| `status` (list) | string | No | `open` | Filter: open, closed, or all |
+| `playlist` (add/link/removelink) | integer | Yes | — | Playlist ID to add to |
+| `url` (add/link) | string | Yes | — | Song URL or platform playlist URL |
+| `note` (add/editsong) | string | No (add) / Yes (editsong) | — | Free text note about the song |
+| `song` (remove/editsong) | integer | Yes | — | Song ID |
+| `platform` (link/removelink) | string | Yes | — | Streaming platform (spotify, apple_music, youtube, tidal, amazon_music, soundcloud, other) |
+
+#### Permission
+
+Everyone can create playlists, submit songs, and add platform links. Only the playlist creator can edit, close, reopen, or delete their playlist. Song submitters can edit/remove their own songs; playlist creators can edit/remove any song in their playlist.
+
+#### Configuration
+
+No additional environment variables required. Uses the same bot token and guild ID as other commands.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links (for playlist view embeds)
+
+#### Behavior
+
+1. **Create a playlist** with `/playlist create`. Give it a title (the theme) and optional description. Anyone in the server can create playlists.
+2. **Submit songs** with `/playlist add`. Provide the playlist ID and a song URL. The bot scrapes the page for title/artist metadata. Users can submit multiple songs to the same playlist. An optional note can explain why the song fits the theme.
+3. **View the playlist** with `/playlist view`. Shows all songs with submitter, note, and link. Platform playlist links (if any) are displayed prominently at the top.
+4. **Add platform links** with `/playlist link`. Once someone curates the songs into an actual playlist on Spotify/Apple Music/etc., they can link it so others can listen on their preferred service.
+5. **Close the playlist** with `/playlist close` when the creator decides it's complete. Closed playlists can still be viewed but won't accept new songs. Use `/playlist reopen` to accept songs again.
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Title length** | Max 100 characters |
+| **One platform link per platform** | e.g., one Spotify link, one Apple Music link per playlist |
+| **25 songs per embed** | Discord embed field limit; larger playlists show first 25 |
+| **Metadata scraping** | Title/artist extraction depends on the streaming platform's HTML; may be blank for unsupported sites |
+
+---
+
 ### `/recipe`
 
 A recipe book that automatically scans a designated channel for recipes. When someone posts a recipe, the bot uses Ollama to extract the title, ingredients, and instructions, then stores them in a searchable database. Users can browse, search by ingredient, and view full recipe details.
