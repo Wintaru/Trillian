@@ -44,6 +44,10 @@ function createMockMessage(overrides: Partial<{
     channelId: opts.channelId,
     createdAt: opts.createdAt,
     partial: false,
+    reference: null,
+    channel: {
+      messages: { fetch: vi.fn() },
+    },
     author: {
       id: opts.authorId,
       bot: opts.authorBot,

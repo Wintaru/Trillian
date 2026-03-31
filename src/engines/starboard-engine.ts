@@ -1,4 +1,4 @@
-import { EmbedBuilder, time, TimestampStyles } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import type { TextChannel, Message, MessageReaction, PartialMessageReaction } from "discord.js";
 import type { StarboardAccessor } from "../accessors/starboard-accessor.js";
 import * as logger from "../utilities/logger.js";
@@ -74,7 +74,7 @@ export class StarboardEngine {
     const textChannel = starboardChannel as TextChannel;
 
     if (starCount >= this.threshold) {
-      const embed = this.buildStarboardEmbed(
+      const embed = await this.buildStarboardEmbed(
         fullMessage,
         displayName,
         starCount,
@@ -98,7 +98,7 @@ export class StarboardEngine {
       }
     } else if (entry.starboardMessageId) {
       // Below threshold but already posted — update the count
-      const embed = this.buildStarboardEmbed(
+      const embed = await this.buildStarboardEmbed(
         fullMessage,
         displayName,
         starCount,
@@ -118,11 +118,11 @@ export class StarboardEngine {
     return `⭐ **${starCount}** <#${channelId}>`;
   }
 
-  private buildStarboardEmbed(
+  private async buildStarboardEmbed(
     message: Message,
     authorDisplayName: string,
     starCount: number,
-  ): EmbedBuilder {
+  ): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setColor(STARBOARD_COLOR)
       .setAuthor({
@@ -131,8 +131,30 @@ export class StarboardEngine {
       })
       .setTimestamp(message.createdAt);
 
+    // Build description with quoted reply context if present
+    let description = "";
+    if (message.reference?.messageId) {
+      try {
+        const channel = message.channel;
+        const referencedMessage = await channel.messages.fetch(message.reference.messageId);
+        const refMember = referencedMessage.member
+          ?? await message.guild!.members.fetch(referencedMessage.author.id).catch(() => null);
+        const refName = refMember?.displayName ?? referencedMessage.author.displayName;
+        const refContent = referencedMessage.content || "*[no text content]*";
+        // Format as blockquote with author name
+        const quotedLines = refContent.split("\n").map((line: string) => `> ${line}`).join("\n");
+        description += `**${refName}:**\n${quotedLines}\n\n`;
+      } catch {
+        // Referenced message was deleted — skip the quote
+      }
+    }
+
     if (message.content) {
-      embed.setDescription(message.content);
+      description += message.content;
+    }
+
+    if (description) {
+      embed.setDescription(description);
     }
 
     // Add image if the message has an attachment
