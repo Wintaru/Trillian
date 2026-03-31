@@ -69,6 +69,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         sub.setName("status").setDescription("Show how much time is left in the current period"),
       )
       .addSubcommand((sub) =>
+        sub.setName("members").setDescription("List current music club members"),
+      )
+      .addSubcommand((sub) =>
         sub.setName("help").setDescription("Show available music club commands"),
       ),
 
@@ -101,6 +104,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         case "status":
           await handleStatus(interaction, engine, guildId);
           break;
+        case "members":
+          await handleMembers(interaction, engine, guildId);
+          break;
         case "help":
           await handleHelp(interaction);
           break;
@@ -111,7 +117,7 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
       const sub = context.args[0]?.toLowerCase();
       const guildId = message.guildId ?? "";
 
-      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings", "status"].includes(sub)) {
+      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings", "status", "members"].includes(sub)) {
         await handleHelpPrefix(message);
         return;
       }
@@ -140,6 +146,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
           break;
         case "status":
           await handleStatusPrefix(message, engine, guildId);
+          break;
+        case "members":
+          await handleMembersPrefix(message, engine, guildId);
           break;
       }
     },
@@ -214,6 +223,7 @@ const HELP_DESCRIPTION = [
   "`/musicclub rate <number>` — Rate or re-rate a specific song by its playlist number",
   "`/musicclub myratings` — View your ratings for the current round (private)",
   "`/musicclub status` — Show how much time is left in the current period",
+  "`/musicclub members` — List current music club members",
   "`/musicclub playlist [id]` — View the current or a past round's playlist",
   "`/musicclub results [id]` — View results for a completed round",
   "",
@@ -520,6 +530,29 @@ function buildStatusMessage(round: {
   return `**Round #${round.id}** — Status: ${round.status}`;
 }
 
+async function handleMembers(
+  interaction: ChatInputCommandInteraction,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  await interaction.deferReply({ flags: 64 });
+
+  const memberIds = await engine.getMemberUserIds(guildId);
+  if (memberIds.length === 0) {
+    await interaction.editReply("No one has joined the music club yet.");
+    return;
+  }
+
+  const list = memberIds.map((id) => `<@${id}>`).join("\n");
+  const embed = new EmbedBuilder()
+    .setTitle("Music Club Members")
+    .setDescription(list)
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: `${memberIds.length} member${memberIds.length !== 1 ? "s" : ""}` });
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
 // --- Prefix handlers ---
 
 async function handleJoinPrefix(message: Message, engine: MusicClubEngine, guildId: string): Promise<void> {
@@ -710,6 +743,27 @@ async function handleStatusPrefix(
   if (message.channel.isSendable()) {
     await message.channel.send(msg);
   }
+}
+
+async function handleMembersPrefix(
+  message: Message,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  const memberIds = await engine.getMemberUserIds(guildId);
+  if (memberIds.length === 0) {
+    await message.reply("No one has joined the music club yet.");
+    return;
+  }
+
+  const list = memberIds.map((id) => `<@${id}>`).join("\n");
+  const embed = new EmbedBuilder()
+    .setTitle("Music Club Members")
+    .setDescription(list)
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: `${memberIds.length} member${memberIds.length !== 1 ? "s" : ""}` });
+
+  await message.reply({ embeds: [embed] });
 }
 
 async function handleHelpPrefix(message: Message): Promise<void> {

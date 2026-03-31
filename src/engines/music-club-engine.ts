@@ -218,7 +218,7 @@ export class MusicClubEngine {
   }
 
   async getLatestResults(guildId: string): Promise<RoundResultsResponse | null> {
-    const round = await this.musicClubAccessor.getLatestRound(guildId);
+    const round = await this.musicClubAccessor.getLatestClosedRound(guildId);
     if (!round) return null;
     return this.getResults(round.id);
   }
@@ -283,5 +283,9 @@ export class MusicClubEngine {
 
   async getMemberCount(guildId: string): Promise<number> {
     return this.musicClubAccessor.getMemberCount(guildId);
+  }
+
+  async getMemberUserIds(guildId: string): Promise<string[]> {
+    return this.musicClubAccessor.getMemberUserIds(guildId);
   }
 }

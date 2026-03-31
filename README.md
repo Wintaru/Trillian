@@ -1075,6 +1075,7 @@ A weekly music club where members submit songs, listen to each other's picks, an
 | Slash | `/musicclub rate` |
 | Slash | `/musicclub playlist` |
 | Slash | `/musicclub results` |
+| Slash | `/musicclub members` |
 | Prefix | `!musicclub join` |
 | Prefix | `!musicclub submit https://open.spotify.com/track/... This song changed my life` |
 | Prefix | `!musicclub rate` (redirects to slash command wizard) |
@@ -1089,6 +1090,7 @@ A weekly music club where members submit songs, listen to each other's picks, an
 | `rate` | Start the rating wizard — walks through each song with 1-10 buttons. Can re-rate by running again. |
 | `playlist` | View the current round's playlist with cross-platform links |
 | `results` | View results for a completed round, ranked by average rating |
+| `members` | List current music club members |
 
 #### Parameters
 
