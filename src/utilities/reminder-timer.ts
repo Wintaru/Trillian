@@ -66,8 +66,7 @@ function buildReminderEmbed(message: string, deliverAt: number): EmbedBuilder {
   const timestamp = Math.floor(deliverAt / 1000);
   return new EmbedBuilder()
     .setTitle("Reminder")
-    .setDescription(message)
-    .setFooter({ text: `Originally scheduled for <t:${timestamp}:F>` })
+    .setDescription(`${message}\n\nOriginally scheduled for <t:${timestamp}:F>`)
     .setColor(EMBED_COLOR)
     .setTimestamp();
 }
