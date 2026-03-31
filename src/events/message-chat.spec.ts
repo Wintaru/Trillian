@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ChannelType } from "discord.js";
 import { createMessageChatHandler } from "./message-chat.js";
 import type { ChatEngine } from "../engines/chat-engine.js";
+import type { ChatHandlerOptions } from "./message-chat.js";
 
 const mockLogger = vi.hoisted(() => ({
   error: vi.fn(),
@@ -11,7 +12,21 @@ vi.mock("../utilities/logger.js", () => mockLogger);
 const BOT_ID = "bot-123";
 
 function createMockChatEngine(response = "Hello there!"): ChatEngine {
-  return { respond: vi.fn().mockResolvedValue(response) } as unknown as ChatEngine;
+  return {
+    respond: vi.fn().mockResolvedValue(response),
+    interject: vi.fn().mockResolvedValue(response),
+  } as unknown as ChatEngine;
+}
+
+function defaultOptions(engine: ChatEngine, overrides?: Partial<ChatHandlerOptions>): ChatHandlerOptions {
+  return {
+    chatEngine: engine,
+    contextMessageCount: 5,
+    interjectionChance: 0,
+    interjectionCooldownMs: 300000,
+    interjectionContextMessages: 30,
+    ...overrides,
+  };
 }
 
 function createMockMessage(overrides: {
@@ -55,6 +70,7 @@ function createMockMessage(overrides: {
       type: ChannelType.GuildText,
       messages: { fetch: fetchFn },
       sendTyping: vi.fn(),
+      send: vi.fn(),
     },
     reference: referenceMessageId ? { messageId: referenceMessageId } : null,
     reply: vi.fn(),
@@ -63,14 +79,14 @@ function createMockMessage(overrides: {
 
 describe("createMessageChatHandler", () => {
   it("should return a messageCreate handler", () => {
-    const handler = createMessageChatHandler(createMockChatEngine(), 10);
+    const handler = createMessageChatHandler(defaultOptions(createMockChatEngine()));
     expect(handler.event).toBe("messageCreate");
     expect(handler.once).toBe(false);
   });
 
   it("should respond when the bot is @mentioned", async () => {
     const engine = createMockChatEngine("Hi!");
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({ content: `Hey <@${BOT_ID}> what's up?` });
 
     await handler.execute(message as never);
@@ -81,7 +97,7 @@ describe("createMessageChatHandler", () => {
 
   it("should respond when someone replies to a bot message", async () => {
     const engine = createMockChatEngine("I'm here!");
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({
       content: "what do you think?",
       referenceMessageId: "ref-msg-1",
@@ -96,7 +112,7 @@ describe("createMessageChatHandler", () => {
 
   it("should ignore replies to other users", async () => {
     const engine = createMockChatEngine();
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({
       content: "replying to someone else",
       referenceMessageId: "ref-msg-1",
@@ -110,7 +126,7 @@ describe("createMessageChatHandler", () => {
 
   it("should ignore messages with no mention and no reply", async () => {
     const engine = createMockChatEngine();
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({ content: "just a regular message" });
 
     await handler.execute(message as never);
@@ -120,7 +136,7 @@ describe("createMessageChatHandler", () => {
 
   it("should ignore bot messages", async () => {
     const engine = createMockChatEngine();
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({ isBot: true, content: `<@${BOT_ID}>` });
 
     await handler.execute(message as never);
@@ -130,7 +146,7 @@ describe("createMessageChatHandler", () => {
 
   it("should gracefully handle failed reference fetch", async () => {
     const engine = createMockChatEngine();
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({
       content: "replying to deleted message",
       referenceMessageId: "deleted-msg",
@@ -144,7 +160,7 @@ describe("createMessageChatHandler", () => {
 
   it("should only include messages from the target user and bot replies in context", async () => {
     const engine = createMockChatEngine("Hi!");
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
 
     const contextMessages = new Map();
     // A standalone bot message (no reference) — e.g. startup announcement — excluded
@@ -191,11 +207,71 @@ describe("createMessageChatHandler", () => {
 
   it("should send typing indicator before responding", async () => {
     const engine = createMockChatEngine("response");
-    const handler = createMessageChatHandler(engine, 5);
+    const handler = createMessageChatHandler(defaultOptions(engine));
     const message = createMockMessage({ content: `<@${BOT_ID}>` });
 
     await handler.execute(message as never);
 
     expect(message.channel.sendTyping).toHaveBeenCalled();
+  });
+});
+
+describe("random interjection", () => {
+  it("should not interject when chance is 0", async () => {
+    const engine = createMockChatEngine("butting in!");
+    const handler = createMessageChatHandler(defaultOptions(engine, { interjectionChance: 0 }));
+    const message = createMockMessage({ content: "just chatting" });
+
+    await handler.execute(message as never);
+
+    expect(engine.interject).not.toHaveBeenCalled();
+  });
+
+  it("should interject when random roll succeeds", async () => {
+    const engine = createMockChatEngine("butting in!");
+    const handler = createMessageChatHandler(defaultOptions(engine, {
+      interjectionChance: 1,
+      interjectionCooldownMs: 0,
+    }));
+    const message = createMockMessage({ content: "just chatting" });
+
+    await handler.execute(message as never);
+
+    expect(engine.interject).toHaveBeenCalled();
+    expect(message.channel.send).toHaveBeenCalledWith("butting in!");
+    // Should NOT use reply for interjections
+    expect(message.reply).not.toHaveBeenCalled();
+  });
+
+  it("should respect cooldown between interjections", async () => {
+    const engine = createMockChatEngine("butting in!");
+    const handler = createMessageChatHandler(defaultOptions(engine, {
+      interjectionChance: 1,
+      interjectionCooldownMs: 999999,
+    }));
+
+    const msg1 = createMockMessage({ content: "first message" });
+    await handler.execute(msg1 as never);
+    expect(engine.interject).toHaveBeenCalledTimes(1);
+
+    const msg2 = createMockMessage({ content: "second message" });
+    await handler.execute(msg2 as never);
+    // Second call should be blocked by cooldown
+    expect(engine.interject).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not send message when interject returns null", async () => {
+    const engine = createMockChatEngine("ignored");
+    vi.mocked(engine.interject).mockResolvedValue(null);
+    const handler = createMessageChatHandler(defaultOptions(engine, {
+      interjectionChance: 1,
+      interjectionCooldownMs: 0,
+    }));
+    const message = createMockMessage({ content: "just chatting" });
+
+    await handler.execute(message as never);
+
+    expect(engine.interject).toHaveBeenCalled();
+    expect(message.channel.send).not.toHaveBeenCalled();
   });
 });

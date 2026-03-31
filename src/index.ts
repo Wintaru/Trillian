@@ -257,7 +257,13 @@ const events = [
     : []),
   createCharacterCreationDmHandler(characterCreationEngine, characterAccessor, campaignAccessor),
   createLessonDmHandler(lessonEngine, characterAccessor),
-  createMessageChatHandler(chatEngine, config.ollamaContextMessages),
+  createMessageChatHandler({
+    chatEngine,
+    contextMessageCount: config.ollamaContextMessages,
+    interjectionChance: config.chatInterjectionChance,
+    interjectionCooldownMs: config.chatInterjectionCooldownMs,
+    interjectionContextMessages: config.chatInterjectionContextMessages,
+  }),
   ...(config.recipeChannelId
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),

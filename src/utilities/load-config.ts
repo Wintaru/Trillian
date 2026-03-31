@@ -39,6 +39,9 @@ export interface Config {
   libraryDefaultLoanDays: number;
   birthdayChannelId: string | undefined;
   birthdayCheckTime: string;
+  chatInterjectionChance: number;
+  chatInterjectionCooldownMs: number;
+  chatInterjectionContextMessages: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -96,5 +99,8 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     libraryDefaultLoanDays: parseInt(env["LIBRARY_DEFAULT_LOAN_DAYS"] ?? "14", 10),
     birthdayChannelId: env["BIRTHDAY_CHANNEL_ID"] ?? undefined,
     birthdayCheckTime: env["BIRTHDAY_CHECK_TIME"] ?? "08:00",
+    chatInterjectionChance: parseFloat(env["CHAT_INTERJECTION_CHANCE"] ?? "0.02"),
+    chatInterjectionCooldownMs: parseInt(env["CHAT_INTERJECTION_COOLDOWN_MS"] ?? "300000", 10),
+    chatInterjectionContextMessages: parseInt(env["CHAT_INTERJECTION_CONTEXT_MESSAGES"] ?? "30", 10),
   });
 }

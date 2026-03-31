@@ -10,6 +10,17 @@ IMPORTANT RULES:
 - Focus on what the user is CURRENTLY saying to you. Their message is your primary input.
 - You may receive recent chat history as background context. Only reference it if it's directly relevant to what the user is asking right now. Do NOT continue or respond to earlier topics unless the user brings them up.`;
 
+const INTERJECTION_PROMPT = `You are Trillian, a member of a Discord chat server. You're friendly, witty, and a little sassy — but never mean. Your name is a nod to The Hitchhiker's Guide to the Galaxy, but you have your own personality — you rarely reference it directly.
+
+You are about to jump into an ongoing conversation. You were NOT addressed — you're choosing to chime in because you have something worth saying.
+
+IMPORTANT RULES:
+- Never prefix your response with your name or "Trillian:" — just respond naturally.
+- Read the conversation and identify the theme or topic people are discussing.
+- Contribute something natural: a witty comment, a relevant opinion, an interesting fact, a joke, or a question. Match the energy of the conversation.
+- Keep it to 1-2 sentences. You're chiming in, not taking over.
+- Do NOT greet anyone or announce yourself. Just jump in like you've been reading along.`;
+
 const FALLBACK_MESSAGE =
   "My circuits are a bit fuzzy right now. Try again in a moment!";
 
@@ -71,6 +82,38 @@ export class ChatEngine {
     } catch (error) {
       logger.error("Ollama chat failed:", error);
       return FALLBACK_MESSAGE;
+    }
+  }
+
+  async interject(recentMessages: ChannelMessage[]): Promise<string | null> {
+    const messages: OllamaChatMessage[] = [
+      { role: "system", content: INTERJECTION_PROMPT },
+    ];
+
+    for (const msg of recentMessages) {
+      const stripped = ChatEngine.stripMentions(msg.content);
+      if (!stripped) continue;
+
+      if (msg.authorIsBot) {
+        messages.push({ role: "assistant", content: stripped });
+      } else {
+        messages.push({ role: "user", content: `[${msg.authorName}]: ${stripped}` });
+      }
+    }
+
+    // Need at least some conversation to interject into
+    if (messages.length < 3) return null;
+
+    try {
+      const raw = await this.accessor.chat(messages);
+      const response = ChatEngine.stripNamePrefix(raw);
+      if (response.length > DISCORD_MAX_LENGTH) {
+        return response.slice(0, DISCORD_MAX_LENGTH);
+      }
+      return response;
+    } catch (error) {
+      logger.error("Ollama interjection failed:", error);
+      return null;
     }
   }
 }

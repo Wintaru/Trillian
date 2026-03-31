@@ -147,4 +147,52 @@ describe("ChatEngine", () => {
       expect(messages[0].content).not.toContain("Recent chat history");
     });
   });
+
+  describe("interject", () => {
+    it("should send conversation messages as turns for theme analysis", async () => {
+      vi.mocked(accessor.chat).mockResolvedValue("Nice topic!");
+
+      const result = await engine.interject([
+        { authorName: "Alice", authorIsBot: false, content: "I love hiking" },
+        { authorName: "Bob", authorIsBot: false, content: "Me too, went last weekend" },
+      ]);
+
+      expect(result).toBe("Nice topic!");
+      const messages = vi.mocked(accessor.chat).mock.calls[0][0];
+      expect(messages[0].role).toBe("system");
+      expect(messages[1].content).toBe("[Alice]: I love hiking");
+      expect(messages[2].content).toBe("[Bob]: Me too, went last weekend");
+    });
+
+    it("should return null when not enough conversation to interject into", async () => {
+      const result = await engine.interject([
+        { authorName: "Alice", authorIsBot: false, content: "hey" },
+      ]);
+
+      expect(result).toBeNull();
+      expect(accessor.chat).not.toHaveBeenCalled();
+    });
+
+    it("should return null on error", async () => {
+      vi.mocked(accessor.chat).mockRejectedValue(new Error("timeout"));
+
+      const result = await engine.interject([
+        { authorName: "Alice", authorIsBot: false, content: "hello" },
+        { authorName: "Bob", authorIsBot: false, content: "hi there" },
+      ]);
+
+      expect(result).toBeNull();
+    });
+
+    it("should strip name prefix from interjection response", async () => {
+      vi.mocked(accessor.chat).mockResolvedValue("Trillian: That's cool!");
+
+      const result = await engine.interject([
+        { authorName: "Alice", authorIsBot: false, content: "hello" },
+        { authorName: "Bob", authorIsBot: false, content: "hi there" },
+      ]);
+
+      expect(result).toBe("That's cool!");
+    });
+  });
 });
