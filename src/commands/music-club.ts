@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  PermissionFlagsBits,
 } from "discord.js";
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
@@ -72,6 +73,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         sub.setName("members").setDescription("List current music club members"),
       )
       .addSubcommand((sub) =>
+        sub.setName("check").setDescription("Check who hasn't rated yet (mod only)"),
+      )
+      .addSubcommand((sub) =>
         sub.setName("help").setDescription("Show available music club commands"),
       ),
 
@@ -107,6 +111,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
         case "members":
           await handleMembers(interaction, engine, guildId);
           break;
+        case "check":
+          await handleCheck(interaction, engine, guildId);
+          break;
         case "help":
           await handleHelp(interaction);
           break;
@@ -117,7 +124,7 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
       const sub = context.args[0]?.toLowerCase();
       const guildId = message.guildId ?? "";
 
-      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings", "status", "members"].includes(sub)) {
+      if (!sub || sub === "help" || !["join", "leave", "submit", "rate", "playlist", "results", "myratings", "status", "members", "check"].includes(sub)) {
         await handleHelpPrefix(message);
         return;
       }
@@ -149,6 +156,9 @@ export function createMusicClubCommand(engine: MusicClubEngine): Command {
           break;
         case "members":
           await handleMembersPrefix(message, engine, guildId);
+          break;
+        case "check":
+          await handleCheckPrefix(message, engine, guildId);
           break;
       }
     },
@@ -553,6 +563,94 @@ async function handleMembers(
   await interaction.editReply({ embeds: [embed] });
 }
 
+async function handleCheck(
+  interaction: ChatInputCommandInteraction,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
+    await interaction.reply({ content: "This command requires **Manage Messages** permission.", flags: 64 });
+    return;
+  }
+
+  await interaction.deferReply({ flags: 64 });
+  const embed = await buildCheckEmbed(engine, guildId, interaction.guild!);
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function buildCheckEmbed(
+  engine: MusicClubEngine,
+  guildId: string,
+  guild: { members: { fetch(id: string): Promise<{ displayName: string }> } },
+): Promise<EmbedBuilder> {
+  const activeRound = await engine.getActiveRound(guildId);
+  if (!activeRound) {
+    return new EmbedBuilder()
+      .setTitle("Music Club — Rating Check")
+      .setDescription("No active round right now.")
+      .setColor(EMBED_COLOR);
+  }
+
+  if (activeRound.status === "open") {
+    return new EmbedBuilder()
+      .setTitle("Music Club — Rating Check")
+      .setDescription("Round is still in the submission phase — no ratings yet.")
+      .setColor(EMBED_COLOR);
+  }
+
+  const playlist = await engine.getPlaylist(activeRound.id);
+  if (!playlist || playlist.songs.length === 0) {
+    return new EmbedBuilder()
+      .setTitle("Music Club — Rating Check")
+      .setDescription("No songs in this round.")
+      .setColor(EMBED_COLOR);
+  }
+
+  const submitterIds = [...new Set(playlist.songs.map((s) => s.userId))];
+  const rows: { name: string; done: number; needed: number }[] = [];
+
+  for (const uid of submitterIds) {
+    const songsToRate = playlist.songs.filter((s) => s.userId !== uid);
+    const userRatings = await engine.getUserRatingsForRound(activeRound.id, uid);
+    const done = songsToRate.filter((s) => userRatings.has(s.id)).length;
+    let name: string;
+    try {
+      const member = await guild.members.fetch(uid);
+      name = member.displayName;
+    } catch {
+      name = uid;
+    }
+    rows.push({ name, done, needed: songsToRate.length });
+  }
+
+  rows.sort((a, b) => a.done - b.done);
+
+  const notStarted = rows.filter((r) => r.done === 0);
+  const inProgress = rows.filter((r) => r.done > 0 && r.done < r.needed);
+  const finished = rows.filter((r) => r.done >= r.needed);
+
+  const sections: string[] = [];
+
+  if (notStarted.length > 0) {
+    const lines = notStarted.map((r) => `  ${r.name} (0/${r.needed})`);
+    sections.push(`**Haven't rated (${notStarted.length})**\n${lines.join("\n")}`);
+  }
+  if (inProgress.length > 0) {
+    const lines = inProgress.map((r) => `  ${r.name} (${r.done}/${r.needed})`);
+    sections.push(`**Partially rated (${inProgress.length})**\n${lines.join("\n")}`);
+  }
+  if (finished.length > 0) {
+    const lines = finished.map((r) => `  ${r.name} (${r.done}/${r.needed})`);
+    sections.push(`**Finished (${finished.length})**\n${lines.join("\n")}`);
+  }
+
+  return new EmbedBuilder()
+    .setTitle(`Music Club — Round #${activeRound.id} Rating Check`)
+    .setDescription(sections.join("\n\n"))
+    .setColor(EMBED_COLOR)
+    .setFooter({ text: `${finished.length}/${submitterIds.length} submitters finished` });
+}
+
 // --- Prefix handlers ---
 
 async function handleJoinPrefix(message: Message, engine: MusicClubEngine, guildId: string): Promise<void> {
@@ -763,6 +861,21 @@ async function handleMembersPrefix(
     .setColor(EMBED_COLOR)
     .setFooter({ text: `${memberIds.length} member${memberIds.length !== 1 ? "s" : ""}` });
 
+  await message.reply({ embeds: [embed] });
+}
+
+async function handleCheckPrefix(
+  message: Message,
+  engine: MusicClubEngine,
+  guildId: string,
+): Promise<void> {
+  if (!message.member?.permissions.has(PermissionFlagsBits.ManageMessages)) {
+    await message.reply("This command requires **Manage Messages** permission.");
+    return;
+  }
+
+  if (!message.guild) return;
+  const embed = await buildCheckEmbed(engine, guildId, message.guild);
   await message.reply({ embeds: [embed] });
 }
 
