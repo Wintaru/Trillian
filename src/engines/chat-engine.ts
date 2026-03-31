@@ -7,7 +7,8 @@ const SYSTEM_PROMPT = `You are Trillian, a Discord chat bot. You're friendly, wi
 
 IMPORTANT RULES:
 - Never prefix your responses with your name or "Trillian:" — just respond naturally.
-- You will receive recent chat history for context. Each message is labeled with who said it. Pay attention to WHO is currently talking to you — their name will be in the final message. Only address that person, not other people from the history.`;
+- Focus on what the user is CURRENTLY saying to you. Their message is your primary input.
+- You may receive recent chat history as background context. Only reference it if it's directly relevant to what the user is asking right now. Do NOT continue or respond to earlier topics unless the user brings them up.`;
 
 const FALLBACK_MESSAGE =
   "My circuits are a bit fuzzy right now. Try again in a moment!";
@@ -41,26 +42,24 @@ export class ChatEngine {
     const cleaned = ChatEngine.stripMentions(userMessage);
     const prompt = cleaned || `${username} just said hi to me!`;
 
-    const systemPrompt = `${SYSTEM_PROMPT}\n\nYou are currently being addressed by "${username}". Respond directly to them.`;
-
-    const messages: OllamaChatMessage[] = [
-      { role: "system", content: systemPrompt },
-    ];
-
-    // Add recent channel messages as conversation context
+    // Build context summary as background info in the system prompt
+    const contextLines: string[] = [];
     for (const msg of recentMessages) {
       const stripped = ChatEngine.stripMentions(msg.content);
       if (!stripped) continue;
-
-      if (msg.authorIsBot) {
-        messages.push({ role: "assistant", content: stripped });
-      } else {
-        messages.push({ role: "user", content: `[${msg.authorName}]: ${stripped}` });
-      }
+      const name = msg.authorIsBot ? "Trillian (you)" : msg.authorName;
+      contextLines.push(`${name}: ${stripped}`);
     }
 
-    // Add the current message with clear attribution
-    messages.push({ role: "user", content: `[${username}]: ${prompt}` });
+    let systemPrompt = `${SYSTEM_PROMPT}\n\nYou are currently being addressed by "${username}". Respond directly to them.`;
+    if (contextLines.length > 0) {
+      systemPrompt += `\n\nRecent chat history with this user (for background only — respond to their current message, not to this history):\n${contextLines.join("\n")}`;
+    }
+
+    const messages: OllamaChatMessage[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ];
 
     try {
       const raw = await this.accessor.chat(messages);

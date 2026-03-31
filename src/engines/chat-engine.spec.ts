@@ -70,7 +70,7 @@ describe("ChatEngine", () => {
       expect(result).toBe("Hey there!");
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
       const lastMessage = messages[messages.length - 1];
-      expect(lastMessage.content).toBe("[TestUser]: hello");
+      expect(lastMessage.content).toBe("hello");
     });
 
     it("should include username in the system prompt", async () => {
@@ -89,7 +89,6 @@ describe("ChatEngine", () => {
 
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
       const lastMessage = messages[messages.length - 1];
-      expect(lastMessage.content).toContain("[TestUser]");
       expect(lastMessage.content).toContain("TestUser just said hi");
     });
 
@@ -110,7 +109,7 @@ describe("ChatEngine", () => {
       expect(result).toContain("circuits");
     });
 
-    it("should include recent messages as conversation context", async () => {
+    it("should include recent messages as context in the system prompt", async () => {
       vi.mocked(accessor.chat).mockResolvedValue("I remember!");
 
       await engine.respond("what did I say?", "TestUser", [
@@ -119,12 +118,12 @@ describe("ChatEngine", () => {
       ]);
 
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
-      // system + 2 context + 1 current = 4
-      expect(messages).toHaveLength(4);
-      expect(messages[1].role).toBe("user");
-      expect(messages[1].content).toBe("[TestUser]: I love pizza");
-      expect(messages[2].role).toBe("assistant");
-      expect(messages[2].content).toBe("Pizza is great!");
+      // system + 1 current = 2 (context is in the system prompt now)
+      expect(messages).toHaveLength(2);
+      expect(messages[0].role).toBe("system");
+      expect(messages[0].content).toContain("TestUser: I love pizza");
+      expect(messages[0].content).toContain("Trillian (you): Pizza is great!");
+      expect(messages[0].content).toContain("background only");
     });
 
     it("should strip name prefix from response", async () => {
@@ -143,8 +142,9 @@ describe("ChatEngine", () => {
       ]);
 
       const messages = vi.mocked(accessor.chat).mock.calls[0][0];
-      // system + 0 context (stripped to empty) + 1 current = 2
+      // system + 1 current = 2 (empty context not included in system prompt)
       expect(messages).toHaveLength(2);
+      expect(messages[0].content).not.toContain("Recent chat history");
     });
   });
 });
