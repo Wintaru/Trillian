@@ -195,6 +195,20 @@ describe("CleanLinksEngine", () => {
       expect(result.cleanedUrls).toEqual([]);
     });
 
+    it("should not treat URL normalization as cleaning", async () => {
+      const result = await engine.clean({
+        messageContent: "Check https://www.omahazoo.com/owen-sea-lion-shores/",
+      });
+      expect(result.cleanedUrls).toEqual([]);
+    });
+
+    it("should not treat trailing slash normalization as cleaning", async () => {
+      const result = await engine.clean({
+        messageContent: "Visit https://example.com",
+      });
+      expect(result.cleanedUrls).toEqual([]);
+    });
+
     it("should not resolve non-shortener domains", async () => {
       await engine.clean({
         messageContent: "https://youtube.com/watch?v=abc&utm_source=share",

@@ -80,10 +80,11 @@ export class CleanLinksEngine {
         }
       }
 
+      const normalizedHref = url.href;
       const cleaned = this.stripTrackingParams(url);
       const cleanedHref = cleaned.href;
 
-      if (cleanedHref !== rawUrl) {
+      if (cleanedHref !== normalizedHref) {
         return { original: rawUrl, cleaned: cleanedHref };
       }
 

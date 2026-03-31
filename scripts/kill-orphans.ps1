@@ -18,7 +18,7 @@ if (-not (Test-Path $daemonPidFile)) {
 $daemonPid = [int](Get-Content $daemonPidFile)
 
 # 2. PM2-managed process PIDs (hardcoded names; add any new PM2 apps here)
-$pm2AppNames = @("Trillian", "Trillian Webhook")
+$pm2AppNames = @("Trillian", "TrillianWebhook")
 $managedPids = @()
 foreach ($name in $pm2AppNames) {
     $pidOutput = (pm2 pid $name 2>$null) -join ''
