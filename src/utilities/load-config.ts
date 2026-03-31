@@ -42,6 +42,8 @@ export interface Config {
   chatInterjectionChance: number;
   chatInterjectionCooldownMs: number;
   chatInterjectionContextMessages: number;
+  starboardChannelId: string | undefined;
+  starboardThreshold: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -102,5 +104,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     chatInterjectionChance: parseFloat(env["CHAT_INTERJECTION_CHANCE"] ?? "0.02"),
     chatInterjectionCooldownMs: parseInt(env["CHAT_INTERJECTION_COOLDOWN_MS"] ?? "300000", 10),
     chatInterjectionContextMessages: parseInt(env["CHAT_INTERJECTION_CONTEXT_MESSAGES"] ?? "30", 10),
+    starboardChannelId: env["STARBOARD_CHANNEL_ID"] ?? undefined,
+    starboardThreshold: parseInt(env["STARBOARD_THRESHOLD"] ?? "3", 10),
   });
 }

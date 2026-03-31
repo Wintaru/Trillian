@@ -510,3 +510,29 @@ export const birthdays = sqliteTable(
     index("birthdays_month_day_idx").on(table.month, table.day),
   ],
 );
+
+// --- Starboard ---
+
+export const starboardMessages = sqliteTable(
+  "starboard_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    originalMessageId: text("original_message_id").notNull(),
+    originalChannelId: text("original_channel_id").notNull(),
+    originalAuthorId: text("original_author_id").notNull(),
+    authorDisplayName: text("author_display_name").notNull(),
+    messageContent: text("message_content").notNull().default(""),
+    starboardMessageId: text("starboard_message_id"),
+    starCount: integer("star_count").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("starboard_messages_guild_original_unique").on(
+      table.guildId,
+      table.originalMessageId,
+    ),
+    index("starboard_messages_star_count_idx").on(table.starCount),
+  ],
+);

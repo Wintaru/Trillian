@@ -129,6 +129,11 @@ import { startReminderTimer } from "./utilities/reminder-timer.js";
 // Introduction
 import { createIntroductionCommand } from "./commands/introduction.js";
 
+// Starboard
+import { StarboardAccessor } from "./accessors/starboard-accessor.js";
+import { StarboardEngine } from "./engines/starboard-engine.js";
+import { createStarboardAddHandler, createStarboardRemoveHandler } from "./events/reaction-starboard.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -225,6 +230,10 @@ const birthdayEngine = new BirthdayEngine(birthdayAccessor);
 const reminderAccessor = new ReminderAccessor();
 const reminderEngine = new ReminderEngine(reminderAccessor);
 
+// Starboard
+const starboardAccessor = new StarboardAccessor();
+const starboardEngine = new StarboardEngine(starboardAccessor, config.starboardThreshold);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -272,6 +281,12 @@ const events = [
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),
   createMessageCleanLinksHandler(cleanLinksEngine, config.cleanLinksChannelIds),
+  ...(config.starboardChannelId
+    ? [
+        createStarboardAddHandler(starboardEngine, config.starboardChannelId),
+        createStarboardRemoveHandler(starboardEngine, config.starboardChannelId),
+      ]
+    : []),
 ];
 
 const commandEngine = new CommandEngine(commands);

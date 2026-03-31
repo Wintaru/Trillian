@@ -1,0 +1,159 @@
+import { EmbedBuilder, time, TimestampStyles } from "discord.js";
+import type { TextChannel, Message, MessageReaction, PartialMessageReaction } from "discord.js";
+import type { StarboardAccessor } from "../accessors/starboard-accessor.js";
+import * as logger from "../utilities/logger.js";
+
+const STARBOARD_COLOR = 0xffac33; // gold
+
+export class StarboardEngine {
+  constructor(
+    private readonly starboardAccessor: StarboardAccessor,
+    private readonly threshold: number,
+  ) {}
+
+  async handleReactionUpdate(
+    reaction: MessageReaction | PartialMessageReaction,
+    starboardChannelId: string,
+  ): Promise<void> {
+    // Ensure reaction and message are fully fetched
+    if (reaction.partial) {
+      try {
+        reaction = await reaction.fetch();
+      } catch {
+        logger.warn("Starboard: could not fetch partial reaction, skipping");
+        return;
+      }
+    }
+
+    // Only care about ⭐ reactions
+    if (reaction.emoji.name !== "⭐") return;
+
+    const message = reaction.message;
+    if (!message.guild) return;
+
+    // Ensure full message is fetched (for content, author, etc.)
+    let fullMessage: Message;
+    try {
+      fullMessage = message.partial ? await message.fetch() : (message as Message);
+    } catch {
+      logger.warn("Starboard: could not fetch partial message, skipping");
+      return;
+    }
+
+    // Don't starboard bot messages
+    if (fullMessage.author.bot) return;
+
+    const guildId = fullMessage.guild!.id;
+    const starCount = reaction.count;
+
+    // Get or create the DB entry
+    const member = fullMessage.member ?? (await fullMessage.guild!.members.fetch(fullMessage.author.id).catch(() => null));
+    const displayName = member?.displayName ?? fullMessage.author.displayName;
+
+    const { entry } = await this.starboardAccessor.upsertEntry(
+      guildId,
+      fullMessage.id,
+      fullMessage.channelId,
+      fullMessage.author.id,
+      displayName,
+      fullMessage.content,
+      starCount,
+    );
+
+    // Only interact with the starboard channel if threshold is met or message already posted
+    if (starCount < this.threshold && !entry.starboardMessageId) {
+      return;
+    }
+
+    const starboardChannel = await fullMessage.guild!.channels.fetch(starboardChannelId).catch(() => null);
+    if (!starboardChannel?.isTextBased()) {
+      logger.warn(`Starboard: channel ${starboardChannelId} not found or not text-based`);
+      return;
+    }
+
+    const textChannel = starboardChannel as TextChannel;
+
+    if (starCount >= this.threshold) {
+      const embed = this.buildStarboardEmbed(
+        fullMessage,
+        displayName,
+        starCount,
+      );
+      const content = this.buildStarboardContent(starCount, fullMessage.channelId);
+
+      if (entry.starboardMessageId) {
+        // Update existing starboard message
+        try {
+          const starboardMessage = await textChannel.messages.fetch(entry.starboardMessageId);
+          await starboardMessage.edit({ content, embeds: [embed] });
+        } catch {
+          // Starboard message was deleted — re-post
+          const posted = await textChannel.send({ content, embeds: [embed] });
+          await this.starboardAccessor.setStarboardMessageId(guildId, fullMessage.id, posted.id);
+        }
+      } else {
+        // Post new starboard message
+        const posted = await textChannel.send({ content, embeds: [embed] });
+        await this.starboardAccessor.setStarboardMessageId(guildId, fullMessage.id, posted.id);
+      }
+    } else if (entry.starboardMessageId) {
+      // Below threshold but already posted — update the count
+      const embed = this.buildStarboardEmbed(
+        fullMessage,
+        displayName,
+        starCount,
+      );
+      const content = this.buildStarboardContent(starCount, fullMessage.channelId);
+
+      try {
+        const starboardMessage = await textChannel.messages.fetch(entry.starboardMessageId);
+        await starboardMessage.edit({ content, embeds: [embed] });
+      } catch {
+        // Starboard message was deleted — don't re-post since below threshold
+      }
+    }
+  }
+
+  private buildStarboardContent(starCount: number, channelId: string): string {
+    return `⭐ **${starCount}** <#${channelId}>`;
+  }
+
+  private buildStarboardEmbed(
+    message: Message,
+    authorDisplayName: string,
+    starCount: number,
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setColor(STARBOARD_COLOR)
+      .setAuthor({
+        name: authorDisplayName,
+        iconURL: message.author.displayAvatarURL(),
+      })
+      .setTimestamp(message.createdAt);
+
+    if (message.content) {
+      embed.setDescription(message.content);
+    }
+
+    // Add image if the message has an attachment
+    const imageAttachment = message.attachments.find((a) =>
+      a.contentType?.startsWith("image/"),
+    );
+    if (imageAttachment) {
+      embed.setImage(imageAttachment.url);
+    }
+
+    const messageLink = `https://discord.com/channels/${message.guild!.id}/${message.channelId}/${message.id}`;
+
+    embed.addFields({
+      name: "Source",
+      value: `[Jump!](${messageLink})`,
+    });
+
+    embed.setFooter({
+      text: `${message.id} | ${message.createdAt.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} ${message.createdAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`,
+    });
+
+    return embed;
+  }
+}

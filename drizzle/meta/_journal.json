@@ -113,6 +113,13 @@
       "when": 1774958330451,
       "tag": "0015_shiny_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1774980922669,
+      "tag": "0016_fine_viper",
+      "breakpoints": true
     }
   ]
 }

@@ -70,6 +70,11 @@ function buildIntroEmbed(prefix: string): EmbedBuilder {
         ].join("\n"),
       },
       {
+        name: "⭐ Starboard",
+        value:
+          "React to any message with ⭐ — once it hits the threshold, it gets permanently archived in the starboard channel.",
+      },
+      {
         name: "🛠️ Utilities",
         value: [
           `\`/remind\` — Set personal reminders`,
