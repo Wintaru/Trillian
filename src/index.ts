@@ -126,6 +126,9 @@ import { ReminderEngine } from "./engines/reminder-engine.js";
 import { createRemindCommand } from "./commands/remind.js";
 import { startReminderTimer } from "./utilities/reminder-timer.js";
 
+// Introduction
+import { createIntroductionCommand } from "./commands/introduction.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -246,6 +249,7 @@ const commands = [
   createChannelStatsCommand(channelStatsEngine, config.prefix),
   createBirthdayCommand(birthdayEngine),
   createRemindCommand(reminderEngine),
+  createIntroductionCommand(config.prefix),
 ];
 
 const events = [

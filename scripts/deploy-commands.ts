@@ -65,6 +65,7 @@ import { createBirthdayCommand } from "../src/commands/birthday.js";
 import { ReminderAccessor } from "../src/accessors/reminder-accessor.js";
 import { ReminderEngine } from "../src/engines/reminder-engine.js";
 import { createRemindCommand } from "../src/commands/remind.js";
+import { createIntroductionCommand } from "../src/commands/introduction.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -145,6 +146,7 @@ const commands = [
   ),
   createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor())),
   createRemindCommand(new ReminderEngine(new ReminderAccessor())),
+  createIntroductionCommand(config.prefix),
 ];
 
 const commandEngine = new CommandEngine(commands);

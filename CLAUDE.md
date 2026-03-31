@@ -245,6 +245,7 @@ When adding features that use new Discord capabilities, always remind the user t
 3. **Update `scripts/deploy-commands.ts`** — this script has its own command list separate from `src/index.ts`. Any new command must be added to both files or the slash command won't be registered with Discord.
 4. Run `pnpm deploy-commands`
 5. **Update README.md** — add a detailed command reference entry (see existing entries for format)
+6. **Update `src/commands/introduction.ts`** — add the new command to the appropriate category in the intro embed so `/introduction` stays current.
 
 #### Command Requirements
 

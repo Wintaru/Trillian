@@ -1566,6 +1566,48 @@ None — works out of the box. No environment variables needed.
 
 ---
 
+### `/introduction`
+
+Get a personal overview of all bot features. Sends an ephemeral embed (only visible to you) listing every command grouped by category.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/introduction` |
+| Prefix | `!introduction` |
+
+#### Parameters
+
+None.
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+None — works out of the box.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links
+
+#### Behavior
+
+1. User runs `/introduction`
+2. Bot replies with an ephemeral embed (slash) or a regular reply (prefix) containing all available commands grouped into categories: Chat, XP & Leveling, Polls, Weather, Dictionary & Translation, Language Learning, Music Club, Recipes, Library, Shadowrun, and Utilities
+3. The footer mentions the prefix alternative for commands
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Static content** | The feature list is maintained in code. New commands must be added manually to the embed. |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.
