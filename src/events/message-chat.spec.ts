@@ -142,12 +142,12 @@ describe("createMessageChatHandler", () => {
     expect(engine.respond).not.toHaveBeenCalled();
   });
 
-  it("should exclude non-reply bot messages from context", async () => {
+  it("should only include messages from the target user and bot replies in context", async () => {
     const engine = createMockChatEngine("Hi!");
     const handler = createMessageChatHandler(engine, 5);
 
     const contextMessages = new Map();
-    // A standalone bot message (no reference) — e.g. startup announcement
+    // A standalone bot message (no reference) — e.g. startup announcement — excluded
     contextMessages.set("ctx-announce", {
       author: { displayName: "Trillian", id: BOT_ID },
       content: "I'm back online! 🟢",
@@ -159,9 +159,15 @@ describe("createMessageChatHandler", () => {
       content: "Hey there!",
       reference: { messageId: "some-msg" },
     });
-    // A user message — should be included
+    // A message from another user — excluded
+    contextMessages.set("ctx-other", {
+      author: { displayName: "Bob", id: "bob-1" },
+      content: "random chatter",
+      reference: null,
+    });
+    // A message from the target user — should be included
     contextMessages.set("ctx-user", {
-      author: { displayName: "Alice", id: "alice-1" },
+      author: { displayName: "TestUser", id: "user-1" },
       content: "hi bot",
       reference: null,
     });
@@ -177,7 +183,7 @@ describe("createMessageChatHandler", () => {
     await handler.execute(message as never);
 
     const recentMessages = (engine.respond as ReturnType<typeof vi.fn>).mock.calls[0][2];
-    // Should have 2 context messages: bot reply + user message (not the announcement)
+    // Should have 2 context messages: bot reply + target user message (not announcement or other user)
     expect(recentMessages).toHaveLength(2);
     expect(recentMessages[0].content).toBe("hi bot");
     expect(recentMessages[1].content).toBe("Hey there!");

@@ -35,17 +35,21 @@ export function createMessageChatHandler(
       try {
         await message.channel.sendTyping();
 
-        // Fetch recent messages for conversation context (excluding the current one)
+        // Fetch a larger window of messages, then filter to only messages from the
+        // person talking to the bot (+ bot replies to them) so the LLM doesn't
+        // confuse other users' messages as belonging to the current speaker.
         const recentMessages: ChannelMessage[] = [];
         const fetched = await message.channel.messages.fetch({
-          limit: contextMessageCount,
+          limit: 50,
           before: message.id,
         });
 
+        const targetUserId = message.author.id;
         for (const msg of [...fetched.values()].reverse()) {
-          // Skip the bot's own non-conversational messages (e.g. startup announcements)
-          // so they don't leak into the AI's conversation context
-          if (msg.author.id === botUser.id && !msg.reference) continue;
+          const isBotReply = msg.author.id === botUser.id && !!msg.reference;
+          const isTargetUser = msg.author.id === targetUserId;
+
+          if (!isBotReply && !isTargetUser) continue;
 
           recentMessages.push({
             authorName: msg.author.displayName,
@@ -54,10 +58,13 @@ export function createMessageChatHandler(
           });
         }
 
+        // Only keep the most recent messages up to the configured limit
+        const trimmedMessages = recentMessages.slice(-contextMessageCount);
+
         const response = await chatEngine.respond(
           message.content,
           message.author.displayName,
-          recentMessages,
+          trimmedMessages,
         );
 
         await message.reply(response);
