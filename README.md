@@ -1489,6 +1489,83 @@ All subcommands require **Manage Messages** permission. The command is hidden fr
 
 ---
 
+### `/remind`
+
+Set personal reminders. The bot notifies you when the time comes — via DM by default, or publicly in the channel if you opt in.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/remind create when:"in 2 hours" message:"Take out the trash"` |
+| Slash | `/remind create when:"tomorrow at 3pm" message:"Call dentist" public:true` |
+| Slash | `/remind create when:"next Friday at 5pm" message:"Submit timesheet"` |
+| Slash | `/remind list` |
+| Slash | `/remind list page:2` |
+| Slash | `/remind cancel id:5` |
+| Slash | `/remind help` |
+| Prefix | `!remind create in 2 hours \| Take out the trash` |
+| Prefix | `!remind create public tomorrow at 3pm \| Call dentist` |
+| Prefix | `!remind list` |
+| Prefix | `!remind cancel 5` |
+| Prefix | `!remind help` |
+
+#### Subcommands
+
+| Subcommand | Description |
+|---|---|
+| `create <when> <message> [public]` | Create a new reminder. Uses natural language time parsing. |
+| `list [page]` | List your pending reminders (paginated). |
+| `cancel <id>` | Cancel a pending reminder by its ID. |
+| `help` | Show help for the remind command. |
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Range | Description |
+|---|---|---|---|---|---|
+| `when` | String | Yes | — | — | When to be reminded. Natural language: "in 30 minutes", "tomorrow at 3pm", "next Friday at noon" |
+| `message` | String | Yes | — | 1–1000 chars | What to remind you about |
+| `public` | Boolean | No | `false` | — | If true, reminder is posted publicly in the channel. If false, sent via DM. |
+| `id` | Integer | Yes (cancel) | — | — | Reminder ID (shown in `/remind list`) |
+| `page` | Integer | No | `1` | 1+ | Page number for list pagination |
+
+#### Permission
+
+Everyone — no special permissions required. Users can only manage their own reminders.
+
+#### Configuration
+
+None — works out of the box. No environment variables needed.
+
+#### Bot Permissions Required
+
+- Send Messages
+- Embed Links (for help, list, and reminder delivery embeds)
+
+#### Behavior
+
+1. User creates a reminder with a natural language time expression (parsed by `chrono-node`)
+2. The bot confirms the reminder with a Discord timestamp (displayed in the user's local timezone)
+3. A background timer checks every 30 seconds for due reminders
+4. When a reminder is due:
+   - **Private (default):** Bot sends a DM to the user with an embed containing the reminder message
+   - **Public:** Bot @mentions the user in the channel where the reminder was created
+5. If DM delivery fails (e.g., user has DMs disabled), the bot falls back to a public @mention in the original channel
+6. Overdue reminders (e.g., from a bot restart) are delivered on the first timer tick after startup
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Max 25 active reminders** | Per user. Cancel old ones to make room. |
+| **Minimum 1 minute** | Reminders must be at least 1 minute in the future. |
+| **Maximum 1 year** | Reminders can't be set more than 1 year ahead. |
+| **Server timezone** | Time expressions like "at 3pm" use the bot's server time. Discord timestamps auto-adjust for each user's display. |
+| **No recurring reminders** | Each reminder fires once. Set a new one if you need it again. |
+| **Message length** | Reminder messages are capped at 1000 characters. |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.

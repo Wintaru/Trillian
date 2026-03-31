@@ -62,6 +62,9 @@ import { createChannelStatsCommand } from "../src/commands/channel-stats.js";
 import { BirthdayAccessor } from "../src/accessors/birthday-accessor.js";
 import { BirthdayEngine } from "../src/engines/birthday-engine.js";
 import { createBirthdayCommand } from "../src/commands/birthday.js";
+import { ReminderAccessor } from "../src/accessors/reminder-accessor.js";
+import { ReminderEngine } from "../src/engines/reminder-engine.js";
+import { createRemindCommand } from "../src/commands/remind.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -141,6 +144,7 @@ const commands = [
     config.prefix,
   ),
   createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor())),
+  createRemindCommand(new ReminderEngine(new ReminderAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

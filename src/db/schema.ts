@@ -467,6 +467,28 @@ export const libraryWishlist = sqliteTable(
   ],
 );
 
+// --- Reminders ---
+
+export const reminders = sqliteTable(
+  "reminders",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    userId: text("user_id").notNull(),
+    message: text("message").notNull(),
+    deliverAt: integer("deliver_at").notNull(),
+    isPublic: integer("is_public").notNull().default(0),
+    status: text("status").notNull().default("pending"),
+    createdAt: integer("created_at").notNull(),
+    deliveredAt: integer("delivered_at"),
+  },
+  (table) => [
+    index("reminders_status_deliver_at_idx").on(table.status, table.deliverAt),
+    index("reminders_user_status_idx").on(table.userId, table.status),
+  ],
+);
+
 export const birthdays = sqliteTable(
   "birthdays",
   {

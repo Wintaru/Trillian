@@ -120,6 +120,12 @@ import { BirthdayEngine } from "./engines/birthday-engine.js";
 import { createBirthdayCommand } from "./commands/birthday.js";
 import { startBirthdayTimer } from "./utilities/birthday-timer.js";
 
+// Reminder system
+import { ReminderAccessor } from "./accessors/reminder-accessor.js";
+import { ReminderEngine } from "./engines/reminder-engine.js";
+import { createRemindCommand } from "./commands/remind.js";
+import { startReminderTimer } from "./utilities/reminder-timer.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -212,6 +218,10 @@ const channelStatsEngine = new ChannelStatsEngine(channelAccessor, channelStatsA
 const birthdayAccessor = new BirthdayAccessor();
 const birthdayEngine = new BirthdayEngine(birthdayAccessor);
 
+// Reminder system
+const reminderAccessor = new ReminderAccessor();
+const reminderEngine = new ReminderEngine(reminderAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -235,6 +245,7 @@ const commands = [
   createLibraryCommand(libraryEngine, config.libraryChannelId),
   createChannelStatsCommand(channelStatsEngine, config.prefix),
   createBirthdayCommand(birthdayEngine),
+  createRemindCommand(reminderEngine),
 ];
 
 const events = [
@@ -272,6 +283,7 @@ const shutdown = () => {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 startPollTimer(discordClient.getClient(), pollEngine);
+startReminderTimer(discordClient.getClient(), reminderEngine);
 
 if (config.weatherChannelId && config.weatherLocation) {
   startWeatherTimer(
