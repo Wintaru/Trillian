@@ -103,7 +103,6 @@ import { backfillRecipes } from "./utilities/recipe-backfill.js";
 import { RedirectAccessor } from "./accessors/redirect-accessor.js";
 import { CleanLinksEngine } from "./engines/clean-links-engine.js";
 import { createCleanUrlCommand } from "./commands/clean-url.js";
-import { createMessageCleanLinksHandler } from "./events/message-clean-links.js";
 
 // Community library
 import { LibraryAccessor } from "./accessors/library-accessor.js";
@@ -290,7 +289,6 @@ const events = [
   ...(config.recipeChannelId
     ? [createMessageRecipeHandler(recipeEngine, config.recipeChannelId)]
     : []),
-  createMessageCleanLinksHandler(cleanLinksEngine, config.cleanLinksChannelIds),
   ...(config.starboardChannelId
     ? [
         createStarboardAddHandler(starboardEngine, config.starboardChannelId),
