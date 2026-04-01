@@ -85,6 +85,7 @@ function buildIntroEmbed(prefix: string): EmbedBuilder {
           `\`/cleanurl\` — Remove tracking parameters from a URL`,
           `\`/embed\` — Create and manage custom embeds`,
           `\`/channelstats\` — Show today's channel activity stats`,
+          `\`/the-story-so-far\` — Get a private AI summary of what you missed`,
           `\`/ping\` — Check if I'm alive`,
         ].join("\n"),
       },

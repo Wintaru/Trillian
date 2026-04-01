@@ -138,6 +138,10 @@ import { StarboardAccessor } from "./accessors/starboard-accessor.js";
 import { StarboardEngine } from "./engines/starboard-engine.js";
 import { createStarboardAddHandler, createStarboardRemoveHandler } from "./events/reaction-starboard.js";
 
+// The Story So Far (channel summary)
+import { StorySoFarEngine } from "./engines/story-so-far-engine.js";
+import { createTheStorySoFarCommand } from "./commands/the-story-so-far.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -242,6 +246,10 @@ const reminderEngine = new ReminderEngine(reminderAccessor);
 const starboardAccessor = new StarboardAccessor();
 const starboardEngine = new StarboardEngine(starboardAccessor, config.starboardThreshold);
 
+// The Story So Far
+const ollamaSummaryAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaSummaryModel, config.ollamaSummaryTimeoutMs);
+const storySoFarEngine = new StorySoFarEngine(ollamaSummaryAccessor, channelAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -268,6 +276,7 @@ const commands = [
   createBirthdayCommand(birthdayEngine),
   createRemindCommand(reminderEngine),
   createIntroductionCommand(config.prefix),
+  createTheStorySoFarCommand(storySoFarEngine),
 ];
 
 const events = [

@@ -69,6 +69,8 @@ import { ReminderAccessor } from "../src/accessors/reminder-accessor.js";
 import { ReminderEngine } from "../src/engines/reminder-engine.js";
 import { createRemindCommand } from "../src/commands/remind.js";
 import { createIntroductionCommand } from "../src/commands/introduction.js";
+import { StorySoFarEngine } from "../src/engines/story-so-far-engine.js";
+import { createTheStorySoFarCommand } from "../src/commands/the-story-so-far.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -154,6 +156,12 @@ const commands = [
   createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor())),
   createRemindCommand(new ReminderEngine(new ReminderAccessor())),
   createIntroductionCommand(config.prefix),
+  createTheStorySoFarCommand(
+    new StorySoFarEngine(
+      new OllamaAccessor(config.ollamaUrl, config.ollamaSummaryModel, config.ollamaSummaryTimeoutMs),
+      new ChannelAccessor(),
+    ),
+  ),
 ];
 
 const commandEngine = new CommandEngine(commands);

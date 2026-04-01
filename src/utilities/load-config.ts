@@ -43,6 +43,8 @@ export interface Config {
   chatInterjectionContextMessages: number;
   starboardChannelId: string | undefined;
   starboardThreshold: number;
+  ollamaSummaryModel: string;
+  ollamaSummaryTimeoutMs: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -104,5 +106,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     chatInterjectionContextMessages: parseInt(env["CHAT_INTERJECTION_CONTEXT_MESSAGES"] ?? "30", 10),
     starboardChannelId: env["STARBOARD_CHANNEL_ID"] ?? undefined,
     starboardThreshold: parseInt(env["STARBOARD_THRESHOLD"] ?? "3", 10),
+    ollamaSummaryModel: env["OLLAMA_SUMMARY_MODEL"] ?? "gemma3:4b",
+    ollamaSummaryTimeoutMs: parseInt(env["OLLAMA_SUMMARY_TIMEOUT_MS"] ?? "120000", 10),
   });
 }

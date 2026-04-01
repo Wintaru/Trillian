@@ -1679,6 +1679,61 @@ None — works out of the box.
 
 ---
 
+### `/the-story-so-far`
+
+Get an AI-powered summary of what you missed in a channel. The bot reads backward from the current point until it finds your last message, then summarizes everything in between using a local Ollama model.
+
+#### Usage
+
+| Type | Example |
+|---|---|
+| Slash | `/the-story-so-far` |
+| Prefix | `!the-story-so-far` |
+
+#### Parameters
+
+None.
+
+#### Permission
+
+Everyone — no special permissions required.
+
+#### Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `OLLAMA_SUMMARY_MODEL` | `gemma3:4b` | Ollama model used for summarization |
+| `OLLAMA_SUMMARY_TIMEOUT_MS` | `120000` | Timeout for the Ollama summarization call (ms) |
+
+#### Bot Permissions Required
+
+- Send Messages
+- Read Message History
+
+#### Behavior
+
+1. User runs `/the-story-so-far` in a channel
+2. Bot fetches messages backward from the current point until it finds the user's last message (up to 500 messages)
+3. If the user has never posted in the channel, the bot summarizes the last ~100 messages instead
+4. Messages are formatted into a compact transcript and sent to Ollama for summarization
+5. The summary includes who said what, key topics, and notes about shared media
+6. Media references (images, attachments, URLs) are listed with clickable links back to the original messages
+7. **Slash**: Response is ephemeral (only visible to the requesting user)
+8. **Prefix**: Summary is sent via DM to the user (since prefix responses can't be ephemeral)
+9. If the transcript exceeds the model's context window, older messages are trimmed and the user is notified
+
+#### Limitations
+
+| Constraint | Detail |
+|---|---|
+| **Message cap** | Fetches up to 500 messages backward. If the user's last message is further back, the summary covers only the most recent 500. |
+| **Context window** | gemma3:4b has ~8K tokens of context. Very long conversations are truncated from the oldest messages. |
+| **Discord message limit** | Summaries exceeding 2000 characters have the media links section trimmed first. |
+| **Prefix DM** | Prefix invocation sends the summary via DM. If the user has DMs disabled, the bot notifies them in-channel. |
+| **Requires Ollama** | The configured Ollama model must be running and accessible. |
+
+---
+
 ## Shadowrun Campaign System
 
 The bot includes a full Shadowrun 5th Edition tabletop RPG system. The bot acts as Game Master, using a local Ollama LLM to generate narrative content — campaign settings, scene descriptions, NPC dialogue, and story progression.
