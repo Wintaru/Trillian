@@ -11,11 +11,12 @@ const CHARS_PER_TOKEN = 4;
 const SYSTEM_PROMPT = `You are summarizing a Discord chat conversation for someone who missed it. Write a concise, neutral summary that:
 - Preserves who said what (use their display names)
 - Captures the key topics, decisions, and highlights
-- Notes any media that was shared (images, links, files) with context about what they were
+- Mentions when someone shared a GIF, image, or file, but do NOT include any URLs or links — those will be listed separately
 - Groups related discussion together rather than going message-by-message
 - Keeps a casual, readable tone — this is a chat summary, not a formal report
 
-Do NOT include a title or heading. Jump straight into the summary.`;
+Do NOT include a title or heading. Jump straight into the summary.
+Do NOT include any URLs, links, or markdown link syntax in your response.`;
 
 const FALLBACK_MESSAGE =
   "I wasn't able to generate a summary right now. Try again in a moment!";
@@ -111,7 +112,7 @@ export class StorySoFarEngine {
       }
       for (const embed of msg.embeds) {
         if (embed.image) line += ` [Image]`;
-        if (embed.url) line += ` [Link: ${embed.url}]`;
+        if (embed.url) line += ` [Link shared]`;
       }
 
       lines.push(line);
