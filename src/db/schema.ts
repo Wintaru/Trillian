@@ -558,6 +558,26 @@ export const birthdays = sqliteTable(
   ],
 );
 
+// --- Feed Subscriptions ---
+
+export const feedSubscriptions = sqliteTable(
+  "feed_subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    feedUrl: text("feed_url").notNull(),
+    label: text("label").notNull(),
+    lastPostGuid: text("last_post_guid"),
+    lastCheckedAt: integer("last_checked_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("feed_subscriptions_guild_url_unique").on(table.guildId, table.feedUrl),
+    index("feed_subscriptions_guild_idx").on(table.guildId),
+  ],
+);
+
 // --- Starboard ---
 
 export const starboardMessages = sqliteTable(

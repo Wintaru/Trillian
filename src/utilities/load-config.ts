@@ -45,6 +45,7 @@ export interface Config {
   starboardThreshold: number;
   ollamaSummaryModel: string;
   ollamaSummaryTimeoutMs: number;
+  feedCheckIntervalMs: number;
 }
 
 function parseChannelIds(value: string | undefined): string[] {
@@ -108,5 +109,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     starboardThreshold: parseInt(env["STARBOARD_THRESHOLD"] ?? "3", 10),
     ollamaSummaryModel: env["OLLAMA_SUMMARY_MODEL"] ?? "gemma3:4b",
     ollamaSummaryTimeoutMs: parseInt(env["OLLAMA_SUMMARY_TIMEOUT_MS"] ?? "120000", 10),
+    feedCheckIntervalMs: parseInt(env["FEED_CHECK_INTERVAL_MS"] ?? "300000", 10),
   });
 }

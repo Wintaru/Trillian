@@ -78,6 +78,10 @@ function buildIntroEmbed(prefix: string): EmbedBuilder {
           "React to any message with ⭐ — once it hits the threshold, it gets permanently archived in the starboard channel.",
       },
       {
+        name: "📡 Feeds",
+        value: `\`/feed\` — Subscribe to RSS/Atom feeds and get new posts in a channel`,
+      },
+      {
         name: "🛠️ Utilities",
         value: [
           `\`/remind\` — Set personal reminders`,

@@ -71,6 +71,9 @@ import { createRemindCommand } from "../src/commands/remind.js";
 import { createIntroductionCommand } from "../src/commands/introduction.js";
 import { StorySoFarEngine } from "../src/engines/story-so-far-engine.js";
 import { createTheStorySoFarCommand } from "../src/commands/the-story-so-far.js";
+import { FeedAccessor } from "../src/accessors/feed-accessor.js";
+import { FeedEngine } from "../src/engines/feed-engine.js";
+import { createFeedCommand } from "../src/commands/feed.js";
 import staticCommands from "../src/commands/index.js";
 import * as logger from "../src/utilities/logger.js";
 
@@ -162,6 +165,7 @@ const commands = [
       new ChannelAccessor(),
     ),
   ),
+  createFeedCommand(new FeedEngine(new FeedAccessor())),
 ];
 
 const commandEngine = new CommandEngine(commands);

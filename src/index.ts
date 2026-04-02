@@ -142,6 +142,12 @@ import { createStarboardAddHandler, createStarboardRemoveHandler } from "./event
 import { StorySoFarEngine } from "./engines/story-so-far-engine.js";
 import { createTheStorySoFarCommand } from "./commands/the-story-so-far.js";
 
+// Feed subscriptions
+import { FeedAccessor } from "./accessors/feed-accessor.js";
+import { FeedEngine } from "./engines/feed-engine.js";
+import { createFeedCommand } from "./commands/feed.js";
+import { startFeedTimer } from "./utilities/feed-timer.js";
+
 const xpAccessor = new XpAccessor();
 const xpEngine = new XpEngine(
   xpAccessor,
@@ -250,6 +256,10 @@ const starboardEngine = new StarboardEngine(starboardAccessor, config.starboardT
 const ollamaSummaryAccessor = new OllamaAccessor(config.ollamaUrl, config.ollamaSummaryModel, config.ollamaSummaryTimeoutMs);
 const storySoFarEngine = new StorySoFarEngine(ollamaSummaryAccessor, channelAccessor);
 
+// Feed subscriptions
+const feedAccessor = new FeedAccessor();
+const feedEngine = new FeedEngine(feedAccessor);
+
 const commands = [
   ...staticCommands,
   createRankCommand(xpEngine),
@@ -277,6 +287,7 @@ const commands = [
   createRemindCommand(reminderEngine),
   createIntroductionCommand(config.prefix),
   createTheStorySoFarCommand(storySoFarEngine),
+  createFeedCommand(feedEngine),
 ];
 
 const events = [
@@ -415,3 +426,6 @@ if (config.birthdayChannelId) {
   );
   logger.info(`Birthday timer started, announcing at ${config.birthdayCheckTime} in channel ${config.birthdayChannelId}`);
 }
+
+startFeedTimer(discordClient.getClient(), feedEngine, config.feedCheckIntervalMs);
+logger.info(`Feed timer started (checking every ${config.feedCheckIntervalMs / 1000}s)`);
