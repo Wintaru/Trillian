@@ -56,6 +56,10 @@ describe("ChatEngine", () => {
       expect(ChatEngine.stripNamePrefix("I am Trillian: the bot")).toBe("I am Trillian: the bot");
     });
 
+    it("should strip bracketed username prefix", () => {
+      expect(ChatEngine.stripNamePrefix("[z28runner 🍕]: Seriously?!")).toBe("Seriously?!");
+    });
+
     it("should return text unchanged when no prefix", () => {
       expect(ChatEngine.stripNamePrefix("Just a response")).toBe("Just a response");
     });

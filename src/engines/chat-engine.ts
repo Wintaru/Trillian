@@ -43,7 +43,10 @@ export class ChatEngine {
   }
 
   static stripNamePrefix(text: string): string {
-    return text.replace(/^(?:Trillian:\s*|"?Trillian"?:\s*)/i, "").trim();
+    return text
+      .replace(/^(?:Trillian:\s*|"?Trillian"?:\s*)/i, "")
+      .replace(/^\[.+?\]:\s*/, "")
+      .trim();
   }
 
   async respond(
