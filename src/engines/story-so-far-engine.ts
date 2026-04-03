@@ -8,15 +8,17 @@ const FALLBACK_LIMIT = 100;
 const MAX_TOKENS = 6000;
 const CHARS_PER_TOKEN = 4;
 
-const SYSTEM_PROMPT = `You are summarizing a Discord chat conversation for someone who missed it. Write a concise, neutral summary that:
+const SYSTEM_PROMPT = `You are summarizing a Discord chat conversation for someone who missed it. Write a concise summary that:
 - Preserves who said what (use their display names)
 - Captures the key topics, decisions, and highlights
+- Faithfully preserves the tone, humor, and subject matter of the conversation — do NOT censor, sanitize, or tone down the content. If the conversation was crude, edgy, flirty, or irreverent, the summary should reflect that
 - Mentions when someone shared a GIF, image, or file, but do NOT include any URLs or links — those will be listed separately
 - Groups related discussion together rather than going message-by-message
-- Keeps a casual, readable tone — this is a chat summary, not a formal report
+- Keeps a casual, readable tone matching the energy of the original conversation
 
 Do NOT include a title or heading. Jump straight into the summary.
-Do NOT include any URLs, links, or markdown link syntax in your response.`;
+Do NOT include any URLs, links, or markdown link syntax in your response.
+Do NOT skip or gloss over topics just because they are adult, offensive, or inappropriate — your job is to accurately represent what was discussed.`;
 
 const FALLBACK_MESSAGE =
   "I wasn't able to generate a summary right now. Try again in a moment!";
