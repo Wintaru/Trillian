@@ -283,7 +283,7 @@ const commands = [
   createCleanUrlCommand(cleanLinksEngine),
   createLibraryCommand(libraryEngine, config.libraryChannelId),
   createChannelStatsCommand(channelStatsEngine, config.prefix),
-  createBirthdayCommand(birthdayEngine),
+  createBirthdayCommand(birthdayEngine, ollamaAccessor),
   createRemindCommand(reminderEngine),
   createIntroductionCommand(config.prefix),
   createTheStorySoFarCommand(storySoFarEngine),
@@ -420,6 +420,7 @@ if (config.birthdayChannelId) {
   startBirthdayTimer(
     discordClient.getClient(),
     birthdayEngine,
+    ollamaAccessor,
     config.birthdayChannelId,
     config.guildId,
     config.birthdayCheckTime,

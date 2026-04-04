@@ -156,7 +156,7 @@ const commands = [
     new ChannelStatsEngine(new ChannelAccessor(), new ChannelStatsAccessor()),
     config.prefix,
   ),
-  createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor())),
+  createBirthdayCommand(new BirthdayEngine(new BirthdayAccessor()), ollamaAccessor),
   createRemindCommand(new ReminderEngine(new ReminderAccessor())),
   createIntroductionCommand(config.prefix),
   createTheStorySoFarCommand(

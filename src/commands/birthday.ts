@@ -2,7 +2,9 @@ import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from "discord.
 import type { ChatInputCommandInteraction, Message } from "discord.js";
 import type { Command, CommandContext } from "../types/command.js";
 import type { BirthdayEngine } from "../engines/birthday-engine.js";
+import type { OllamaAccessor } from "../accessors/ollama-accessor.js";
 import type { BirthdayEntry } from "../types/birthday-contracts.js";
+import { buildBirthdayEmbeds } from "../utilities/birthday-timer.js";
 
 const EMBED_COLOR = 0xe91e63;
 
@@ -20,6 +22,7 @@ const HELP_DESCRIPTION = [
   "`/birthday add <month> <day> <@user> [person]` — Add a birthday for a user (leave person blank for themselves)",
   "`/birthday remove <@user> [person]` — Remove a birthday",
   "`/birthday list [@user]` — List stored birthdays (all, or for a specific user)",
+  "`/birthday announce` — Post today's birthday announcements now",
   "`/birthday help` — Show this help message",
   "",
   "**Tips:**",
@@ -40,7 +43,7 @@ function formatBirthday(entry: BirthdayEntry): string {
   return `<@${entry.userId}> — **${who}** — ${MONTH_NAMES[entry.month]} ${entry.day}`;
 }
 
-export function createBirthdayCommand(birthdayEngine: BirthdayEngine): Command {
+export function createBirthdayCommand(birthdayEngine: BirthdayEngine, ollamaAccessor: OllamaAccessor): Command {
   return {
     name: "birthday",
     description: "Track and celebrate birthdays (mod only)",
@@ -85,6 +88,9 @@ export function createBirthdayCommand(birthdayEngine: BirthdayEngine): Command {
           .addUserOption((opt) =>
             opt.setName("user").setDescription("Filter to a specific user").setRequired(false),
           ),
+      )
+      .addSubcommand((sub) =>
+        sub.setName("announce").setDescription("Post today's birthday announcements now"),
       )
       .addSubcommand((sub) =>
         sub.setName("help").setDescription("Show birthday command help"),
@@ -189,6 +195,23 @@ export function createBirthdayCommand(birthdayEngine: BirthdayEngine): Command {
               .setColor(EMBED_COLOR);
             await interaction.reply({ embeds: [embed], flags: 64 });
           }
+          break;
+        }
+
+        case "announce": {
+          const now = new Date();
+          const month = now.getMonth() + 1;
+          const day = now.getDate();
+          const entries = await birthdayEngine.getTodaysBirthdays(guildId, month, day);
+
+          if (entries.length === 0) {
+            await interaction.reply({ content: "No birthdays today.", flags: 64 });
+            return;
+          }
+
+          await interaction.deferReply();
+          const embeds = await buildBirthdayEmbeds(ollamaAccessor, entries, month, day);
+          await interaction.editReply({ embeds });
           break;
         }
 
@@ -308,6 +331,22 @@ export function createBirthdayCommand(birthdayEngine: BirthdayEngine): Command {
             .setColor(EMBED_COLOR);
           await message.reply({ embeds: [embed] });
         }
+        return;
+      }
+
+      if (subcommand === "announce") {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        const entries = await birthdayEngine.getTodaysBirthdays(guildId, month, day);
+
+        if (entries.length === 0) {
+          await message.reply("No birthdays today.");
+          return;
+        }
+
+        const embeds = await buildBirthdayEmbeds(ollamaAccessor, entries, month, day);
+        await message.channel.send({ embeds });
         return;
       }
 
